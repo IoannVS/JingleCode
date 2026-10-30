@@ -17,7 +17,7 @@
 - **Совместимость**: основа на платформе для всех IDE, Git и сборка как optional-модули.
 
 ## Шаг 0, каркас (30 октября 2026)
-- **Проект из мастера New Project IDEA**, а не из GitHub-шаблона: Gradle 9.7.1, IntelliJ Platform Gradle Plugin 2.19.0. Демо-окно шаблона удалено.
+- **Проект из мастера New Project IDEA**, а не из GitHub-шаблона: Gradle 9.8.2, IntelliJ Platform Gradle Plugin 2.19.0. Демо-окно шаблона удалено.
 - **Компилируем против IDEA 2025.3**, `sinceBuild = 251`, `apiVersion = 2.1` у Kotlin (2025.1 несёт Kotlin 2.1), stdlib не пакуем. Что API из 2025.1 не потерялось, проверяет `verifyPlugin`: последняя 2025.1.x, последний релиз и последний EAP.
 - **`instrumentCode = false`**: инструментация нужна только для `.form` и `@NotNull` в Java, а с Microsoft JDK она падает.
 - **`PixelCanvas` рисует в пикселях устройства**: размер логического пикселя = user scale × HiDPI scale, округлённый до целого. Так пиксели одинаковые на 125 % и 150 %. Округление координат как у `Math.round` в JS, `hash` перенесён как есть, чтобы спрайты совпадали с макетом.
@@ -98,3 +98,10 @@
 - **Расписание визита — чистая функция времени** (`drift/Delivery`): где сани, сколько подарков в кучке и в санях, какие летят, где эльфы. Её проверяют тесты без IDE. Визит длится 2–4 с на 1–9 подарков, возврат примерно вдвое дольше.
 - **Сцене во время визита нужно небо**: слой сугроба забирает 18 логических пикселей над сценой (над нижними строками дерева, внутри панели), и оверлей на это время переходит на плавный такт (`OverlayLayer.isAnimating`, `subscribeMotion`).
 - **Сборка**: после смены сигнатур инкрементальная компиляция и build cache отдают устаревшие тестовые классы (`NoSuchMethodError`). Лечится `./gradlew clean test --no-build-cache`.
+
+## Версии сборки (31 октября 2026)
+- **Gradle 9.8.2, IntelliJ Platform Gradle Plugin 2.19.0, changelog 2.5.0, foojay-resolver 1.0.0** — последние стабильные. **Kotlin 2.3.20 → 2.4.21**, 2.5.0 пока в бете. Проверено по метаданным Gradle Plugin Portal.
+- **`apiVersion = 2.1` остаётся**, хотя Kotlin 2.4 предупреждает, что она устарела: IDE 2025.1 (`sinceBuild = 251`) несёт Kotlin 2.1, и с 2.2 мы могли бы вызвать функцию stdlib, которой там нет. Поднимать вместе с `sinceBuild`: когда откажемся от 2025.1, поднимем и `apiVersion`. Когда Kotlin перестанет поддерживать 2.1, придётся решать.
+- **`verifyPlugin` поймал несовместимость с 2025.1.** Компилируем против 2025.3, а там `PluginId` и `ProjectLevelVcsManager` переписаны на Kotlin: `PluginId.getId(...)` и `ProjectLevelVcsManager.getInstance(...)` компилируются через их `Companion`. В 2025.1 это Java-классы без `Companion`, отсюда был бы `NoSuchFieldError`. Правило: **статические «getInstance» платформенных классов, переписанных на Kotlin, не вызываем; сервисы берём через `project.getService(X::class.java)`** и после новых API прогоняем `verifyPlugin`.
+- **Есть ли Git — без internal API.** `PluginManagerCore.getPlugin` помечен `@Internal`. Вместо него Git-модуль сам регистрирует сервис `events.CommitSource` в `jingle-code-git.xml`, а ядро проверяет, есть ли такой сервис (`CommitSource.isPresent()`).
+- **Оставшиеся 5 экспериментальных API — сознательно.** Три относятся к `CustomHighlighterOrder.AFTER_TEXT` (снег поверх текста: старый `isForeground()` идёт под удаление, другого способа нет). Два — к перегрузке `GitPushListener.onCompleted(…, params)`: Kotlin сам генерирует для неё мост в нашем слушателе, хотя мы переопределяем только основной метод. Это предупреждения, не ошибки: `verifyPlugin` пишет «Compatible» для 2025.1, 2026.2 и 2026.3.

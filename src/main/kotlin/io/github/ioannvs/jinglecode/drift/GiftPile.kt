@@ -1,10 +1,9 @@
 package io.github.ioannvs.jinglecode.drift
 
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
+import io.github.ioannvs.jinglecode.events.CommitSource
 import io.github.ioannvs.jinglecode.events.JingleEvent
 import io.github.ioannvs.jinglecode.events.JingleEventListener
 
@@ -20,7 +19,7 @@ import io.github.ioannvs.jinglecode.events.JingleEventListener
 class GiftPile {
     /** `null` while Git hasn't counted yet. */
     @Volatile
-    private var counted: Int? = if (isGitEnabled()) null else WITHOUT_GIT
+    private var counted: Int? = if (CommitSource.isPresent()) null else WITHOUT_GIT
 
     /** Gifts in the pile now (once the sleigh is gone). */
     val count: Int get() = counted ?: 0
@@ -64,16 +63,6 @@ class GiftPile {
         const val WITHOUT_GIT = 3
 
         private fun ageMs(at: Long): Long = if (at == 0L) Long.MAX_VALUE else (System.nanoTime() - at) / 1_000_000
-
-        /** Whether the Git plugin is there to count, asked without touching any of its classes. */
-        private fun isGitEnabled(): Boolean =
-            try {
-                val git = PluginManagerCore.getPlugin(PluginId.getId("Git4Idea"))
-                git != null && !PluginManagerCore.isDisabled(git.pluginId)
-            }
-            catch (_: RuntimeException) {
-                false // no plugins loaded, as in unit tests
-            }
 
         @JvmStatic
         fun getInstance(project: Project): GiftPile = project.service()

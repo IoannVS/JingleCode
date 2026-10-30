@@ -18,6 +18,7 @@ import git4idea.push.GitPushRepoResult
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryChangeListener
 import git4idea.repo.GitRepositoryManager
+import io.github.ioannvs.jinglecode.events.CommitSource
 import io.github.ioannvs.jinglecode.events.JingleEvent
 import io.github.ioannvs.jinglecode.events.JingleEvents
 import java.util.concurrent.atomic.AtomicBoolean
@@ -83,7 +84,9 @@ class GitCommitWatcher(private val project: Project) : Disposable {
     private fun count(): Count? {
         val repositories = GitRepositoryManager.getInstance(project).repositories
         if (repositories.isEmpty()) {
-            val mapped = ProjectLevelVcsManager.getInstance(project).getDirectoryMappings(GitVcs.getInstance(project)).isNotEmpty()
+            // As a service, not `getInstance`: that compiles to a Companion that IDE 2025.1 doesn't have.
+            val vcs = project.getService(ProjectLevelVcsManager::class.java)
+            val mapped = vcs.getDirectoryMappings(GitVcs.getInstance(project)).isNotEmpty()
             if (!mapped) JingleEvents.publish(project, JingleEvent.NoRepositories)
             return null
         }
@@ -136,3 +139,6 @@ internal class GitCommitListener(private val project: Project) : GitRepositoryCh
 internal class GitCommitStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) = GitCommitWatcher.getInstance(project).recount()
 }
+
+/** Tells the decorations that commits are counted here: registered only when Git is there. */
+internal class GitCommitSource : CommitSource

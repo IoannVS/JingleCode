@@ -1,5 +1,5 @@
 <!-- Keep a Changelog guide -> https://keepachangelog.com -->
 
-# JingleCode Changelog
+# Jingle Code Changelog
 
 ## [Unreleased]

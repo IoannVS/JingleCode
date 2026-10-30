@@ -1,0 +1,517 @@
+<title>Деревня Jingle Code</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+/* Layout: one column of composition variants, each a full-width editor strip with a short "what changed" list; a catalogue of house types at the end. Single dark look, like the IDE. */
+:root {
+  --bg: #11141b;
+  --panel: #1a1e27;
+  --editor: #1e1f22;
+  --line: #2c313c;
+  --fg: #e9e4da;
+  --muted: #9097a5;
+  --ember: #ff9a3c;
+  --good: #7fc79a;
+  --display: "Press Start 2P", "Courier New", monospace;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html { background: var(--bg); }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+header { display: flex; flex-direction: column; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(18px, 3.2vw, 26px); line-height: 1.4; margin: 0; color: var(--ember); text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 400; font-size: 13px; line-height: 1.6; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.lead { color: var(--muted); }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; }
+button { font: 600 13px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); padding: 8px 13px; border-radius: 6px; cursor: pointer; }
+button:hover { border-color: var(--ember); }
+button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+button[aria-pressed="true"] { border-color: var(--ember); color: var(--ember); }
+section { display: flex; flex-direction: column; gap: 12px; }
+.head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.tag { font: 600 11px var(--body); letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--good); color: var(--good); }
+.scroll { overflow-x: auto; }
+.editor { background: var(--editor); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; width: 920px; }
+.editor canvas { display: block; width: 920px; height: 128px; image-rendering: pixelated; image-rendering: crisp-edges; }
+ul { margin: 0; padding-left: 18px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; max-width: 75ch; }
+li b { color: var(--fg); font-weight: 600; }
+.cat { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.cat figure { margin: 0; background: var(--editor); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.cat canvas { width: 128px; height: 112px; image-rendering: pixelated; image-rendering: crisp-edges; }
+.cat figcaption { font-size: 13px; color: var(--muted); text-align: center; }
+.cat figcaption b { color: var(--fg); display: block; font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Деревня Jingle Code</h1>
+    <p class="lead">Четыре композиции для полосы внизу редактора, в масштабе как в плагине. Сейчас в плагине домики стоят через равные промежутки, все одной формы и с одинаковым снегом. Здесь показано, как это разбить: группы и пустоты, разные планы, разные типы домов и снег, который зависит от крыши и ветра.</p>
+    <div class="controls">
+      <button id="reseed" type="button">Перемешать детали</button>
+      <button id="evening" type="button" aria-pressed="true">Вечер</button>
+      <button id="pause" type="button">Пауза</button>
+    </div>
+  </header>
+
+  <section>
+    <div class="head"><h2>1. Хутор на холме</h2><span class="tag">советую</span></div>
+    <div class="scroll"><div class="editor"><canvas id="v1" width="460" height="64"></canvas></div></div>
+    <ul>
+      <li><b>Асимметрия</b>: главная группа домов стоит на холме справа, примерно на трети ширины от края. Слева много пустого снега.</li>
+      <li><b>Группы вместо ряда</b>: дома стоят тесно и чуть перекрывают друг друга, рядом одинокий амбар с забором.</li>
+      <li><b>Доминанта</b>: часовня с куполом выше всех, глаз цепляется за неё.</li>
+      <li><b>Ёлки кучками</b> разного роста, между ними прогалины и пара берёз.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>2. Долина</h2><span class="tag">переделано</span></div>
+    <div class="scroll"><div class="editor"><canvas id="v2" width="460" height="64"></canvas></div></div>
+    <ul>
+      <li><b>Дальний план живой</b>: горы со снежными шапками, между вершинами видно небо. На склоне маленькая деревня с огнями, дымками и шпилем, по серпантину едут сани с фонарём. На правом склоне большой горы горнолыжка: две трассы, кресельный подъёмник с движущимися креслами, лыжники спускаются змейкой, внизу база с флагом, вечером вдоль трассы горят фонари.</li>
+      <li><b>Средний план</b>: снежная гряда, лес куртинами, а не сплошной полосой. Посередине замёрзший пруд, на нём катаются двое.</li>
+      <li><b>Передний план</b>: группа домов слева, баня у ёлок справа, середина свободна, чтобы было видно пруд и горы.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>3. Улица в гору</h2><span class="tag">переделано</span></div>
+    <div class="scroll"><div class="editor"><canvas id="v3" width="460" height="64"></canvas></div></div>
+    <ul>
+      <li><b>Диагональ вместо ряда</b>: улица поднимается слева направо к часовне на вершине, за ней спуск с мельницей и лесом.</li>
+      <li><b>Ритм</b>: пустое поле с берёзами и стогом, плотная группа изба с баней у подножия, просвет с колодцем, высокий терем, снова просвет, вершина.</li>
+      <li><b>Два ряда</b>: дома заднего ряда стоят выше по склону и частично спрятаны за передними, это даёт глубину.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>4. Поляна в лесу</h2></div>
+    <div class="scroll"><div class="editor"><canvas id="v4" width="460" height="64"></canvas></div></div>
+    <ul>
+      <li><b>Минимализм</b>: густой лес по краям, в середине поляна с одной избой.</li>
+      <li><b>Тепло в центре</b>: светятся окна, из трубы идёт дым, рядом дрова и снеговик.</li>
+      <li><b>Спокойнее всего</b> для глаз, если остальной декор уже насыщенный.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>Разные дома и разный снег</h2></div>
+    <p class="lead">Каждый дом собирается из параметров: тип, ширина, этажность, форма и цвет крыши, стены, труба, окна, украшения. Снег зависит от крутизны крыши и ветра. На наветренной стороне его больше, с крутой крыши он съезжает, у стены намело сугроб, а сосульки висят не везде. «Перемешать детали» показывает, как по-разному выглядят одни и те же типы.</p>
+    <div class="cat" id="cat"></div>
+  </section>
+</div>
+
+<script>
+/* ---------- пиксельные примитивы ---------- */
+const px = (c, x, y, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), 1, 1); };
+const rect = (c, x, y, w, h, col) => { if (w <= 0 || h <= 0) return; c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const hash = (a, b) => { const s = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return s - Math.floor(s); };
+
+const P = {
+  snow: '#eef3fa', snowHi: '#ffffff', snowSh: '#c3d2e6', ice: '#a9cdf0',
+  logs: ['#8a5a3a', '#74482d'], planks: ['#9c6a45', '#7b4f31'],
+  red: ['#a8322a', '#8a2620'], blue: ['#2f5f8a', '#264d70'], yellow: ['#c9a04a', '#a8843a'], stone: ['#7d756d', '#655e57'],
+  roofs: { red: '#a8322a', teal: '#2f6f73', plum: '#7a3b6e', brown: '#5a3a24', green: '#2e6b45', slate: '#4a5568' },
+  winFrame: '#4a2c1c', winLit: '#ffcf5e', winCore: '#fff2b8', winDark: '#1b2433', door: '#4a2c1c',
+  pine: ['#2e7d4f', '#3f8f5a'], pineFar: '#1f3a33', birch: '#e8e4dc', trunk: '#6b3e22',
+  bulbs: ['#ff5a5a', '#ffd75e', '#5ab8ff', '#7fe08a'], gold: '#d8b04a', far: '#2a3346', farSnow: '#9fb0c8',
+  smoke: '#8d96a8', lamp: '#ffd75e'
+};
+
+let evening = true, frame = 0, seed = 7;
+
+/* ---------- деревья ---------- */
+function pine(c, x, base, h, r, far) {
+  const col = far ? [P.pineFar, P.pineFar] : P.pine;
+  for (let i = 0; i < h; i++) {
+    const hw = Math.floor(i / 2.4) - (i % 6 === 5 ? 1 : 0);
+    rect(c, x - hw, base - h + i, hw * 2 + 1, 1, col[i % 5 < 2 ? 1 : 0]);
+  }
+  rect(c, x, base, 1, 2, P.trunk);
+  if (far) return;
+  for (let i = 2; i < h; i += 4 + Math.floor(r() * 2)) {
+    const hw = Math.floor(i / 2.4), side = r() > 0.5 ? 1 : -1, len = 1 + Math.floor(r() * (hw + 1));
+    rect(c, side > 0 ? x : x - len + 1, base - h + i, len, 1, P.snow);
+  }
+  px(c, x, base - h, P.snow);
+}
+function birch(c, x, base, h, r) {
+  rect(c, x, base - h, 1, h + 1, P.birch);
+  for (let y = base - h + 2; y < base; y += 3) if (r() > 0.4) px(c, x, y, '#2a2420');
+  for (let i = 0; i < 4; i++) {
+    const y = base - h + 2 + Math.floor(r() * (h - 4)), d = r() > 0.5 ? 1 : -1;
+    px(c, x + d, y, '#8a7a6a'); px(c, x + d * 2, y - 1, '#8a7a6a'); if (r() > 0.5) px(c, x + d * 2, y - 2, P.snow);
+  }
+}
+
+/* ---------- дом ---------- */
+function randomSpec(type, r) {
+  const pick = a => a[Math.floor(r() * a.length)];
+  const base = { type, wind: r() > 0.5 ? 1 : -1, snow: 1 + Math.floor(r() * 3), icicles: r() > 0.4, drift: r() > 0.3, lit: r(), deco: pick(['garland', 'wreath', 'none', 'garland']) };
+  switch (type) {
+    case 'izba': return { ...base, w: 16 + Math.floor(r() * 5), h: 9 + Math.floor(r() * 2), wall: 'logs', roof: pick(['brown', 'red', 'slate']), pitch: 1, chimney: r() > 0.2, carved: true, wins: 2 };
+    case 'terem': return { ...base, w: 18 + Math.floor(r() * 4), h: 18, wall: pick(['logs', 'blue', 'yellow']), roof: pick(['green', 'red', 'teal']), pitch: 1.3, chimney: true, carved: true, wins: 2, storeys: 2 };
+    case 'banya': return { ...base, w: 11, h: 7, wall: 'logs', roof: 'brown', shed: true, chimney: true, smokeHeavy: true, wins: 1, deco: 'none' };
+    case 'barn': return { ...base, w: 24 + Math.floor(r() * 4), h: 11, wall: 'red', roof: pick(['slate', 'brown']), pitch: 0.8, barn: true, wins: 0, chimney: false };
+    case 'cottage': return { ...base, w: 14 + Math.floor(r() * 4), h: 9, wall: pick(['yellow', 'blue', 'planks', 'red']), roof: pick(['red', 'teal', 'plum']), pitch: 0.6, chimney: r() > 0.3, wins: 2 };
+    case 'aframe': return { ...base, w: 12, h: 3, wall: 'planks', roof: 'brown', pitch: 2.2, chimney: false, wins: 1, aframe: true };
+    case 'church': return { ...base, w: 12, h: 16, wall: pick(['stone', 'yellow']), roof: 'slate', pitch: 1, church: true, chimney: false, wins: 1 };
+    case 'mill': return { ...base, w: 10, h: 16, wall: 'planks', roof: 'brown', mill: true, chimney: false, wins: 1, deco: 'none' };
+  }
+}
+
+function wallColors(s) { return P[s.wall] || P.logs; }
+
+function drawWindow(c, x, y, lit, carved) {
+  rect(c, x - 1, y - 1, 6, 6, P.winFrame);
+  rect(c, x, y, 4, 4, lit ? P.winLit : P.winDark);
+  if (lit) px(c, x, y, P.winCore);
+  rect(c, x + 2, y, 1, 4, P.winFrame); rect(c, x, y + 2, 4, 1, P.winFrame);
+  if (carved) { rect(c, x - 1, y - 2, 6, 1, P.birch); px(c, x + 1, y - 3, P.birch); px(c, x + 2, y - 3, P.birch); rect(c, x - 1, y + 5, 6, 1, P.birch); }
+}
+
+function drawRoofGable(c, x, top, w, pitch, col, s) {
+  // крыша: свес 2 пикселя, высота зависит от крутизны
+  const W = w + 4, rh = Math.max(3, Math.round(W / 2 / (1 / pitch) / 1));
+  const rows = Math.max(3, Math.round((W / 2) * pitch / 1.6));
+  const edges = [];
+  for (let i = 0; i < rows; i++) {
+    const inset = Math.round((i + 1) * (W / 2) / (rows + 0.5));
+    const l = x - 2 + inset - Math.round(W / 2 / rows), rw = W - 2 * (inset - Math.round(W / 2 / rows));
+    rect(c, l, top - i, rw, 1, col);
+    edges.push([l, l + rw - 1, top - i]);
+  }
+  // снег: наветренная сторона больше; с крутой крыши съезжает
+  const slide = pitch > 1.2 ? 0.5 : 1;
+  edges.forEach(([l, rgt, y], i) => {
+    const big = Math.max(1, Math.round(s.snow * slide * (i % 3 === 0 ? 1 : 0.8)));
+    const small = Math.max(0, Math.round(s.snow * slide * 0.4));
+    const left = s.wind < 0 ? big : small, right = s.wind < 0 ? small : big;
+    rect(c, l, y - 1, Math.min(left, rgt - l + 1), 1, P.snow);
+    rect(c, rgt - Math.min(right, rgt - l + 1) + 1, y - 1, Math.min(right, rgt - l + 1), 1, P.snow);
+  });
+  const [tl, tr, ty] = edges[edges.length - 1];
+  rect(c, tl, ty - 1, tr - tl + 1, 1, P.snow);
+  if (s.snow >= 3 && pitch <= 1.2) rect(c, tl + 1, ty - 2, Math.max(1, tr - tl - 1), 1, P.snowHi);
+  // карниз снега на наветренной стороне
+  const eave = edges[0];
+  if (s.snow >= 2) px(c, s.wind < 0 ? eave[0] - 1 : eave[1] + 1, eave[2], P.snow);
+  return { peakX: Math.round((tl + tr) / 2), peakY: ty - 1, eaveY: top };
+}
+
+function drawRoofShed(c, x, top, w, col, s) {
+  const W = w + 4;
+  for (let i = 0; i < W; i++) {
+    const hgt = 2 + Math.round((i / W) * 4);
+    const cx = s.wind < 0 ? x - 2 + i : x + w + 1 - i;
+    rect(c, cx, top - hgt + 1, 1, hgt, col);
+    rect(c, cx, top - hgt + 1 - Math.max(1, Math.round(s.snow * 0.8)), 1, Math.max(1, Math.round(s.snow * 0.8)), P.snow);
+  }
+  return { peakX: s.wind < 0 ? x + w : x, peakY: top - 6, eaveY: top };
+}
+
+function drawHouse(c, x, gy, s, r) {
+  const [wc, wd] = wallColors(s);
+  const roofCol = P.roofs[s.roof] || s.roof;
+  if (s.mill) return drawMill(c, x, gy, s);
+  const top = gy - s.h;
+  // стены
+  if (!s.aframe) {
+    rect(c, x, top, s.w, s.h, wc);
+    if (s.wall === 'logs') { for (let y = top + 1; y < gy; y += 2) rect(c, x, y, s.w, 1, wd); for (let y = top; y < gy; y += 2) { px(c, x - 1, y, wd); px(c, x + s.w, y, wd); } }
+    else if (s.wall === 'planks' || s.wall === 'red') { for (let xx = x + 2; xx < x + s.w; xx += 3) rect(c, xx, top, 1, s.h, wd); }
+    else if (s.wall === 'stone') { for (let y = top + 2; y < gy; y += 3) { rect(c, x, y, s.w, 1, wd); } }
+    else { rect(c, x, top, 1, s.h, wd); rect(c, x + s.w - 1, top, 1, s.h, wd); }
+  }
+  // крыша
+  let roof;
+  if (s.shed) roof = drawRoofShed(c, x, top - 1, s.w, roofCol, s);
+  else roof = drawRoofGable(c, x, top - 1, s.w, s.aframe ? 2.6 : s.pitch, roofCol, s);
+  if (s.carved && !s.shed) { for (let xx = x - 1; xx < x + s.w + 1; xx += 2) px(c, xx, top, P.birch); }
+  if (s.storeys === 2) rect(c, x - 1, top + Math.floor(s.h / 2), s.w + 2, 1, wd);
+  // труба
+  if (s.chimney) {
+    const cx = s.wind < 0 ? x + s.w - 6 : x + 3, ch = s.shed ? 6 : 4;
+    const cy = s.shed ? roof.peakY - 1 : roof.peakY + Math.round((roof.eaveY - roof.peakY) * 0.35);
+    rect(c, cx, cy - ch, 3, ch + 2, P.stone[0]); rect(c, cx, cy - ch, 3, 1, P.snow);
+    if (s.lit > 0.25 || s.smokeHeavy) {
+      const n = s.smokeHeavy ? 7 : 4;
+      for (let i = 0; i < n; i++) { const t = (frame * 0.3 + i * 2.2) % (n * 2.2); if (t < 1) continue; px(c, cx + 1 + Math.round(Math.sin(t * 0.9 + x) * 1.2) - Math.round(t * 0.4) * s.wind * -1, cy - ch - 1 - Math.round(t * 1.4), P.smoke); }
+    }
+  }
+  // окна и двери
+  const litBase = evening ? 0.15 : 0.7;
+  if (s.church) {
+    drawWindow(c, x + 4, top + 4, s.lit > litBase, false);
+    rect(c, x + 4, gy - 6, 4, 6, P.door);
+    drawDome(c, x + Math.floor(s.w / 2), roof.peakY, s);
+  } else if (s.barn) {
+    const dx = x + Math.floor(s.w / 2) - 4;
+    rect(c, dx, gy - 8, 8, 8, '#6a1e18');
+    for (let i = 0; i < 8; i++) { px(c, dx + i, gy - 8 + i, '#d9c9a8'); px(c, dx + 7 - i, gy - 8 + i, '#d9c9a8'); }
+    rect(c, dx - 1, gy - 9, 10, 1, '#d9c9a8');
+  } else if (s.aframe) {
+    drawWindow(c, x + 4, gy - 9, s.lit > litBase, false);
+    rect(c, x + 4, gy - 4, 4, 4, P.door);
+  } else {
+    const storeys = s.storeys || 1, sh = s.h / storeys;
+    for (let st = 0; st < storeys; st++) {
+      const wy = top + Math.round(st * sh) + 3;
+      const slots = s.wins === 1 ? [x + Math.floor(s.w / 2) - 2] : [x + 3, x + s.w - 7];
+      slots.forEach((wx, i) => { if (st === storeys - 1 && s.wins > 1 && i === 1 && s.w < 18) return; drawWindow(c, wx, wy, hash(x + i, st + s.lit * 10) < (evening ? 0.85 : 0.3), s.carved); });
+    }
+    if (storeys === 1 || true) {
+      const dx = s.wins > 1 && s.w < 18 ? x + s.w - 7 : x + Math.floor(s.w / 2) - 2;
+      rect(c, dx, gy - 6, 4, 6, P.door); px(c, dx + 3, gy - 3, P.gold);
+      if (s.deco === 'wreath') { rect(c, dx + 1, gy - 5, 2, 2, P.pine[0]); px(c, dx + 1, gy - 4, '#c0392b'); }
+    }
+  }
+  // гирлянда под свесом
+  if (s.deco === 'garland' && !s.church && !s.barn) {
+    for (let xx = x - 1, i = 0; xx < x + s.w + 1; xx += 2, i++) { px(c, xx, top, P.pine[0]); if (i % 2 === 0) px(c, xx, top + 1, evening ? P.bulbs[(i / 2 + Math.floor(frame / 3)) % 4] : '#3a3f47'); }
+  }
+  // сосульки
+  if (s.icicles && !s.aframe) {
+    const rr = rng(x * 31 + s.w);
+    for (let xx = x - 1; xx < x + s.w + 1; xx++) { if (rr() < 0.55) continue; const len = 1 + Math.floor(rr() * 3); rect(c, xx, top + (s.deco === 'garland' ? 2 : 0), 1, len, P.ice); }
+  }
+  // сугроб у наветренной стены
+  if (s.drift) {
+    const wx = s.wind < 0 ? x - 1 : x + s.w;
+    for (let i = 0; i < 4; i++) rect(c, s.wind < 0 ? wx - i : wx + i - 2, gy - (3 - i), 3, 3 - i + 1, P.snow);
+  }
+}
+
+function drawDome(c, cx, peakY, s) {
+  const tw = 6, th = 8, tx = cx - 3, ty = peakY - th + 2;
+  rect(c, tx, ty, tw, th, s.wall === 'stone' ? P.stone[0] : P.yellow[0]);
+  drawWindow(c, tx + 1, ty + 2, evening, false);
+  const rows = [2, 4, 6, 6, 4];
+  rows.forEach((w, i) => rect(c, cx - w / 2, ty - rows.length + i, w, 1, i < 2 ? P.gold : '#2f5f8a'));
+  px(c, cx - 1, ty - 3, '#ffd75e');
+  rect(c, cx - 1, ty - rows.length - 3, 1, 3, P.gold); rect(c, cx - 2, ty - rows.length - 2, 3, 1, P.gold);
+  rect(c, cx - 1, ty - rows.length, 2, 1, P.snow);
+}
+
+function drawMill(c, x, gy, s) {
+  const h = s.h;
+  for (let i = 0; i < h; i++) { const inset = Math.floor(i / 5); rect(c, x + inset, gy - 1 - i, s.w - inset * 2, 1, i % 2 ? P.planks[0] : P.planks[1]); }
+  const topY = gy - h, cx = x + Math.floor(s.w / 2);
+  for (let r = 0; r < 4; r++) rect(c, x + 1 + r, topY - r, s.w - 2 - r * 2, 1, P.roofs.brown);
+  rect(c, x + 2, topY - 4, s.w - 4, 1, P.snow);
+  drawWindow(c, cx - 2, gy - 11, evening, false);
+  rect(c, cx - 2, gy - 5, 4, 5, P.door);
+  const hy = topY + 2, ang = frame * 0.03;
+  for (let b = 0; b < 4; b++) {
+    const a = ang + b * Math.PI / 2;
+    for (let t = 1; t < 11; t++) px(c, cx + Math.round(Math.cos(a) * t), hy + Math.round(Math.sin(a) * t), t > 4 ? '#d9c9a8' : '#6b3e22');
+  }
+  px(c, cx, hy, P.gold);
+}
+
+/* ---------- реквизит ---------- */
+function fence(c, x0, x1, gy) { for (let x = x0; x <= x1; x += 3) { rect(c, x, gy - 5, 1, 5, P.planks[1]); px(c, x, gy - 6, P.snow); } rect(c, x0, gy - 4, x1 - x0 + 1, 1, P.planks[0]); rect(c, x0, gy - 5, x1 - x0 + 1, 1, P.snow); }
+function lampPost(c, x, gy) { rect(c, x, gy - 10, 1, 10, '#2b2b2b'); rect(c, x - 1, gy - 12, 3, 2, evening ? P.lamp : '#555b66'); px(c, x, gy - 13, P.snow); if (evening) { px(c, x - 2, gy - 11, '#a57a2c'); px(c, x + 2, gy - 11, '#a57a2c'); } }
+function sled(c, x, gy) { rect(c, x, gy - 3, 6, 1, '#c0392b'); rect(c, x, gy - 1, 7, 1, '#6b3e22'); px(c, x + 7, gy - 2, '#6b3e22'); px(c, x + 1, gy - 2, '#6b3e22'); px(c, x + 5, gy - 2, '#6b3e22'); }
+function haystack(c, x, gy) { for (let i = 0; i < 7; i++) rect(c, x + Math.floor(i / 2), gy - 1 - i, 9 - Math.floor(i / 2) * 2, 1, i % 2 ? '#b8954a' : '#a8843a'); rect(c, x + 2, gy - 8, 5, 2, P.snow); px(c, x + 4, gy - 9, P.snow); }
+function well(c, x, gy) { rect(c, x, gy - 4, 7, 4, P.stone[0]); rect(c, x, gy - 4, 7, 1, P.snow); rect(c, x + 1, gy - 10, 1, 6, P.trunk); rect(c, x + 5, gy - 10, 1, 6, P.trunk); for (let r = 0; r < 3; r++) rect(c, x - 1 + r, gy - 11 - r, 9 - r * 2, 1, P.roofs.brown); rect(c, x + 1, gy - 14, 5, 1, P.snow); px(c, x + 3, gy - 7, '#2b2b2b'); }
+function woodpile(c, x, gy) { for (let r = 0; r < 3; r++) for (let i = 0; i < 4 - r; i++) { rect(c, x + i * 2 + r, gy - 2 - r * 2, 2, 2, '#8a5a3a'); px(c, x + i * 2 + r, gy - 2 - r * 2, '#c99a66'); } rect(c, x + 2, gy - 7, 4, 1, P.snow); }
+function snowman(c, x, gy) { rect(c, x, gy - 5, 5, 5, P.snowHi); rect(c, x + 1, gy - 9, 3, 4, P.snowHi); rect(c, x, gy - 10, 5, 1, '#1b1b1f'); rect(c, x + 1, gy - 12, 3, 2, '#1b1b1f'); px(c, x + 3, gy - 7, '#ff9f2e'); rect(c, x, gy - 6, 5, 1, '#c0392b'); }
+
+/* ---------- земля и небо ---------- */
+function sky(c, W, r, xFrom = 0) {
+  const n = evening ? 34 : 6;
+  for (let i = 0; i < n; i++) { const x = xFrom + Math.floor(r() * (W - xFrom)), y = Math.floor(r() * 26); px(c, x, y, (i + Math.floor(frame / 5)) % 9 === 0 ? '#ffffff' : (r() > 0.5 ? '#ffe9a8' : '#cfe0ff')); }
+  if (evening) { const mx = W - 34; rect(c, mx, 5, 6, 6, '#ffe9a8'); rect(c, mx + 1, 4, 4, 8, '#ffe9a8'); rect(c, mx + 2, 4, 4, 5, '#1e1f22'); rect(c, mx + 3, 6, 3, 4, '#1e1f22'); }
+}
+function ground(c, W, H, hf) {
+  for (let x = 0; x < W; x++) {
+    const t = Math.round(hf(x)), tn = Math.round(hf(x + 1));
+    rect(c, x, t, 1, H - t, P.snow);
+    px(c, x, t, P.snowHi);
+    if (tn > t) { px(c, x, t + 1, P.snowSh); }
+    if (hash(x, 3) > 0.82) px(c, x, t + 3 + Math.floor(hash(x, 4) * (H - t - 4)), '#dde6f1');
+  }
+}
+const bump = (x, c, w, h) => { const d = (x - c) / w; return Math.abs(d) < 1 ? h * (1 - d * d) * (1 - d * d) : 0; };
+
+/* ---------- композиции ---------- */
+const W = 460, H = 64;
+function v1(c) {
+  const r = rng(seed * 101 + 1);
+  const hf = x => H - 7 - bump(x, 345, 95, 11) - bump(x, 70, 50, 3) + Math.sin(x / 13) * 0.8;
+  sky(c, W, r, 200);
+  // дальние ёлки на холме за домами
+  [[300, 14], [312, 18], [388, 16], [400, 20], [430, 15], [446, 22], [456, 17]].forEach(([x, h]) => pine(c, x, hf(x) + 1, h, r));
+  // одинокий амбар с забором слева
+  drawHouse(c, 40, Math.round(hf(52)) + 1, randomSpec('barn', r), r);
+  fence(c, 70, 96, Math.round(hf(83)) + 1);
+  haystack(c, 100, Math.round(hf(104)) + 1);
+  birch(c, 150, hf(150) + 1, 16, r); birch(c, 156, hf(156) + 1, 12, r);
+  [[198, 12], [205, 17], [212, 10], [232, 9]].forEach(([x, h]) => pine(c, x, hf(x) + 1, h, r));
+  // главная группа на холме
+  lampPost(c, 270, Math.round(hf(270)) + 1); sled(c, 276, Math.round(hf(279)) + 1);
+  drawHouse(c, 316, Math.round(hf(326)) + 1, randomSpec('terem', r), r);
+  drawHouse(c, 290, Math.round(hf(298)) + 1, randomSpec('izba', r), r);
+  drawHouse(c, 345, Math.round(hf(352)) + 1, randomSpec('cottage', r), r);
+  drawHouse(c, 372, Math.round(hf(378)) + 1, randomSpec('church', r), r);
+  drawHouse(c, 412, Math.round(hf(418)) + 1, randomSpec('banya', r), r);
+  ground(c, W, H, hf);
+  snowman(c, 395, Math.round(hf(397)) + 1);
+}
+function v2(c) {
+  const r = rng(seed * 202 + 2);
+  sky(c, W, r);
+  // дальний план: горы со снежными шапками, между вершинами видно небо
+  const mt = x => H - 16 - bump(x, 70, 60, 16) - bump(x, 165, 45, 9) - bump(x, 300, 85, 24) - bump(x, 420, 50, 12);
+  for (let x = 0; x < W; x++) {
+    const t = Math.round(mt(x)), slopeDown = mt(x + 1) > mt(x);
+    const cap = Math.max(1, Math.round((H - 16 - t) * 0.45));
+    rect(c, x, t, 1, H - t, slopeDown ? '#3d4a63' : '#4b5a74');
+    rect(c, x, t, 1, cap, slopeDown ? '#a9b9d2' : '#d7e2f0');
+    if (hash(x, 9) > 0.7) px(c, x, t + cap, slopeDown ? '#a9b9d2' : '#d7e2f0');
+  }
+  // дальняя деревня на склоне: маленькие дома, огни, дымки, шпиль
+  const fv = [[236, 0], [243, 1], [251, 0], [258, 2], [266, 1], [229, 2]];
+  fv.forEach(([x, k], i) => {
+    const y = Math.round(mt(x + 2)) + 3 + k;
+    rect(c, x, y - 3, 5, 3, '#2a2230'); rect(c, x, y - 4, 5, 1, '#e8eef7'); px(c, x + 2, y - 5, '#e8eef7');
+    if (evening && (i + seed) % 4 !== 0) px(c, x + 1 + (i % 2) * 2, y - 2, P.winLit);
+    if (i % 2 === 0) { const f = (frame + i * 3) % 12; px(c, x + 3 + (f > 6 ? 1 : 0), y - 7 - Math.floor(f / 3), P.smoke); }
+  });
+  { const x = 274, y = Math.round(mt(x)) + 4; rect(c, x, y - 6, 3, 6, '#2a2230'); px(c, x + 1, y - 8, P.gold); px(c, x + 1, y - 7, P.gold); if (evening) px(c, x + 1, y - 4, P.winLit); }
+  // дорога серпантином и сани с фонарём
+  const road = []; for (let i = 0; i <= 60; i++) { const tt = i / 60; const x = Math.round(200 + 36 * tt + Math.sin(tt * 9) * 9); road.push([x, Math.round(mt(x)) + 5 + Math.round((1 - tt) * 10)]); }
+  road.forEach(([x, y], i) => { if (i % 2 === 0) px(c, x, y, '#c3cfe0'); });
+  { const [sx, sy] = road[Math.floor(frame / 2) % road.length]; px(c, sx, sy - 1, '#c0392b'); px(c, sx + 1, sy - 1, '#c0392b'); px(c, sx + 2, sy - 2, evening ? P.lamp : '#c0392b'); }
+  // горнолыжка на правом склоне большой горы: трассы, подъёмник, лыжники, база
+  const midY = x => H - 12 - bump(x, 60, 70, 4) - bump(x, 420, 70, 5) + Math.sin(x / 23) * 1.2;
+  const top = [304, Math.round(mt(304)) + 3], base = [370, Math.round(midY(370)) - 1];
+  const piste = (amp, ph, depth) => { const pts = []; for (let i = 0; i <= 50; i++) { const t = i / 50; const x = Math.round(top[0] + (base[0] - top[0]) * t + Math.sin(t * 8 + ph) * amp * (1 - t * 0.5)); const y = Math.round(Math.max(mt(x) + 3, top[1] + (base[1] - top[1]) * t + depth * Math.sin(t * Math.PI))); pts.push([x, y]); } return pts; };
+  const runs = [piste(6, 0, 4), piste(9, 2.5, 9)];
+  runs.forEach(p => p.forEach(([x, y]) => { rect(c, x - 1, y, 3, 1, '#e3ebf6'); px(c, x, y, P.snowHi); }));
+  if (evening) runs[1].forEach(([x, y], i) => { if (i % 10 === 5) px(c, x + 3, y - 1, P.lamp); });
+  const lift = t => [Math.round(base[0] + 4 + (top[0] + 6 - base[0] - 4) * t), Math.round(base[1] - 6 + (top[1] - 4 - base[1] + 6) * t)];
+  for (let i = 0; i <= 80; i += 2) { const [x, y] = lift(i / 80); px(c, x, y, '#1d2433'); }
+  [0.08, 0.38, 0.68, 0.96].forEach(t => { const [x, y] = lift(t); rect(c, x, y, 1, 5, '#1d2433'); px(c, x - 1, y, '#1d2433'); px(c, x + 1, y, '#1d2433'); });
+  for (let k = 0; k < 4; k++) { const t = ((frame / 70) + k / 4) % 1, [x, y] = lift(t); px(c, x, y + 1, '#1d2433'); rect(c, x - 1, y + 2, 3, 1, ['#c0392b', '#2f5f8a', '#d8b04a', '#2e7d4f'][k]); }
+  runs.forEach((p, j) => { for (let k = 0; k < 2; k++) { const i = (Math.floor(frame / (j ? 2 : 3)) + k * 25 + j * 9) % p.length, [x, y] = p[i]; px(c, x, y - 2, ['#c0392b', '#ffd75e', '#5ab8ff', '#ff7fd0'][j * 2 + k]); px(c, x, y - 1, '#1d2433'); px(c, x - 1, y, '#1d2433'); px(c, x + 1, y, '#1d2433'); } });
+  { const bx = base[0] + 2, by = base[1] + 1; rect(c, bx, by - 5, 10, 5, '#5a3a24'); rect(c, bx - 1, by - 6, 12, 1, '#e8eef7'); rect(c, bx + 1, by - 7, 8, 1, '#e8eef7'); px(c, bx + 2, by - 3, evening ? P.winLit : P.winDark); px(c, bx + 5, by - 3, evening ? P.winLit : P.winDark); px(c, bx + 8, by - 3, evening ? P.winLit : P.winDark); rect(c, bx + 12, by - 10, 1, 10, '#1d2433'); rect(c, bx + 13, by - 10, 3, 2, frame % 6 < 3 ? '#c0392b' : '#d84a3f'); }
+  // средний план: снежная гряда, лес куртинами, замёрзший пруд с конькобежцами
+  const mid = x => H - 12 - bump(x, 60, 70, 4) - bump(x, 420, 70, 5) + Math.sin(x / 23) * 1.2;
+  for (let x = 0; x < W; x++) { const t = Math.round(mid(x)); rect(c, x, t, 1, H - t, '#dfe7f2'); px(c, x, t, P.snowHi); }
+  [[10, 60], [120, 165], [330, 350], [395, 460]].forEach(([x0, x1]) => { for (let x = x0; x < x1; x += 4 + Math.floor(r() * 4)) pine(c, x, mid(x) + 1, 7 + Math.floor(r() * 6), r, true); });
+  const pcx = 255, pw = 46, py = Math.round(mid(pcx)) + 3;
+  for (let row = 0; row < 4; row++) { const hw = Math.round(pw / 2 * Math.sqrt(1 - Math.pow((row - 1.5) / 2, 2))); rect(c, pcx - hw, py + row, hw * 2, 1, row === 0 ? '#c8e0f7' : P.ice); }
+  for (let k = 0; k < 2; k++) { const ph = (frame * (k ? 0.7 : 1) + k * 20) % 60, sx = Math.round(pcx - 16 + Math.abs(30 - ph)), sy = py + 1 + k; rect(c, sx, sy - 3, 1, 3, k ? '#2f5f8a' : '#a8322a'); px(c, sx, sy - 4, '#f3d2b3'); px(c, sx + (frame % 4 < 2 ? 1 : -1), sy - 2, k ? '#2f5f8a' : '#a8322a'); }
+  // передний план: группа слева, одинокая ёлка справа
+  const hf = x => H - 5 - bump(x, 95, 70, 4) - bump(x, 440, 40, 3) + Math.sin(x / 11) * 0.6;
+  const g = x => Math.round(hf(x)) + 1;
+  drawHouse(c, 70, g(78), randomSpec('cottage', r), r);
+  drawHouse(c, 84, g(94), randomSpec('izba', r), r);
+  woodpile(c, 106, g(110)); pine(c, 52, hf(52) + 1, 20, r); pine(c, 44, hf(44) + 1, 13, r);
+  lampPost(c, 180, g(180));
+  drawHouse(c, 404, g(412), randomSpec('banya', r), r);
+  pine(c, 430, hf(430) + 1, 24, r); pine(c, 446, hf(446) + 1, 15, r);
+  ground(c, W, H, hf);
+  sled(c, 196, g(199));
+}
+function v3(c) {
+  const r = rng(seed * 303 + 3);
+  sky(c, W, r);
+  // улица поднимается в гору к часовне, за вершиной спуск
+  const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const hf = x => H - 5 - 20 * ss(110, 350, x) + 14 * ss(385, 460, x) - bump(x, 40, 35, 2) + Math.sin(x / 8) * 0.6;
+  const g = x => Math.round(hf(x)) + 1;
+  // низ: пустое поле, берёзы, стог, след от санок
+  birch(c, 22, hf(22) + 1, 15, r); birch(c, 27, hf(27) + 1, 11, r);
+  haystack(c, 58, g(62));
+  // задний ряд выше по склону: рисуем первым, передние дома его перекрывают
+  drawHouse(c, 205, g(214) - 5, randomSpec('cottage', r), r);
+  drawHouse(c, 262, g(270) - 4, randomSpec('izba', r), r);
+  pine(c, 300, hf(300) - 3, 16, r); pine(c, 309, hf(309) - 3, 22, r);
+  // группа у подножия: изба с баней вплотную, дрова
+  drawHouse(c, 118, g(126), randomSpec('izba', r), r);
+  drawHouse(c, 136, g(141), randomSpec('banya', r), r);
+  woodpile(c, 150, g(154)); fence(c, 92, 116, g(104));
+  // середина подъёма: высокий терем и колодец
+  lampPost(c, 178, g(178)); well(c, 186, g(189));
+  drawHouse(c, 218, g(228), randomSpec('terem', r), r);
+  snowman(c, 244, g(246));
+  lampPost(c, 286, g(286));
+  // вершина: часовня как доминанта в окружении ёлок
+  pine(c, 322, hf(322) + 1, 14, r);
+  drawHouse(c, 334, g(340), randomSpec('church', r), r);
+  pine(c, 352, hf(352) + 1, 19, r); pine(c, 360, hf(360) + 1, 12, r);
+  // за вершиной: мельница на ветру и лес вниз по склону
+  drawHouse(c, 392, g(397), randomSpec('mill', r), r);
+  [[418, 20], [428, 14], [440, 22], [452, 16]].forEach(([x, h]) => pine(c, x, hf(x) + 1, h, r));
+  ground(c, W, H, hf);
+  for (let x = 70; x < 112; x += 2) px(c, x, g(x) + 1 + (x % 4 ? 0 : 1), P.snowSh);
+  sled(c, 160, g(163));
+}
+function v4(c) {
+  const r = rng(seed * 404 + 4);
+  sky(c, W, r, 150);
+  const hf = x => H - 7 - bump(x, 305, 60, 2) + Math.sin(x / 12) * 0.6;
+  const g = x => Math.round(hf(x)) + 1;
+  // задний ряд леса темнее
+  for (let x = 0; x < W; x += 4 + Math.floor(r() * 4)) { if (x > 250 && x < 360) continue; pine(c, x, hf(x) - 2, 14 + Math.floor(r() * 10), r, true); }
+  for (let x = 2; x < W; x += 6 + Math.floor(r() * 7)) { if (x > 240 && x < 372) continue; const h = 10 + Math.floor(r() * 13) + (x < 60 || x > 420 ? 4 : 0); pine(c, x, hf(x) + 1, h, r); }
+  birch(c, 246, hf(246) + 1, 15, r);
+  drawHouse(c, 296, g(305), { ...randomSpec('izba', r), lit: 0.9, chimney: true, smokeHeavy: true, deco: 'garland' }, r);
+  woodpile(c, 278, g(282)); snowman(c, 330, g(332)); sled(c, 340, g(343));
+  ground(c, W, H, hf);
+}
+
+/* ---------- каталог ---------- */
+const TYPES = [
+  ['izba', 'Изба', 'брёвна, резные наличники, крутая крыша'],
+  ['terem', 'Терем', 'два этажа, высокая крыша, снег съезжает'],
+  ['cottage', 'Домик', 'крашеные стены, пологая крыша, много снега'],
+  ['banya', 'Баня', 'односкатная крыша, густой дым'],
+  ['barn', 'Амбар', 'красные доски, ворота крестом'],
+  ['church', 'Часовня', 'купол с крестом, доминанта'],
+  ['mill', 'Мельница', 'крутятся лопасти'],
+  ['aframe', 'Шалаш', 'крыша до земли, одно окно']
+];
+const cat = document.getElementById('cat');
+const catCanvases = TYPES.map(([type, name, desc]) => {
+  const fig = document.createElement('figure');
+  const cv = document.createElement('canvas'); cv.width = 32; cv.height = 28;
+  const cap = document.createElement('figcaption'); cap.innerHTML = '<b>' + name + '</b>' + desc;
+  fig.append(cv, cap); cat.append(fig); return [cv, type];
+});
+function drawCat() {
+  catCanvases.forEach(([cv, type], i) => {
+    const c = cv.getContext('2d'); c.clearRect(0, 0, 32, 28);
+    const r = rng(seed * 909 + i), s = randomSpec(type, r);
+    const gy = 25, x = Math.round(16 - s.w / 2);
+    drawHouse(c, x, gy, s, r);
+    for (let xx = 0; xx < 32; xx++) { const t = gy - Math.round(Math.sin(xx / 5 + i) * 0.8); rect(c, xx, t, 1, 28 - t, P.snow); px(c, xx, t, P.snowHi); }
+  });
+}
+
+/* ---------- цикл ---------- */
+const views = [['v1', v1], ['v2', v2], ['v3', v3], ['v4', v4]].map(([id, fn]) => [document.getElementById(id).getContext('2d'), fn]);
+function render() {
+  views.forEach(([c, fn]) => { c.clearRect(0, 0, W, H); fn(c); });
+  drawCat();
+}
+let paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+setInterval(() => { if (!paused) { frame++; render(); } }, 140);
+render();
+document.getElementById('reseed').addEventListener('click', () => { seed = Math.floor(Math.random() * 100000); render(); });
+document.getElementById('evening').addEventListener('click', e => { evening = !evening; e.currentTarget.setAttribute('aria-pressed', String(evening)); e.currentTarget.textContent = evening ? 'Вечер' : 'День'; render(); });
+const pb = document.getElementById('pause');
+pb.textContent = paused ? 'Запустить' : 'Пауза';
+pb.addEventListener('click', () => { paused = !paused; pb.textContent = paused ? 'Запустить' : 'Пауза'; });
+</script>

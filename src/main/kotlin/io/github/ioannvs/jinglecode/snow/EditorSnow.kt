@@ -2,42 +2,27 @@ package io.github.ioannvs.jinglecode.snow
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.markup.CustomHighlighterOrder
-import com.intellij.openapi.editor.markup.CustomHighlighterRenderer
-import com.intellij.openapi.editor.markup.HighlighterLayer
-import com.intellij.openapi.editor.markup.HighlighterTargetArea
-import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.scale.JBUIScale
+import io.github.ioannvs.jinglecode.editor.EditorForeground
+import io.github.ioannvs.jinglecode.editor.Z_SNOW
 import io.github.ioannvs.jinglecode.pixel.JinglePalette
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
-import java.awt.Graphics
+import java.awt.Graphics2D
 import kotlin.math.ceil
 
 /**
- * Snow over one editor, on top of the code. Public API only: painted by a foreground
- * [CustomHighlighterRenderer] on a highlighter over the whole document, so popups and completion
- * stay above it. Called on the EDT.
+ * Snow over one editor, on top of the code and the village: a part of the editor's [EditorForeground].
+ * It is painted inside the editor, so popups and completion stay above it. Called on the EDT.
  */
 internal class EditorSnow(private val editor: Editor, private val isOn: () -> Boolean) : Disposable {
 
     private val field = SnowField()
     private var magnify = 1f
 
-    private val renderer = object : CustomHighlighterRenderer {
-        override fun paint(editor: Editor, highlighter: RangeHighlighter, g: Graphics) = paintSnow(g)
-
-        // The only non-deprecated way to paint after the text; `isForeground` is up for removal.
-        @Suppress("UnstableApiUsage")
-        override fun getOrder(): CustomHighlighterOrder = CustomHighlighterOrder.AFTER_TEXT
-    }
-
-    private val highlighter: RangeHighlighter = editor.markupModel.addRangeHighlighter(
-        0, editor.document.textLength, HighlighterLayer.LAST, null, HighlighterTargetArea.LINES_IN_RANGE,
-    ).apply {
-        isGreedyToLeft = true
-        isGreedyToRight = true
-        customRenderer = renderer
+    init {
+        // Over the text and over the village, in the editor's shared foreground.
+        EditorForeground.of(editor).add(Z_SNOW, ::paintSnow, this)
     }
 
     val isShowing: Boolean get() = !editor.isDisposed && editor.contentComponent.isShowing
@@ -70,7 +55,7 @@ internal class EditorSnow(private val editor: Editor, private val isOn: () -> Bo
         return PixelCanvas.pixelSize(sysScale, magnify = magnify) / sysScale
     }
 
-    private fun paintSnow(g: Graphics) {
+    private fun paintSnow(g: Graphics2D) {
         if (!isOn() || field.flakes.isEmpty()) return
         // White snow is lost on a light editor: there it is ice blue.
         val color = if (ColorUtil.isDark(editor.colorsScheme.defaultBackground)) JinglePalette.SNOW else JinglePalette.ICE
@@ -84,7 +69,6 @@ internal class EditorSnow(private val editor: Editor, private val isOn: () -> Bo
     }
 
     override fun dispose() {
-        highlighter.dispose()
         repaint()
     }
 

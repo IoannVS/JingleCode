@@ -18,6 +18,7 @@ import io.github.ioannvs.jinglecode.garland.GarlandSize
 import io.github.ioannvs.jinglecode.snow.SnowAmount
 import io.github.ioannvs.jinglecode.snow.SnowFrameRate
 import io.github.ioannvs.jinglecode.snow.SnowSpeed
+import io.github.ioannvs.jinglecode.village.VillageStyle
 
 /** Settings → Appearance → Jingle Code. */
 class JingleCodeConfigurable : BoundSearchableConfigurable(
@@ -67,6 +68,20 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                 checkBox(message("settings.icicles.enabled")).bindSelected(state::iciclesEnabled)
                     .comment(message("settings.icicles.comment"))
             }
+        }
+        group(message("settings.village.group")) {
+            lateinit var village: Cell<JBCheckBox>
+            row {
+                village = checkBox(message("settings.village.enabled")).bindSelected(state::villageEnabled)
+                    .comment(message("settings.village.comment"))
+            }
+            indent {
+                buttonsGroup(message("settings.village.style")) {
+                    for (style in VillageStyle.entries) {
+                        row { radioButton(style.label(), style) }
+                    }
+                }.bind(state::villageStyle)
+            }.enabledIf(village.component.selected)
         }
         group(message("settings.drift.group")) {
             row {
@@ -164,6 +179,14 @@ private fun SnowFrameRate.label(): String = when (this) {
     SnowFrameRate.LOW -> message("settings.snow.frame.rate.low", fps)
     SnowFrameRate.MEDIUM -> message("settings.snow.frame.rate.medium", fps)
     SnowFrameRate.HIGH -> message("settings.snow.frame.rate.high", fps)
+}
+
+private fun VillageStyle.label(): String = when (this) {
+    VillageStyle.HILL_FARM -> message("settings.village.style.hill_farm")
+    VillageStyle.VALLEY -> message("settings.village.style.valley")
+    VillageStyle.UPHILL_STREET -> message("settings.village.style.uphill_street")
+    VillageStyle.FOREST_CLEARING -> message("settings.village.style.forest_clearing")
+    VillageStyle.RANDOM -> message("settings.village.style.random")
 }
 
 private fun GarlandSize.label(): String = when (this) {

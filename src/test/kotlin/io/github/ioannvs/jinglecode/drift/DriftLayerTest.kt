@@ -34,19 +34,21 @@ class DriftLayerTest {
 
     private val empty = Color(0x123456)
 
+    private val seam = 9
+
     private fun draw(): BufferedImage {
         val width = 140
         val image = BufferedImage(width, SCENE_ROWS + 1, BufferedImage.TYPE_INT_RGB)
         val g = image.createGraphics()
         g.color = empty
         g.fillRect(0, 0, image.width, image.height)
-        PixelCanvas.paint(g, 0, 0) { drawProjectScene(width, f = 1, t = 0) }
+        PixelCanvas.paint(g, 0, 0) { drawProjectScene(width, f = 1, t = 0, rightEdge = seam) }
         g.dispose()
         return image
     }
 
     @Test
-    fun `the drift is solid from edge to edge and rises at the walls`() {
+    fun `the drift is solid from edge to edge, tall at the window edge, at the seam height on the right`() {
         val image = draw()
         fun height(x: Int) = (SCENE_ROWS downTo 0).takeWhile {
             val c = Color(image.getRGB(x, it))
@@ -55,7 +57,8 @@ class DriftLayerTest {
         val heights = (0 until image.width).map(::height)
         assertTrue("never a hole: $heights", heights.all { it >= 3 })
         assertTrue("higher at the left wall", heights.first() > heights[20] + 2)
-        assertTrue("higher at the right wall", heights.last() > heights[image.width - 20] + 2)
+        // The drift goes one row past the bottom, hence the + 1.
+        assertEquals("exactly the seam height at the right wall: $heights", List(5) { seam + 1 }, heights.takeLast(5))
     }
 
     @Test

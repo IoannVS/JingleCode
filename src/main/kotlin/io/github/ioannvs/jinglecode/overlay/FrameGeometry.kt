@@ -199,7 +199,7 @@ internal object FrameGeometry {
      * Lightweight popups, balloons and the like in the frame's layered pane.
      * Overlays as big as half the frame are transparent layers, not popups: ignore them.
      */
-    private fun popupsOver(root: JRootPane): List<Rectangle> {
+    internal fun popupsOver(root: JRootPane): List<Rectangle> {
         val half = root.width.toLong() * root.height / 2
         return root.layeredPane.components
             .filter { it.isVisible && it !== root.contentPane && it.width.toLong() * it.height < half }

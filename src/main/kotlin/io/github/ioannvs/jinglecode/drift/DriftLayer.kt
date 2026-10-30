@@ -7,6 +7,7 @@ import io.github.ioannvs.jinglecode.overlay.FrameLayout
 import io.github.ioannvs.jinglecode.overlay.OverlayLayer
 import io.github.ioannvs.jinglecode.overlay.OverlayScale
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
+import io.github.ioannvs.jinglecode.sprites.seamRows
 import java.awt.Graphics2D
 import java.awt.Rectangle
 import java.awt.geom.RoundRectangle2D
@@ -57,9 +58,12 @@ internal object DriftLayer : OverlayLayer {
         val t = (tick % TICK_WRAP).toInt()
         val pile = GiftPile.getInstance(project)
         val view = PileView(pile.count, pile.dropAgeMs(), pile.delivery())
+        // The pixel size as the canvas rounds it on this screen, so the seam with the village is exact.
+        val sysScale = maxOf(g.transform.scaleX, g.transform.scaleY).toFloat().takeIf { it > 0 } ?: 1f
+        val pixelUser = PixelCanvas.pixelSize(sysScale, magnify = scale.magnify) / sysScale
         PixelCanvas.paint(g, scene.x, scene.y, magnify = scale.magnify) {
             // One column more than fits, so the drift reaches the right wall; the clip cuts the rest.
-            drawProjectScene(toLogical(scene.width) + 1, f, t, view)
+            drawProjectScene(toLogical(scene.width) + 1, f, t, view, rightEdge = seamRows(pixelUser))
         }
     }
 }

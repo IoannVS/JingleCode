@@ -3,6 +3,8 @@ package io.github.ioannvs.jinglecode.drift
 import io.github.ioannvs.jinglecode.pixel.JinglePalette
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
 import io.github.ioannvs.jinglecode.pixel.hash
+import io.github.ioannvs.jinglecode.sprites.drawFirTree
+import io.github.ioannvs.jinglecode.sprites.towardsSeam
 import java.awt.Color
 import kotlin.math.abs
 import kotlin.math.floor
@@ -19,13 +21,18 @@ internal const val SCENE_ROWS = 28
  * unpushed commits (and the sleigh with its elves when a push comes for them), the mailbox and the
  * snowman. [width] logical pixels wide, [SCENE_ROWS] high, row 0 at the top; the sleigh flies above
  * row 0. [f] is the frame in the loop, [t] the animator tick.
+ *
+ * At the right wall the snow lies [rightEdge] high, if given, where the editor's village snow goes on
+ * (see `SnowSeam`), and a fir tree like the village's stands there, so it reads as one snow line.
  */
-internal fun PixelCanvas.drawProjectScene(width: Int, f: Int, t: Int, pile: PileView = PileView(0)) {
+internal fun PixelCanvas.drawProjectScene(width: Int, f: Int, t: Int, pile: PileView = PileView(0), rightEdge: Int? = null) {
     drawSceneFlakes(width, t)
     // The mockup centres its 84 pixels of props in the panel. Where they stand the snow is
     // low and bumpy; the big heaps pile up on both sides.
     val ox = max(4, (width - 84) / 2)
-    val drift = drawDrift(width, low = ox - 1..ox + PROPS_WIDTH)
+    val drift = drawDrift(width, low = ox - 1..ox + PROPS_WIDTH, rightEdge = rightEdge)
+    val treeX = width - 9
+    if (rightEdge != null && treeX - 4 > ox + PROPS_WIDTH) drawTreeInSnow(drift, treeX)
     drawMailbox(drift, ox + 69)
     drawSnowman(drift, ox + 52, f)
     drawGiftScene(drift, width, ox, pile)
@@ -33,6 +40,17 @@ internal fun PixelCanvas.drawProjectScene(width: Int, f: Int, t: Int, pile: Pile
 
 /** From the leftmost gift to the mailbox. */
 private const val PROPS_WIDTH = 80
+
+/** A fir tree like the village's, its foot in the snow: the drift is laid back over its lowest branches, as in the village. */
+private fun PixelCanvas.drawTreeInSnow(drift: DriftSurface, x: Int) {
+    val rest = drift.topAt(x)
+    drawFirTree(x, rest + 2, scale = 0.85)
+    for (column in x - 6..x + 6) {
+        val top = drift.topAt(column)
+        rect(column, top, 1, 3, JinglePalette.SNOW)
+        px(column, top, drift.crest.getOrElse(column) { JinglePalette.WHITE })
+    }
+}
 
 /** The snow surface: for each column the top row and the colour of its crest. */
 internal class DriftSurface(val top: IntArray, val crest: Array<Color>) {
@@ -81,12 +99,12 @@ private const val LOW_SQUEEZE = 0.4
 
 /**
  * The heaps along a drift [width] wide: one every 14–24 pixels, 10–16 wide each way, 6–11 high,
- * and a tall one against each side wall, so the drift fills the panel's rounded bottom corners.
+ * and one against the left wall, so the drift fills the panel's rounded corner at the window's edge.
+ * At the right wall the height comes from the seam with the editor's village instead.
  * Placed by the mockup's `hash`, so they stay put from frame to frame.
  */
 private fun mounds(width: Int): List<Mound> = buildList {
     add(Mound(-2.0, 11.0, 15.0))
-    add(Mound(width + 1.0, 11.0, 15.0))
     var centre = 6.0
     var i = 0
     while (centre < width + 10) {
@@ -104,7 +122,7 @@ private fun mounds(width: Int): List<Mound> = buildList {
  * runs into the next are ice blue. It goes one row past the bottom, so no gap shows under it when
  * the panel's height isn't a whole number of pixels. Returns the surface for the props to stand on.
  */
-internal fun PixelCanvas.drawDrift(width: Int, low: IntRange = IntRange.EMPTY): DriftSurface {
+internal fun PixelCanvas.drawDrift(width: Int, low: IntRange = IntRange.EMPTY, rightEdge: Int? = null): DriftSurface {
     val heaps = mounds(width)
     val top = IntArray(width)
     val owner = arrayOfNulls<Mound>(width)
@@ -126,6 +144,8 @@ internal fun PixelCanvas.drawDrift(width: Int, low: IntRange = IntRange.EMPTY): 
             val squeeze = (LOW_SQUEEZE + away * 0.08).coerceAtMost(1.0)
             best = DRIFT_FLOOR + (best - DRIFT_FLOOR) * squeeze
         }
+        // At the right wall the snow lies exactly as high on screen as the village snow next door.
+        if (rightEdge != null) best = towardsSeam(best, rightEdge, width - 1 - x)
         top[x] = SCENE_ROWS - best.roundToInt()
     }
     val crest = Array(width) { JinglePalette.WHITE }

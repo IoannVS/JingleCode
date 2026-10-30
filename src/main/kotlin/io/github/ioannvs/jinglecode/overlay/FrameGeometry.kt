@@ -1,4 +1,4 @@
-package io.github.ioannvs.jinglecode.garland
+package io.github.ioannvs.jinglecode.overlay
 
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
@@ -16,37 +16,31 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Where the gaps between panels are. All rectangles are in root pane coordinates (user space).
+ * Where the edges of the panels are. All rectangles are in root pane coordinates (user space).
  *
  * @param vertical lines between side-by-side islands: `x` is the line, `y`/`height` its extent, `width` is 0
  * @param horizontal lines between stacked islands: `y` is the line, `x`/`width` its extent, `height` is 0
+ * @param top the top edge of the top row of islands, right under the toolbar: `y` is the line, `x`/`width` its extent
  * @param statusBand free strip between the islands and the status bar content
- * @param occluders things above the gaps (popups, sliding tool windows) that must stay clean
+ * @param occluders things above the panels (popups, sliding tool windows) that must stay clean
  */
-internal class GapLayout(
+internal class FrameLayout(
     val vertical: List<Rectangle>,
     val horizontal: List<Rectangle>,
+    val top: List<Rectangle>,
     val statusBand: Rectangle?,
     val occluders: List<Rectangle>,
-) {
-    /** Area to repaint on every frame, a little wider than the lines. */
-    fun dirtyRects(margin: Int): List<Rectangle> = buildList {
-        vertical.forEach { add(Rectangle(it.x - margin, it.y, 2 * margin, it.height)) }
-        horizontal.forEach { add(Rectangle(it.x, it.y - margin, it.width, 2 * margin)) }
-        statusBand?.let { add(Rectangle(it.x, it.y - margin, it.width, it.height + 2 * margin)) }
-    }
-
-    val isEmpty: Boolean get() = vertical.isEmpty() && horizontal.isEmpty() && statusBand == null
-}
+)
 
 /**
- * Finds the gaps of the Islands UI from public API: tool window and editor components, the status bar.
+ * Finds the edges of the Islands UI from public API: tool window and editor components, the status bar.
  *
  * This is the one place that depends on how the IDE lays out Swing components. In the Islands UI
  * neighbouring islands touch each other, and the visible gap is their own rounded border, so
- * a gap is the line where two islands meet. If anything here breaks, the garland is switched off.
+ * a gap is the line where two islands meet, and the strip under the toolbar is the top islands' border.
+ * If anything here breaks, every decoration of the frame overlay is switched off.
  */
-internal object GapFinder {
+internal object FrameGeometry {
     /** Islands closer than this are neighbours. */
     private const val TOUCH_DISTANCE = 12
 
@@ -58,7 +52,7 @@ internal object GapFinder {
 
     private fun isIslandsUi(): Boolean = JBUI.getInt("Islands", 0) != 0
 
-    fun find(project: Project, root: JRootPane): GapLayout? {
+    fun find(project: Project, root: JRootPane): FrameLayout? {
         if (!isIslandsUi()) return null
 
         val docked = ArrayList<JComponent>()
@@ -105,7 +99,32 @@ internal object GapFinder {
             }
         }
 
-        return GapLayout(vertical, horizontal, statusBand(project, root, islands), occluders)
+        return FrameLayout(vertical, horizontal, topEdges(islands, touch), statusBand(project, root, islands), occluders)
+    }
+
+    /**
+     * The top edge of the top row of islands, one line per run of islands that touch each other.
+     * Islands start right under the toolbar, so this is where things hang from the toolbar.
+     */
+    internal fun topEdges(islands: List<Rectangle>, touch: Int): List<Rectangle> {
+        if (islands.isEmpty()) return emptyList()
+        val top = islands.minOf { it.y }
+        val row = islands.filter { it.y <= top + touch }.sortedBy { it.x }
+        val edges = ArrayList<Rectangle>()
+        var left = row.first().x
+        var right = row.first().x + row.first().width
+        for (island in row.drop(1)) {
+            if (island.x - right <= touch) {
+                right = max(right, island.x + island.width)
+            }
+            else {
+                edges += Rectangle(left, top, right - left, 0)
+                left = island.x
+                right = island.x + island.width
+            }
+        }
+        edges += Rectangle(left, top, right - left, 0)
+        return edges
     }
 
     /**

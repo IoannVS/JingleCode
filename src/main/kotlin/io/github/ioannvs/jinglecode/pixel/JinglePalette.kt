@@ -41,6 +41,7 @@ object JinglePalette {
     @JvmField val SNOW = c(0xeef3fa)
     @JvmField val ICE = c(0xbcd6f0)
     @JvmField val ICE_TIP = c(0x8fb8e8)
+    @JvmField val WHITE = c(0xffffff)
 
     // Fir trees and wood
     @JvmField val FIR = c(0x2e7d4f)

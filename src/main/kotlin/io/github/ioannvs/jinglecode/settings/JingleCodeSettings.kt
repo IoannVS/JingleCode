@@ -26,6 +26,7 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var garlandEnabled by property(true)
         var garlandMode by enum(GarlandMode.TWINKLE)
         var garlandSize by enum(GarlandSize.NORMAL)
+        var iciclesEnabled by property(true)
         var editorSnowEnabled by property(true)
         var snowAmount by enum(SnowAmount.NORMAL)
         var snowSpeed by enum(SnowSpeed.NORMAL)

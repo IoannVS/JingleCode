@@ -46,14 +46,19 @@ class FeatureGate : Disposable {
      * Runs [block] for [feature]. If it throws, [feature] is off until restart and [fallback] is returned.
      * Everything that leans on the IDE's Swing layout or internal API goes through here.
      */
-    fun <T> guard(feature: JingleFeature, fallback: T, block: () -> T): T =
+    fun <T> guard(feature: JingleFeature, fallback: T, block: () -> T): T = guard(listOf(feature), fallback, block)
+
+    /** [guard] for code that several decorations share: if it throws, all of [features] are off. */
+    fun <T> guard(features: Collection<JingleFeature>, fallback: T, block: () -> T): T =
         try {
             block()
         }
         catch (e: Exception) {
             if (e is ControlFlowException || e is CancellationException) throw e
-            if (broken.add(feature)) {
-                thisLogger().warn("Jingle Code: ${feature.name.lowercase()} failed and is off until restart", e)
+            val newlyBroken = features.filter { broken.add(it) }
+            if (newlyBroken.isNotEmpty()) {
+                val names = newlyBroken.joinToString { it.name.lowercase() }
+                thisLogger().warn("Jingle Code: $names failed and is off until restart", e)
                 // Not right away: we may be inside painting.
                 ApplicationManager.getApplication().invokeLater { fireChanged() }
             }

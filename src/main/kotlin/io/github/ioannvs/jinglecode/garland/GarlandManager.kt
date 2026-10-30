@@ -4,7 +4,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Painter
 import com.intellij.openapi.util.Disposer
@@ -13,9 +12,10 @@ import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.JBFont
 import io.github.ioannvs.jinglecode.animation.JingleAnimator
+import io.github.ioannvs.jinglecode.core.FeatureGate
+import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
 import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
-import io.github.ioannvs.jinglecode.settings.JingleCodeSettingsListener
 import java.awt.AWTEvent
 import java.awt.Component
 import java.awt.Graphics2D
@@ -32,14 +32,13 @@ import kotlin.math.ceil
  *
  * Painted by a glass pane painter along the gap lines, sized against the UI font like the mockup.
  * Bulbs may lie on the empty rounded edges of the islands, never on popups. Frame geometry comes
- * from [GapFinder]; if it throws, the garland turns itself off for this session.
+ * from [GapFinder]; if it throws, [FeatureGate] turns the garland off for this session.
  */
 @Service(Service.Level.PROJECT)
 class GarlandManager(private val project: Project) : Disposable {
 
     private var root: JRootPane? = null
     private var lastDirty: List<Rectangle> = emptyList()
-    private var broken = false
 
     /**
      * The last layout found. Glass pane repaints between frames (caret blink, typing) reuse it;
@@ -68,30 +67,21 @@ class GarlandManager(private val project: Project) : Disposable {
         toolkit.addAWTEventListener(geometryListener, AWTEvent.COMPONENT_EVENT_MASK or AWTEvent.CONTAINER_EVENT_MASK)
         Disposer.register(this) { toolkit.removeAWTEventListener(geometryListener) }
         IdeGlassPaneUtil.find(rootPane.contentPane).addPainter(rootPane.glassPane, painter, this)
-        JingleAnimator.getInstance(project).subscribe(this) { repaintGaps() }
+        JingleAnimator.getInstance(project).subscribe(this, JingleFeature.GARLAND) { repaintGaps() }
         ApplicationManager.getApplication().messageBus.connect(this)
-            .subscribe(JingleCodeSettingsListener.TOPIC, JingleCodeSettingsListener { repaintGaps() })
+            .subscribe(FeatureGate.TOPIC, FeatureGate.Listener { repaintGaps() })
         repaintGaps()
         return true
     }
 
-    private val isOn: Boolean
-        get() {
-            val settings = JingleCodeSettings.getInstance().state
-            return !broken && settings.enabled && settings.garlandEnabled
-        }
+    private val isOn: Boolean get() = FeatureGate.getInstance().isActive(JingleFeature.GARLAND)
 
     private fun layout(): GapLayout? {
         cachedLayout?.let { return it }
         val rootPane = root ?: return null
-        return try {
-            GapFinder.find(project, rootPane).also { cachedLayout = it }
-        }
-        catch (e: Exception) {
-            broken = true
-            thisLogger().warn("Jingle Code: can't find gaps between panels, the garland is off until restart", e)
-            null
-        }
+        return FeatureGate.getInstance().guard(JingleFeature.GARLAND, null) {
+            GapFinder.find(project, rootPane)
+        }?.also { cachedLayout = it }
     }
 
     /**

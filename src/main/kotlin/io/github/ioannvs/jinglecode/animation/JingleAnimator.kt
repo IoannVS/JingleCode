@@ -10,8 +10,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.WindowManager
+import io.github.ioannvs.jinglecode.core.FeatureGate
+import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
-import io.github.ioannvs.jinglecode.settings.JingleCodeSettingsListener
 import java.awt.KeyboardFocusManager
 import java.beans.PropertyChangeListener
 import javax.swing.Timer
@@ -19,16 +20,18 @@ import javax.swing.Timer
 /**
  * One animation clock per project: a single [Timer] ticking [FRAME_MS], shared by all decorations.
  *
- * The timer runs only while somebody is subscribed, animation is enabled in settings and the
- * project window (or a dialog it owns) is active. It pauses in Power Save and Presentation mode.
- * While paused, decorations keep showing their last frame.
+ * The timer runs only while a subscriber's decoration is active (see [FeatureGate]), animation is
+ * enabled in settings and the project window (or a dialog it owns) is active. It pauses in Power Save
+ * and Presentation mode. While paused, decorations keep showing their last frame.
  *
  * All methods are called on the EDT.
  */
 @Service(Service.Level.PROJECT)
 class JingleAnimator(private val project: Project) : Disposable {
 
-    private val listeners = mutableListOf<JingleFrameListener>()
+    private class Subscriber(val feature: JingleFeature?, val listener: JingleFrameListener)
+
+    private val subscribers = mutableListOf<Subscriber>()
     private val timer = Timer(FRAME_MS) { tick() }
     private var tick = 0L
 
@@ -43,19 +46,23 @@ class JingleAnimator(private val project: Project) : Disposable {
         val connection = ApplicationManager.getApplication().messageBus.connect(this)
         connection.subscribe(PowerSaveMode.TOPIC, PowerSaveMode.Listener { updateState() })
         connection.subscribe(UISettingsListener.TOPIC, UISettingsListener { updateState() })
-        connection.subscribe(JingleCodeSettingsListener.TOPIC, JingleCodeSettingsListener { updateState() })
+        connection.subscribe(FeatureGate.TOPIC, FeatureGate.Listener { updateState() })
 
         val focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
         focusManager.addPropertyChangeListener(ACTIVE_WINDOW, focusListener)
         Disposer.register(this) { focusManager.removePropertyChangeListener(ACTIVE_WINDOW, focusListener) }
     }
 
-    /** Calls [listener] on every frame until [parentDisposable] is disposed. */
-    fun subscribe(parentDisposable: Disposable, listener: JingleFrameListener) {
+    /**
+     * Calls [listener] on every frame until [parentDisposable] is disposed.
+     * The timer runs for it only while [feature] is active; `null` means always (the settings preview).
+     */
+    fun subscribe(parentDisposable: Disposable, feature: JingleFeature?, listener: JingleFrameListener) {
         ApplicationManager.getApplication().assertIsDispatchThread()
-        listeners += listener
+        val subscriber = Subscriber(feature, listener)
+        subscribers += subscriber
         Disposer.register(parentDisposable) {
-            listeners -= listener
+            subscribers -= subscriber
             updateState()
         }
         updateState()
@@ -64,8 +71,8 @@ class JingleAnimator(private val project: Project) : Disposable {
     private fun tick() {
         tick++
         current = JingleFrame((tick % FRAMES).toInt(), tick)
-        for (listener in listeners.toList()) {
-            listener.onFrame(current)
+        for (subscriber in subscribers.toList()) {
+            subscriber.listener.onFrame(current)
         }
     }
 
@@ -79,9 +86,9 @@ class JingleAnimator(private val project: Project) : Disposable {
     }
 
     private fun shouldRun(): Boolean {
-        if (project.isDisposed || listeners.isEmpty()) return false
-        val settings = JingleCodeSettings.getInstance().state
-        if (!settings.enabled || !settings.animationEnabled) return false
+        if (project.isDisposed || !JingleCodeSettings.getInstance().state.animationEnabled) return false
+        val gate = FeatureGate.getInstance()
+        if (subscribers.none { it.feature == null || gate.isActive(it.feature) }) return false
         if (PowerSaveMode.isEnabled() || UISettings.getInstance().presentationMode) return false
         return isProjectWindowActive()
     }
@@ -98,7 +105,7 @@ class JingleAnimator(private val project: Project) : Disposable {
 
     override fun dispose() {
         timer.stop()
-        listeners.clear()
+        subscribers.clear()
     }
 
     companion object {

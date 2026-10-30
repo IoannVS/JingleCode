@@ -57,3 +57,8 @@ intellijPlatform {
         }
     }
 }
+
+tasks.runIde {
+    // Pretend it's another day in the sandbox: ./gradlew runIde -PjingleNow=2026-12-31T23:59 (or a date alone).
+    providers.gradleProperty("jingleNow").orNull?.let { systemProperty("jinglecode.now", it) }
+}

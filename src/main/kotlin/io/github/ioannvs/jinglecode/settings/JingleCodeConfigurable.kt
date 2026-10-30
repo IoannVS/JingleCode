@@ -12,6 +12,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.selected
 import io.github.ioannvs.jinglecode.JingleCodeBundle.message
 import io.github.ioannvs.jinglecode.animation.JingleAnimator
+import io.github.ioannvs.jinglecode.core.SeasonMode
 import io.github.ioannvs.jinglecode.garland.GarlandMode
 import io.github.ioannvs.jinglecode.garland.GarlandSize
 
@@ -28,6 +29,11 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
         row {
             checkBox(message("settings.enabled")).bindSelected(state::enabled)
         }
+        buttonsGroup(message("settings.season")) {
+            for (mode in SeasonMode.entries) {
+                row { radioButton(mode.label(), mode) }
+            }
+        }.bind(state::seasonMode)
         row {
             checkBox(message("settings.animation")).bindSelected(state::animationEnabled)
                 .comment(message("settings.animation.comment"))
@@ -65,7 +71,7 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
         // Settings may be opened from the Welcome screen: without a project the preview stays static.
         val project = IdeFocusManager.getGlobalInstance().lastFocusedFrame?.project
         if (project != null && !project.isDisposed) {
-            JingleAnimator.getInstance(project).subscribe(disposable) { frame ->
+            JingleAnimator.getInstance(project).subscribe(disposable, feature = null) { frame ->
                 preview.frame = frame.index
                 preview.repaint()
             }
@@ -86,6 +92,12 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
 }
 
 // Explicit keys rather than ones built from enum names: the IDE checks them, and a renamed constant keeps its text.
+private fun SeasonMode.label(): String = when (this) {
+    SeasonMode.AUTO -> message("settings.season.auto")
+    SeasonMode.ALWAYS -> message("settings.season.always")
+    SeasonMode.OFF -> message("settings.season.off")
+}
+
 private fun GarlandMode.label(): String = when (this) {
     GarlandMode.TWINKLE -> message("settings.garland.mode.twinkle")
     GarlandMode.CHASE -> message("settings.garland.mode.chase")

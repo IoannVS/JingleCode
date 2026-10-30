@@ -8,6 +8,7 @@ import com.intellij.openapi.components.SimplePersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
+import io.github.ioannvs.jinglecode.core.SeasonMode
 import io.github.ioannvs.jinglecode.garland.GarlandMode
 import io.github.ioannvs.jinglecode.garland.GarlandSize
 
@@ -17,6 +18,7 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
 
     class State : BaseState() {
         var enabled by property(true)
+        var seasonMode by enum(SeasonMode.AUTO)
         var animationEnabled by property(true)
         var garlandEnabled by property(true)
         var garlandMode by enum(GarlandMode.TWINKLE)

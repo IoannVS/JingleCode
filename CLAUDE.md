@@ -22,9 +22,10 @@
 - `sinceBuild = 251`, `untilBuild` не указываем.
 - Публичный API в приоритете. Всё, что требует внутреннего API (`@ApiStatus.Internal`, раскладка Swing-компонентов), прячем за отдельной настройкой и изолируем в одном месте, чтобы при поломке отключить только это.
 - Настройки: `JingleCodeSettings` (`SimplePersistentStateComponent`, `jingle-code.xml`) и `JingleCodeSettingsListener` на message bus. Страница настроек: Settings → Appearance → Jingle Code. Тексты в `messages/JingleCodeBundle.properties` и `JingleCodeBundle_ru.properties`.
+- Время берём только из `core/JingleClock`, никаких `LocalDate.now()`. Показывать ли фичу, решает `core/FeatureGate` (плагин включён, сезон, переключатель, не сломана); декор слушает `FeatureGate.TOPIC`, а хрупкий код оборачивает в `FeatureGate.guard`. Новый элемент декора — новое значение `JingleFeature`. Архитектура и порядок её ввода — в `docs/DECISIONS.md`.
 - `verifyPlugin` запускаем перед каждым релизом и по расписанию в CI против последнего релиза и EAP.
 
 ## Как работать
-- Собрать и запустить: `./gradlew runIde` (на Windows `gradlew.bat runIde`). Проверка совместимости: `./gradlew verifyPlugin`.
+- Собрать и запустить: `./gradlew runIde` (на Windows `gradlew.bat runIde`). Другой день в песочнице: `./gradlew runIde -PjingleNow=2026-12-31T23:59` (или только дата). Проверка совместимости: `./gradlew verifyPlugin`, она долгая, в обычной работе не запускаем.
 - Спрайты переносим из макета один в один: каждая функция `drawXxx` в `docs/mockup/jingle-code-mockup.html` рисует по пикселям через `px`/`rect`, это легко перевести в Kotlin-объект с `fillRect`. Палитры (`FIRE`, `BULBS` и т.д.) выносим в один `JinglePalette`.
 - Каждую фичу показываем Ивану в `runIde` до того, как идти дальше. Он решает сам. Предлагаем варианты с рекомендацией.

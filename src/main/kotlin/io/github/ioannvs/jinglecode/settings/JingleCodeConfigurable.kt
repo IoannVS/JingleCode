@@ -15,6 +15,9 @@ import io.github.ioannvs.jinglecode.animation.JingleAnimator
 import io.github.ioannvs.jinglecode.core.SeasonMode
 import io.github.ioannvs.jinglecode.garland.GarlandMode
 import io.github.ioannvs.jinglecode.garland.GarlandSize
+import io.github.ioannvs.jinglecode.snow.SnowAmount
+import io.github.ioannvs.jinglecode.snow.SnowFrameRate
+import io.github.ioannvs.jinglecode.snow.SnowSpeed
 
 /** Settings → Appearance → Jingle Code. */
 class JingleCodeConfigurable : BoundSearchableConfigurable(
@@ -58,6 +61,34 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                     }
                 }.bind(state::garlandSize)
             }.enabledIf(garland.component.selected)
+        }
+        group(message("settings.snow.group")) {
+            lateinit var snow: Cell<JBCheckBox>
+            row {
+                snow = checkBox(message("settings.snow.enabled")).bindSelected(state::editorSnowEnabled)
+                    .comment(message("settings.snow.comment"))
+            }
+            indent {
+                buttonsGroup {
+                    row(message("settings.snow.amount")) {
+                        for (amount in SnowAmount.entries) {
+                            radioButton(amount.label(), amount)
+                        }
+                    }
+                }.bind(state::snowAmount)
+                buttonsGroup {
+                    row(message("settings.snow.speed")) {
+                        for (speed in SnowSpeed.entries) {
+                            radioButton(speed.label(), speed)
+                        }
+                    }
+                }.bind(state::snowSpeed)
+                buttonsGroup(message("settings.snow.frame.rate")) {
+                    for (rate in SnowFrameRate.entries) {
+                        row { radioButton(rate.label(), rate) }
+                    }
+                }.bind(state::snowFrameRate)
+            }.enabledIf(snow.component.selected)
         }
         group(message("settings.preview.group")) {
             row { cell(createPreview()) }
@@ -103,6 +134,24 @@ private fun GarlandMode.label(): String = when (this) {
     GarlandMode.CHASE -> message("settings.garland.mode.chase")
     GarlandMode.FLOW -> message("settings.garland.mode.flow")
     GarlandMode.WARM_WHITE -> message("settings.garland.mode.warm_white")
+}
+
+private fun SnowAmount.label(): String = when (this) {
+    SnowAmount.FEW -> message("settings.snow.amount.few")
+    SnowAmount.NORMAL -> message("settings.snow.amount.normal")
+    SnowAmount.MANY -> message("settings.snow.amount.many")
+}
+
+private fun SnowSpeed.label(): String = when (this) {
+    SnowSpeed.SLOW -> message("settings.snow.speed.slow")
+    SnowSpeed.NORMAL -> message("settings.snow.speed.normal")
+    SnowSpeed.FAST -> message("settings.snow.speed.fast")
+}
+
+private fun SnowFrameRate.label(): String = when (this) {
+    SnowFrameRate.LOW -> message("settings.snow.frame.rate.low", fps)
+    SnowFrameRate.MEDIUM -> message("settings.snow.frame.rate.medium", fps)
+    SnowFrameRate.HIGH -> message("settings.snow.frame.rate.high", fps)
 }
 
 private fun GarlandSize.label(): String = when (this) {

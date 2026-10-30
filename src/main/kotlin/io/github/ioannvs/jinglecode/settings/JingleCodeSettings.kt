@@ -11,6 +11,9 @@ import com.intellij.openapi.components.service
 import io.github.ioannvs.jinglecode.core.SeasonMode
 import io.github.ioannvs.jinglecode.garland.GarlandMode
 import io.github.ioannvs.jinglecode.garland.GarlandSize
+import io.github.ioannvs.jinglecode.snow.SnowAmount
+import io.github.ioannvs.jinglecode.snow.SnowFrameRate
+import io.github.ioannvs.jinglecode.snow.SnowSpeed
 
 @Service(Service.Level.APP)
 @State(name = "JingleCodeSettings", storages = [Storage("jingle-code.xml")], category = SettingsCategory.UI)
@@ -23,6 +26,10 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var garlandEnabled by property(true)
         var garlandMode by enum(GarlandMode.TWINKLE)
         var garlandSize by enum(GarlandSize.NORMAL)
+        var editorSnowEnabled by property(true)
+        var snowAmount by enum(SnowAmount.NORMAL)
+        var snowSpeed by enum(SnowSpeed.NORMAL)
+        var snowFrameRate by enum(SnowFrameRate.HIGH)
     }
 
     /** Call after changing [state] so that decorations pick up the change. */

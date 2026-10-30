@@ -25,5 +25,13 @@
                 bundle="messages.JingleCodeBundle"
                 key="settings.display.name"/>
         <postStartupActivity implementation="io.github.ioannvs.jinglecode.garland.GarlandStartupActivity"/>
+        <editorFactoryListener implementation="io.github.ioannvs.jinglecode.snow.EditorSnowListener"/>
+        <iw.actionProvider implementation="io.github.ioannvs.jinglecode.snow.EditorSnowWidgetActionProvider"/>
     </extensions>
+
+    <actions>
+        <action id="JingleCode.ToggleEditorSnow"
+                class="io.github.ioannvs.jinglecode.snow.ToggleEditorSnowAction"
+                icon="/icons/snowflake.svg"/>
+    </actions>
 </idea-plugin>

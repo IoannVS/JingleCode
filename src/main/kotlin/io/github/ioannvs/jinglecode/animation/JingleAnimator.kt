@@ -18,22 +18,28 @@ import java.beans.PropertyChangeListener
 import javax.swing.Timer
 
 /**
- * One animation clock per project: a single [Timer] ticking [FRAME_MS], shared by all decorations.
+ * One animation clock per project, shared by all decorations: frames of [FRAME_MS] for sprite loops
+ * ([subscribe]) and, for things that move continuously like falling snow, a smooth [MOTION_MS] clock
+ * ([subscribeMotion]), as the mockup moves them on every browser frame.
  *
- * The timer runs only while a subscriber's decoration is active (see [FeatureGate]), animation is
- * enabled in settings and the project window (or a dialog it owns) is active. It pauses in Power Save
- * and Presentation mode. While paused, decorations keep showing their last frame.
+ * A timer runs only while one of its subscribers' decorations is active (see [FeatureGate]), animation
+ * is enabled in settings and the project window (or a dialog it owns) is active. Both pause in Power
+ * Save and Presentation mode. While paused, decorations keep showing their last frame.
  *
  * All methods are called on the EDT.
  */
 @Service(Service.Level.PROJECT)
 class JingleAnimator(private val project: Project) : Disposable {
 
-    private class Subscriber(val feature: JingleFeature?, val listener: JingleFrameListener)
+    private class Subscriber<L>(val feature: JingleFeature?, val listener: L, val intervalMs: () -> Int = { FRAME_MS })
 
-    private val subscribers = mutableListOf<Subscriber>()
+    private val subscribers = mutableListOf<Subscriber<JingleFrameListener>>()
     private val timer = Timer(FRAME_MS) { tick() }
     private var tick = 0L
+
+    private val motionSubscribers = mutableListOf<Subscriber<JingleMotionListener>>()
+    private val motionTimer = Timer(MOTION_MS) { move() }
+    private var lastMotion = 0L
 
     /** The frame decorations should draw now, also while paused. */
     var current: JingleFrame = JingleFrame(0, 0)
@@ -43,6 +49,7 @@ class JingleAnimator(private val project: Project) : Disposable {
 
     init {
         timer.isRepeats = true
+        motionTimer.isRepeats = true
         val connection = ApplicationManager.getApplication().messageBus.connect(this)
         connection.subscribe(PowerSaveMode.TOPIC, PowerSaveMode.Listener { updateState() })
         connection.subscribe(UISettingsListener.TOPIC, UISettingsListener { updateState() })
@@ -57,12 +64,26 @@ class JingleAnimator(private val project: Project) : Disposable {
      * Calls [listener] on every frame until [parentDisposable] is disposed.
      * The timer runs for it only while [feature] is active; `null` means always (the settings preview).
      */
-    fun subscribe(parentDisposable: Disposable, feature: JingleFeature?, listener: JingleFrameListener) {
+    fun subscribe(parentDisposable: Disposable, feature: JingleFeature?, listener: JingleFrameListener) =
+        add(subscribers, Subscriber(feature, listener), parentDisposable)
+
+    /**
+     * Calls [listener] about every [intervalMs] with the seconds passed since the last call,
+     * until [parentDisposable] is disposed. The timer runs for it only while [feature] is active;
+     * [intervalMs] is asked again whenever the settings change.
+     */
+    fun subscribeMotion(
+        parentDisposable: Disposable,
+        feature: JingleFeature,
+        intervalMs: () -> Int = { MOTION_MS },
+        listener: JingleMotionListener,
+    ) = add(motionSubscribers, Subscriber(feature, listener, intervalMs), parentDisposable)
+
+    private fun <L> add(list: MutableList<Subscriber<L>>, subscriber: Subscriber<L>, parentDisposable: Disposable) {
         ApplicationManager.getApplication().assertIsDispatchThread()
-        val subscriber = Subscriber(feature, listener)
-        subscribers += subscriber
+        list += subscriber
         Disposer.register(parentDisposable) {
-            subscribers -= subscriber
+            list -= subscriber
             updateState()
         }
         updateState()
@@ -76,19 +97,43 @@ class JingleAnimator(private val project: Project) : Disposable {
         }
     }
 
+    private fun move() {
+        val now = System.nanoTime()
+        // Like the mockup, never jump much further than a step: a late timer slows the snow down instead.
+        val maxStep = maxOf(MAX_MOTION_STEP, 2 * motionTimer.delay / 1000.0)
+        val dt = ((now - lastMotion) / 1e9).coerceIn(0.0, maxStep)
+        lastMotion = now
+        for (subscriber in motionSubscribers.toList()) {
+            subscriber.listener.onMotion(dt)
+        }
+    }
+
     private fun updateState() {
-        if (shouldRun()) {
+        val canRun = canRun()
+        val gate = FeatureGate.getInstance()
+        fun <L> List<Subscriber<L>>.wanted() = if (canRun) filter { it.feature == null || gate.isActive(it.feature) } else emptyList()
+
+        if (subscribers.wanted().isNotEmpty()) {
             if (!timer.isRunning) timer.start()
         }
         else {
             timer.stop()
         }
+        val moving = motionSubscribers.wanted()
+        if (moving.isNotEmpty()) {
+            motionTimer.delay = moving.minOf { it.intervalMs() }.coerceAtLeast(MIN_MOTION_MS)
+            if (!motionTimer.isRunning) {
+                lastMotion = System.nanoTime()
+                motionTimer.start()
+            }
+        }
+        else {
+            motionTimer.stop()
+        }
     }
 
-    private fun shouldRun(): Boolean {
+    private fun canRun(): Boolean {
         if (project.isDisposed || !JingleCodeSettings.getInstance().state.animationEnabled) return false
-        val gate = FeatureGate.getInstance()
-        if (subscribers.none { it.feature == null || gate.isActive(it.feature) }) return false
         if (PowerSaveMode.isEnabled() || UISettings.getInstance().presentationMode) return false
         return isProjectWindowActive()
     }
@@ -105,7 +150,9 @@ class JingleAnimator(private val project: Project) : Disposable {
 
     override fun dispose() {
         timer.stop()
+        motionTimer.stop()
         subscribers.clear()
+        motionSubscribers.clear()
     }
 
     companion object {
@@ -114,6 +161,12 @@ class JingleAnimator(private val project: Project) : Disposable {
 
         /** Frame length, as in the mockup (`FRAME_MS`). */
         const val FRAME_MS = 140
+
+        /** Smooth motion, about 30 times a second, unless the subscriber asks otherwise. */
+        const val MOTION_MS = 33
+        private const val MIN_MOTION_MS = 16
+
+        private const val MAX_MOTION_STEP = 0.05
 
         private const val ACTIVE_WINDOW = "activeWindow"
 
@@ -130,4 +183,9 @@ data class JingleFrame(val index: Int, val tick: Long)
 
 fun interface JingleFrameListener {
     fun onFrame(frame: JingleFrame)
+}
+
+fun interface JingleMotionListener {
+    /** [dt] is the seconds since the last call, at most 50 ms. */
+    fun onMotion(dt: Double)
 }

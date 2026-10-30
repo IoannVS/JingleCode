@@ -1,5 +1,6 @@
 package io.github.ioannvs.jinglecode.overlay
 
+import com.intellij.openapi.project.Project
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.JBFont
 import io.github.ioannvs.jinglecode.core.JingleFeature
@@ -9,17 +10,23 @@ import java.awt.Rectangle
 import kotlin.math.ceil
 
 /**
- * One decoration of the [FrameOverlay]: the garland, the icicles. It says where it paints,
+ * One decoration of the [FrameOverlay]: the garland, the icicles, the drift. It says where it paints,
  * and [FrameOverlay] clips it to that, minus popups, and repaints exactly there on every frame.
  */
 internal interface OverlayLayer {
     val feature: JingleFeature
 
     /** Where this layer may paint for [layout], root pane coordinates. Also what is repainted every frame. */
-    fun dirtyRects(layout: FrameLayout, scale: OverlayScale): List<Rectangle>
+    fun dirtyRects(project: Project, layout: FrameLayout, scale: OverlayScale): List<Rectangle>
+
+    /**
+     * Whether something moves continuously now (a sleigh flying, a gift falling): then the overlay
+     * repaints on the smooth motion clock, not only on frames.
+     */
+    fun isAnimating(project: Project): Boolean = false
 
     /** Paints frame [tick] (see `JingleAnimator`); [g] is clipped to [dirtyRects] minus popups. */
-    fun paint(g: Graphics2D, layout: FrameLayout, scale: OverlayScale, tick: Long)
+    fun paint(g: Graphics2D, project: Project, layout: FrameLayout, scale: OverlayScale, tick: Long)
 }
 
 /**

@@ -1,5 +1,6 @@
 package io.github.ioannvs.jinglecode.icicles
 
+import com.intellij.openapi.project.Project
 import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.garland.GARLAND_REACH
 import io.github.ioannvs.jinglecode.overlay.FrameLayout
@@ -21,12 +22,12 @@ internal object IciclesLayer : OverlayLayer {
     /** Divisible by 3, the glint period. */
     private const val TICK_WRAP = 1_201_200L
 
-    override fun dirtyRects(layout: FrameLayout, scale: OverlayScale): List<Rectangle> {
+    override fun dirtyRects(project: Project, layout: FrameLayout, scale: OverlayScale): List<Rectangle> {
         val height = scale.user(ICICLE_MAX + 1)
         return layout.top.map { Rectangle(it.x, it.y, it.width, height) }
     }
 
-    override fun paint(g: Graphics2D, layout: FrameLayout, scale: OverlayScale, tick: Long) {
+    override fun paint(g: Graphics2D, project: Project, layout: FrameLayout, scale: OverlayScale, tick: Long) {
         val t = (tick % TICK_WRAP).toInt()
         for (edge in layout.top) {
             // Gap lines that start at this edge, in logical pixels from its left end.

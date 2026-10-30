@@ -6,6 +6,7 @@ import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
 enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boolean) {
     GARLAND({ it.garlandEnabled }),
     ICICLES({ it.iciclesEnabled }),
+    DRIFT({ it.driftEnabled }),
     EDITOR_SNOW({ it.editorSnowEnabled });
 
     fun isEnabledIn(state: JingleCodeSettings.State): Boolean = switch(state)

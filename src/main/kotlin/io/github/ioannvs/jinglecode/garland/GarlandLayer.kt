@@ -1,5 +1,6 @@
 package io.github.ioannvs.jinglecode.garland
 
+import com.intellij.openapi.project.Project
 import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.overlay.FrameLayout
 import io.github.ioannvs.jinglecode.overlay.OverlayLayer
@@ -21,7 +22,7 @@ internal object GarlandLayer : OverlayLayer {
     private const val TICK_WRAP = 1_201_200L
 
     /** A strip along each gap line, as wide as the garland reaches to each side of it. */
-    override fun dirtyRects(layout: FrameLayout, scale: OverlayScale): List<Rectangle> {
+    override fun dirtyRects(project: Project, layout: FrameLayout, scale: OverlayScale): List<Rectangle> {
         val reach = scale.user(GARLAND_REACH + 1)
         return buildList {
             layout.vertical.forEach { add(Rectangle(it.x - reach, it.y, 2 * reach, it.height)) }
@@ -30,7 +31,7 @@ internal object GarlandLayer : OverlayLayer {
         }
     }
 
-    override fun paint(g: Graphics2D, layout: FrameLayout, scale: OverlayScale, tick: Long) {
+    override fun paint(g: Graphics2D, project: Project, layout: FrameLayout, scale: OverlayScale, tick: Long) {
         val mode = JingleCodeSettings.getInstance().state.garlandMode
         val t = (tick % TICK_WRAP).toInt()
         val magnify = scale.magnify

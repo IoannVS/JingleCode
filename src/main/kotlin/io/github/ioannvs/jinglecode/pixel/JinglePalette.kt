@@ -42,6 +42,32 @@ object JinglePalette {
     @JvmField val ICE = c(0xbcd6f0)
     @JvmField val ICE_TIP = c(0x8fb8e8)
     @JvmField val WHITE = c(0xffffff)
+    @JvmField val SNOWFLAKE = c(0xdfe8f2)
+
+    // Snowman and mailbox in the Project panel
+    @JvmField val SNOWMAN = c(0xf6f8fb)
+    @JvmField val SCARF = c(0xc0392b)
+    @JvmField val COAL = c(0x1b1b1f)
+    @JvmField val CARROT = c(0xff9f2e)
+    @JvmField val STICK = c(0x6b4228)
+    @JvmField val MAILBOX = c(0x2f5fa8)
+    @JvmField val MAIL_SLOT = c(0x1b2433)
+
+    // Gift wrapping beyond the colors above (`GIFTS`)
+    @JvmField val GIFT_TEAL = c(0x2f6f73)
+    @JvmField val GIFT_PLUM = c(0x7a3b6e)
+
+    // Santa's little sack in the sleigh (`drawSleigh`)
+    @JvmField val SACK = c(0x8a6a3a)
+
+    // Santa and his reindeer (`drawSleigh`, `drawReindeer`)
+    @JvmField val SKIN = c(0xf2c7a5)
+    @JvmField val REINDEER_LIGHT = c(0x9c6a45)
+    @JvmField val ANTLER = c(0xc9a27a)
+    @JvmField val NOSE_DARK = c(0x3a2418)
+    @JvmField val RED_NOSE = c(0xb02020)
+    @JvmField val RED_NOSE_LIT = c(0xff3b3b)
+    @JvmField val TAIL = c(0xe9e4dc)
 
     // Fir trees and wood
     @JvmField val FIR = c(0x2e7d4f)

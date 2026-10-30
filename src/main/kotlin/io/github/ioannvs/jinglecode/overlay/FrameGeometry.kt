@@ -1,7 +1,9 @@
 package io.github.ioannvs.jinglecode.overlay
 
+import com.intellij.ide.projectView.ProjectView
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.wm.ToolWindowId
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.ToolWindowType
 import com.intellij.openapi.wm.WindowManager
@@ -10,6 +12,7 @@ import java.awt.Component
 import java.awt.Rectangle
 import javax.swing.JComponent
 import javax.swing.JRootPane
+import javax.swing.JScrollPane
 import javax.swing.SwingUtilities
 import kotlin.math.abs
 import kotlin.math.max
@@ -23,6 +26,7 @@ import kotlin.math.min
  * @param top the top edge of the top row of islands, right under the toolbar: `y` is the line, `x`/`width` its extent
  * @param statusBand free strip between the islands and the status bar content
  * @param occluders things above the panels (popups, sliding tool windows) that must stay clean
+ * @param projectPanel the Project tool window, if it is docked and showing its tree
  */
 internal class FrameLayout(
     val vertical: List<Rectangle>,
@@ -30,7 +34,16 @@ internal class FrameLayout(
     val top: List<Rectangle>,
     val statusBand: Rectangle?,
     val occluders: List<Rectangle>,
+    val projectPanel: ProjectPanel? = null,
 )
+
+/**
+ * The Project tool window island.
+ *
+ * @param body the island's rounded body (its bounds without the border), corners of [arc]
+ * @param content where the tree's scroll pane is, inside the body
+ */
+internal class ProjectPanel(val body: Rectangle, val arc: Int, val content: Rectangle)
 
 /**
  * Finds the edges of the Islands UI from public API: tool window and editor components, the status bar.
@@ -99,7 +112,33 @@ internal object FrameGeometry {
             }
         }
 
-        return FrameLayout(vertical, horizontal, topEdges(islands, touch), statusBand(project, root, islands), occluders)
+        return FrameLayout(
+            vertical, horizontal, topEdges(islands, touch), statusBand(project, root, islands), occluders,
+            projectPanel(project, root, toolWindows, anchors),
+        )
+    }
+
+    /**
+     * The docked Project tool window showing its tree.
+     * The tree comes from [ProjectView]; the island's shape from the Islands theme (`Island.borderWidth`,
+     * `Island.arc`), so things can sit in its rounded bottom corners.
+     */
+    private fun projectPanel(project: Project, root: JRootPane, toolWindows: ToolWindowManager, anchors: List<JComponent>): ProjectPanel? {
+        val window = toolWindows.getToolWindow(ToolWindowId.PROJECT_VIEW) ?: return null
+        if (!window.isVisible || window.type != ToolWindowType.DOCKED) return null
+        val component = window.component
+        if (!component.isShowing || SwingUtilities.getRootPane(component) !== root) return null
+        val tree = ProjectView.getInstance(project).currentProjectViewPane?.tree ?: return null
+        if (!tree.isShowing || !SwingUtilities.isDescendingFrom(tree, component)) return null
+        val scroll = SwingUtilities.getAncestorOfClass(JScrollPane::class.java, tree) as? JScrollPane ?: return null
+
+        val island = boundsIn(islandOf(component, anchors), root)
+        val border = JBUI.scale(JBUI.getInt("Island.borderWidth", 6))
+        val body = Rectangle(island.x + border, island.y + border, island.width - 2 * border, island.height - 2 * border)
+        val arc = JBUI.scale(JBUI.getInt("Island.arc", 20))
+        val content = boundsIn(scroll, root).intersection(body)
+        if (content.isEmpty) return null
+        return ProjectPanel(body, arc, content)
     }
 
     /**

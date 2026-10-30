@@ -12,6 +12,8 @@
         ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <!-- Git events (gifts for commits); without Git the plugin works, the gifts just stay put. -->
+    <depends optional="true" config-file="jingle-code-git.xml">Git4Idea</depends>
 
     <resource-bundle>messages.JingleCodeBundle</resource-bundle>
 
@@ -28,6 +30,11 @@
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.snow.EditorSnowListener"/>
         <iw.actionProvider implementation="io.github.ioannvs.jinglecode.snow.EditorSnowWidgetActionProvider"/>
     </extensions>
+
+    <projectListeners>
+        <listener class="io.github.ioannvs.jinglecode.drift.GiftPileListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+    </projectListeners>
 
     <actions>
         <action id="JingleCode.ToggleEditorSnow"

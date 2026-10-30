@@ -22,7 +22,7 @@
 - `sinceBuild = 251`, `untilBuild` не указываем.
 - Публичный API в приоритете. Всё, что требует внутреннего API (`@ApiStatus.Internal`, раскладка Swing-компонентов), прячем за отдельной настройкой и изолируем в одном месте, чтобы при поломке отключить только это.
 - Настройки: `JingleCodeSettings` (`SimplePersistentStateComponent`, `jingle-code.xml`) и `JingleCodeSettingsListener` на message bus. Страница настроек: Settings → Appearance → Jingle Code. Тексты в `messages/JingleCodeBundle.properties` и `JingleCodeBundle_ru.properties`.
-- Время берём только из `core/JingleClock`, никаких `LocalDate.now()`. Показывать ли фичу, решает `core/FeatureGate` (плагин включён, сезон, переключатель, не сломана); декор слушает `FeatureGate.TOPIC`, а хрупкий код оборачивает в `FeatureGate.guard`. Новый элемент декора — новое значение `JingleFeature`. Архитектура и порядок её ввода — в `docs/DECISIONS.md`.
+- Время берём только из `core/JingleClock`, никаких `LocalDate.now()`. События — через `events/JingleEvents`, код про Git только в пакете `git` (проверяет `ArchitectureTest`). Показывать ли фичу, решает `core/FeatureGate` (плагин включён, сезон, переключатель, не сломана); декор слушает `FeatureGate.TOPIC`, а хрупкий код оборачивает в `FeatureGate.guard`. Новый элемент декора — новое значение `JingleFeature`. Архитектура и порядок её ввода — в `docs/DECISIONS.md`.
 - `verifyPlugin` запускаем перед каждым релизом и по расписанию в CI против последнего релиза и EAP.
 
 ## Как работать

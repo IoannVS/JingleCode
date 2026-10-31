@@ -39,6 +39,8 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var snowAmount by enum(SnowAmount.NORMAL)
         var snowSpeed by enum(SnowSpeed.NORMAL)
         var snowFrameRate by enum(SnowFrameRate.HIGH)
+        var popupSnowEnabled by property(true)
+        var menuSnowEnabled by property(true)
     }
 
     /** Call after changing [state] so that decorations pick up the change. */

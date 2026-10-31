@@ -159,6 +159,11 @@ object JinglePalette {
     @JvmField val SANTA_RED = c(0xc0392b)
     @JvmField val GOLD = c(0xd8b04a)
 
+    // Holly on notifications (`holly` in `docs/mockup/jingle-code-windows.html`); its leaves are FIR and FIR_LIGHT
+    @JvmField val HOLLY_BERRY = c(0xd8433a)
+    @JvmField val HOLLY_BERRY_DARK = c(0xc0392b)
+    @JvmField val HOLLY_BERRY_GLINT = c(0xff9a9a)
+
     // Reindeer
     @JvmField val REINDEER = c(0x8a5a3a)
 

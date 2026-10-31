@@ -9,7 +9,9 @@ enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boole
     TAB_ICICLES({ it.tabIciclesEnabled }),
     DRIFT({ it.driftEnabled }),
     VILLAGE({ it.villageEnabled }),
-    EDITOR_SNOW({ it.editorSnowEnabled });
+    EDITOR_SNOW({ it.editorSnowEnabled }),
+    POPUPS({ it.popupSnowEnabled }),
+    CONTEXT_MENUS({ it.menuSnowEnabled });
 
     fun isEnabledIn(state: JingleCodeSettings.State): Boolean = switch(state)
 }

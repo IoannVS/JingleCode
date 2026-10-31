@@ -138,6 +138,16 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                 }.bind(state::snowFrameRate)
             }.enabledIf(snow.component.selected)
         }
+        group(message("settings.popups.group")) {
+            row {
+                checkBox(message("settings.popups.enabled")).bindSelected(state::popupSnowEnabled)
+                    .comment(message("settings.popups.comment"))
+            }
+            row {
+                checkBox(message("settings.menus.enabled")).bindSelected(state::menuSnowEnabled)
+                    .comment(message("settings.menus.comment"))
+            }
+        }
         group(message("settings.preview.group")) {
             row { cell(createPreview()) }
         }

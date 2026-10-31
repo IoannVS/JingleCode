@@ -22,4 +22,26 @@ class ArchitectureTest {
             .toList()
         assertEquals(emptyList<String>(), offenders)
     }
+
+    /**
+     * Catching other people's popups leans on how Swing and the platform show them (docs/POPUPS.md):
+     * all of it stays in the `popups` package, so that breaking it turns off only the popup snow.
+     */
+    @Test
+    fun `only the popups package intercepts popups and menus`() {
+        val markers = listOf(
+            "import java.awt.event.WindowEvent",
+            "import javax.swing.JPopupMenu",
+            "import com.intellij.openapi.ui.popup.util.PopupUtil",
+            "import com.intellij.notification.Notifications",
+            "getParentBalloonFor",
+            "WINDOW_EVENT_MASK",
+        )
+        val offenders = sources.walk()
+            .filter { it.isFile && it.extension == "kt" && !it.path.replace('\\', '/').contains("/jinglecode/popups/") }
+            .filter { file -> file.readText().let { text -> markers.any { it in text } } }
+            .map { it.name }
+            .toList()
+        assertEquals(emptyList<String>(), offenders)
+    }
 }

@@ -27,6 +27,7 @@
                 bundle="messages.JingleCodeBundle"
                 key="settings.display.name"/>
         <postStartupActivity implementation="io.github.ioannvs.jinglecode.overlay.FrameOverlayStartupActivity"/>
+        <postStartupActivity implementation="io.github.ioannvs.jinglecode.popups.PopupSnowStartupActivity"/>
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.snow.EditorSnowListener"/>
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.village.EditorVillageListener"/>
         <iw.actionProvider implementation="io.github.ioannvs.jinglecode.snow.EditorSnowWidgetActionProvider"/>

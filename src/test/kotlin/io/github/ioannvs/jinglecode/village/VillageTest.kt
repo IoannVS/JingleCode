@@ -34,11 +34,12 @@ class VillageTest {
         stars: Boolean = false,
         leftEdge: Int? = null,
         stoked: Set<Int> = emptySet(),
+        residents: Map<String, Int> = emptyMap(),
     ): Drawn {
         val image = BufferedImage(width, VILLAGE_ROWS, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()
         var houses = emptyList<HouseBox>()
-        PixelCanvas.paint(g, 0, 0) { houses = drawVillage(style, width, seed, frame, evening, stars, leftEdge, stoked) }
+        PixelCanvas.paint(g, 0, 0) { houses = drawVillage(style, width, seed, frame, evening, stars, leftEdge, stoked, residents) }
         g.dispose()
         return Drawn(image, houses)
     }
@@ -72,6 +73,81 @@ class VillageTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `the residents are the mockup's, pixel for pixel`() {
+        // References: what each scene adds to the village at a few of its frames, by the mockup's own code (render-references.js).
+        for ((name, style) in scenes) {
+            val lines = javaClass.getResource("/village-mockup/$name-residents.txt")!!.readText().trimEnd().lines()
+            assertEquals(style.scene.residents.size * 5, lines.size)
+            for (line in lines) {
+                val (id, t, time, pixels) = "$line ".split(' ', limit = 4)
+                val evening = time == "evening"
+                val base = draw(style, frame = 300, evening = evening).image
+                val with = draw(style, frame = 300, evening = evening, residents = mapOf(id to t.toInt())).image
+                val diff = buildSet {
+                    for (x in 0 until base.width) for (y in 0 until base.height) {
+                        if (base.getRGB(x, y) != with.getRGB(x, y)) add("$x,$y,${hex(with.at(x, y))}")
+                    }
+                }
+                val expected = pixels.trim().split(';').filter { it.isNotEmpty() }.toSet()
+                if (diff != expected) fail("$name $id at $t ($time): extra ${(diff - expected).take(5)}, missing ${(expected - diff).take(5)}")
+            }
+        }
+    }
+
+    @Test
+    fun `the planner runs one to three scenes, never the same one twice at once`() {
+        val scenes = HILL_FARM_RESIDENTS
+        val planner = ResidentScheduler(kotlin.random.Random(1))
+        var most = 0
+        var idle = 0
+        val started = HashSet<String>()
+        for (frame in 0 until 20_000) {
+            val playing = planner.at(frame, scenes, ResidentFrequency.OFTEN)
+            assertTrue("at most three at $frame: $playing", playing.size <= ResidentScheduler.MAX_ACTIVE)
+            for ((id, t) in playing) assertTrue("$id runs its course only", t in 0 until scenes.first { it.id == id }.duration)
+            most = maxOf(most, playing.size)
+            if (playing.isEmpty()) idle++
+            started += playing.keys
+        }
+        assertEquals("three at a time sometimes", 3, most)
+        assertEquals("every scene turns up", scenes.map { it.id }.toSet(), started)
+        assertTrue("mostly something plays: idle $idle", idle < 20_000 / 5)
+        // The keys of a map can't repeat; the ids must not either.
+        for (list in listOf(HILL_FARM_RESIDENTS, VALLEY_RESIDENTS, UPHILL_STREET_RESIDENTS, FOREST_CLEARING_RESIDENTS)) {
+            assertEquals(list.size, list.map { it.id }.toSet().size)
+        }
+    }
+
+    @Test
+    fun `the planner starts more often at a higher frequency, and only once per frame`() {
+        fun starts(frequency: ResidentFrequency): Int {
+            val planner = ResidentScheduler(kotlin.random.Random(7))
+            var count = 0
+            var before = emptySet<String>()
+            for (frame in 0 until 30_000) {
+                val now = planner.at(frame, VALLEY_RESIDENTS, frequency).keys
+                count += (now - before).size
+                before = now
+            }
+            return count
+        }
+        val rare = starts(ResidentFrequency.RARE)
+        val normal = starts(ResidentFrequency.NORMAL)
+        val often = starts(ResidentFrequency.OFTEN)
+        assertTrue("$rare < $normal < $often", normal in rare + 1 until often)
+        val planner = ResidentScheduler(kotlin.random.Random(3))
+        val first = (0 until 200).map { planner.at(50, VALLEY_RESIDENTS, ResidentFrequency.OFTEN) }
+        assertTrue("asking again for the same frame changes nothing", first.toSet().size == 1)
+    }
+
+    @Test
+    fun `each style has its own scenes and the five common ones`() {
+        val common = setOf("cat", "birds", "dog", "shovel", "carol")
+        for (style in scenes.values) assertTrue("$style", style.scene.residents.map { it.id }.containsAll(common))
+        assertTrue("the bathhouse scene on the clearing", FOREST_CLEARING_RESIDENTS.any { it.id == "banya" })
     }
 
     @Test
@@ -156,7 +232,7 @@ class VillageTest {
 
     @Test
     fun `each scene has its houses, all of them in view at the mockup's width`() {
-        val counts = mapOf(VillageStyle.HILL_FARM to 6, VillageStyle.VALLEY to 3, VillageStyle.UPHILL_STREET to 7, VillageStyle.FOREST_CLEARING to 1)
+        val counts = mapOf(VillageStyle.HILL_FARM to 6, VillageStyle.VALLEY to 3, VillageStyle.UPHILL_STREET to 7, VillageStyle.FOREST_CLEARING to 2)
         for ((style, count) in counts) {
             val houses = draw(style).houses
             assertEquals("$style", count, houses.size)
@@ -170,7 +246,7 @@ class VillageTest {
         val wide = draw(VillageStyle.HILL_FARM, width = 900).houses
         fun gaps(houses: List<HouseBox>) = houses.drop(1).map { it.x0 }.zipWithNext { a, b -> b - a }
         assertEquals("the group on the hill", gaps(narrow).drop(1), gaps(wide).drop(1))
-        assertTrue("the barn stays at the left", wide.first().x1 < 900 / 4)
+        assertTrue("the barn stays at the left", wide.first().x1 < 900 / 3)
         assertTrue("the group goes to the right", wide.last().x1 > 900 - 80)
     }
 

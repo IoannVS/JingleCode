@@ -42,6 +42,9 @@ section { display: flex; flex-direction: column; gap: 12px; }
 .editor canvas { display: block; width: 920px; height: 128px; image-rendering: pixelated; image-rendering: crisp-edges; }
 ul { margin: 0; padding-left: 18px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; max-width: 75ch; }
 li b { color: var(--fg); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 400 12px var(--body); padding: 4px 10px; border-radius: 99px; color: var(--muted); }
+.chip[aria-pressed="true"] { color: var(--ember); border-color: var(--ember); }
 .cat { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
 .cat figure { margin: 0; background: var(--editor); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
 .cat canvas { width: 128px; height: 112px; image-rendering: pixelated; image-rendering: crisp-edges; }
@@ -53,16 +56,19 @@ li b { color: var(--fg); font-weight: 600; }
   <header>
     <h1>Деревня Jingle Code</h1>
     <p class="lead">Четыре композиции для полосы внизу редактора, в масштабе как в плагине. Сейчас в плагине домики стоят через равные промежутки, все одной формы и с одинаковым снегом. Здесь показано, как это разбить: группы и пустоты, разные планы, разные типы домов и снег, который зависит от крыши и ветра.</p>
+    <p class="lead">Жители: в каждой деревне свои сценки, они запускаются случайно, одновременно идут одна-три. Под каждой деревней список сценок, нажатие запускает сценку сразу. «Все сценки сразу» включает всё одновременно, только для просмотра: в плагине так не будет.</p>
     <div class="controls">
       <button id="reseed" type="button">Перемешать детали</button>
       <button id="evening" type="button" aria-pressed="true">Вечер</button>
       <button id="pause" type="button">Пауза</button>
+      <button id="allscenes" type="button" aria-pressed="false">Все сценки сразу</button>
     </div>
   </header>
 
   <section>
     <div class="head"><h2>1. Хутор на холме</h2><span class="tag">советую</span></div>
     <div class="scroll"><div class="editor"><canvas id="v1" width="460" height="64"></canvas></div></div>
+    <div class="chips" data-v="v1" aria-label="Сценки"></div>
     <ul>
       <li><b>Асимметрия</b>: главная группа домов стоит на холме справа, примерно на трети ширины от края. Слева много пустого снега.</li>
       <li><b>Группы вместо ряда</b>: дома стоят тесно и чуть перекрывают друг друга, рядом одинокий амбар с забором.</li>
@@ -74,6 +80,7 @@ li b { color: var(--fg); font-weight: 600; }
   <section>
     <div class="head"><h2>2. Долина</h2><span class="tag">переделано</span></div>
     <div class="scroll"><div class="editor"><canvas id="v2" width="460" height="64"></canvas></div></div>
+    <div class="chips" data-v="v2" aria-label="Сценки"></div>
     <ul>
       <li><b>Дальний план живой</b>: горы со снежными шапками, между вершинами видно небо. На склоне маленькая деревня с огнями, дымками и шпилем, по серпантину едут сани с фонарём. На правом склоне большой горы горнолыжка: две трассы, кресельный подъёмник с движущимися креслами, лыжники спускаются змейкой, внизу база с флагом, вечером вдоль трассы горят фонари.</li>
       <li><b>Средний план</b>: снежная гряда, лес куртинами, а не сплошной полосой. Посередине замёрзший пруд, на нём катаются двое.</li>
@@ -84,6 +91,7 @@ li b { color: var(--fg); font-weight: 600; }
   <section>
     <div class="head"><h2>3. Улица в гору</h2><span class="tag">переделано</span></div>
     <div class="scroll"><div class="editor"><canvas id="v3" width="460" height="64"></canvas></div></div>
+    <div class="chips" data-v="v3" aria-label="Сценки"></div>
     <ul>
       <li><b>Диагональ вместо ряда</b>: улица поднимается слева направо к часовне на вершине, за ней спуск с мельницей и лесом.</li>
       <li><b>Ритм</b>: пустое поле с берёзами и стогом, плотная группа изба с баней у подножия, просвет с колодцем, высокий терем, снова просвет, вершина.</li>
@@ -94,6 +102,7 @@ li b { color: var(--fg); font-weight: 600; }
   <section>
     <div class="head"><h2>4. Поляна в лесу</h2></div>
     <div class="scroll"><div class="editor"><canvas id="v4" width="460" height="64"></canvas></div></div>
+    <div class="chips" data-v="v4" aria-label="Сценки"></div>
     <ul>
       <li><b>Минимализм</b>: густой лес по краям, в середине поляна с одной избой.</li>
       <li><b>Тепло в центре</b>: светятся окна, из трубы идёт дым, рядом дрова и снеговик.</li>
@@ -366,6 +375,7 @@ function v1(c) {
   drawHouse(c, 412, Math.round(hf(418)) + 1, randomSpec('banya', r), r);
   ground(c, W, H, hf);
   snowman(c, 395, Math.round(hf(397)) + 1);
+  runScenes(c, 'v1', { hf, g: x => Math.round(hf(x)) + 1 });
 }
 function v2(c) {
   const r = rng(seed * 202 + 2);
@@ -423,6 +433,7 @@ function v2(c) {
   pine(c, 430, hf(430) + 1, 24, r); pine(c, 446, hf(446) + 1, 15, r);
   ground(c, W, H, hf);
   sled(c, 196, g(199));
+  runScenes(c, 'v2', { hf, g, pcx, py, runs, road });
 }
 function v3(c) {
   const r = rng(seed * 303 + 3);
@@ -457,6 +468,7 @@ function v3(c) {
   ground(c, W, H, hf);
   for (let x = 70; x < 112; x += 2) px(c, x, g(x) + 1 + (x % 4 ? 0 : 1), P.snowSh);
   sled(c, 160, g(163));
+  runScenes(c, 'v3', { hf, g });
 }
 function v4(c) {
   const r = rng(seed * 404 + 4);
@@ -468,8 +480,341 @@ function v4(c) {
   for (let x = 2; x < W; x += 6 + Math.floor(r() * 7)) { if (x > 240 && x < 372) continue; const h = 10 + Math.floor(r() * 13) + (x < 60 || x > 420 ? 4 : 0); pine(c, x, hf(x) + 1, h, r); }
   birch(c, 246, hf(246) + 1, 15, r);
   drawHouse(c, 296, g(305), { ...randomSpec('izba', r), lit: 0.9, chimney: true, smokeHeavy: true, deco: 'garland' }, r);
-  woodpile(c, 278, g(282)); snowman(c, 330, g(332)); sled(c, 340, g(343));
+  drawHouse(c, 350, g(355), { ...randomSpec('banya', r), wind: 1, chimney: true, smokeHeavy: true }, r);
+  woodpile(c, 278, g(282)); snowman(c, 330, g(332));
   ground(c, W, H, hf);
+  sled(c, 258, g(261));
+  runScenes(c, 'v4', { hf, g });
+}
+
+/* ---------- жители и сценки ---------- */
+const SKIN = '#f3d2b3', DARK = '#2b2b33';
+const COATS = ['#c0392b', '#2f5f8a', '#7a3b6e', '#2e7d4f', '#b8862b', '#5a3a24', '#d8743a'];
+const L = (a, b, p) => a + (b - a) * Math.min(1, Math.max(0, p));
+const clamp01 = p => Math.min(1, Math.max(0, p));
+
+// человечек: ноги в строке gy-1; kid ниже ростом; f — кадр шага; arm: 'up' | 'fwd'
+function person(c, x, gy, o = {}) {
+  x = Math.round(x); gy = Math.round(gy);
+  const coat = o.coat || COATS[0], hat = o.hat || '#e8eef7', kid = o.kid, f = o.f || 0, d = o.dir || 1;
+  if (o.sit) gy += 1;
+  const bh = kid ? 2 : 3;
+  if (o.sit) { px(c, x + (d > 0 ? 3 : -1), gy - 2, DARK); }
+  else if (f % 2) { px(c, x, gy - 1, DARK); px(c, x + 2, gy - 1, DARK); }
+  else { px(c, x + 1, gy - 1, DARK); }
+  rect(c, x, gy - 1 - bh, 3, bh, coat);
+  px(c, x + 1, gy - 2 - bh, o.skin || SKIN);
+  if (o.nohat) px(c, x + 1, gy - 3 - bh, '#6b3e22');
+  else { rect(c, x, gy - 3 - bh, 3, 1, hat); if (kid) px(c, x + 1, gy - 4 - bh, hat); }
+  const hx = x + (d > 0 ? 3 : -1);
+  if (o.arm === 'up') { px(c, hx, gy - 1 - bh, coat); px(c, hx, gy - 2 - bh, coat); return { hx, hy: gy - 3 - bh }; }
+  if (o.arm === 'fwd') { px(c, hx, gy - bh, coat); return { hx, hy: gy - bh }; }
+  return { hx, hy: gy - bh };
+}
+function walk(x0, x1, t, speed) { const dist = Math.abs(x1 - x0), p = Math.min(dist, t * speed); return { x: x0 + Math.sign(x1 - x0) * p, d: x1 >= x0 ? 1 : -1, done: p >= dist, f: Math.floor(t / 2) }; }
+function puff(c, x, y, t) { for (let i = 0; i < 6; i++) { const a = i * 1.05 + t * 0.3, r = 1 + (t % 6) * 0.5; px(c, x + Math.round(Math.cos(a) * r), y - Math.round(Math.abs(Math.sin(a)) * r), i % 2 ? P.snowHi : '#d6e2f0'); } }
+function steam(c, x, y, t) { for (let i = 0; i < 5; i++) { const tt = (t * 0.5 + i * 2) % 10; px(c, x + Math.round(Math.sin(tt + i) * 1.5), y - Math.round(tt), '#dfe6ef'); } }
+
+function dog(c, x, gy, f, d) {
+  x = Math.round(x); const col = '#7a5230', dk = '#4a3020';
+  rect(c, x, gy - 3, 4, 2, col);
+  if (f % 2) { px(c, x, gy - 1, dk); px(c, x + 3, gy - 1, dk); } else { px(c, x + 1, gy - 1, dk); px(c, x + 2, gy - 1, dk); }
+  const hx = d > 0 ? x + 4 : x - 1, tx = d > 0 ? x - 1 : x + 4;
+  rect(c, hx, gy - 4, 1, 2, col); px(c, hx + d, gy - 3, dk); px(c, hx, gy - 5, dk);
+  px(c, tx, f % 2 ? gy - 4 : gy - 3, col);
+}
+function cat(c, x, baseY, f, eyes) {
+  const col = '#3a3036';
+  rect(c, x, baseY - 3, 2, 3, col); px(c, x, baseY - 4, col); px(c, x + 1, baseY - 4, col);
+  if (eyes) { px(c, x, baseY - 3, '#ffd75e'); px(c, x + 1, baseY - 3, '#ffd75e'); }
+  px(c, x + 2, baseY - 1, col); px(c, x + 3, f % 4 < 2 ? baseY - 2 : baseY - 1, col);
+}
+function bird(c, x, y, fly) { px(c, x, y, '#d8433a'); px(c, x + 1, y - 1, '#2b2b33'); if (fly) { px(c, x - 1, y - (fly % 2 ? 1 : 0), '#4a5568'); px(c, x + 1, y - (fly % 2 ? 0 : 2), '#4a5568'); } else px(c, x - 1, y, '#4a5568'); }
+function hare(c, x, gy, d, up, twitch) {
+  x = Math.round(x); gy -= up; const col = '#cfd6e0', dk = '#4a4a52';
+  rect(c, x, gy - 3, 3, 2, col); px(c, x + (d > 0 ? 0 : 2), gy - 1, col); px(c, x + (d > 0 ? 2 : 0), gy - 1, col);
+  const hx = d > 0 ? x + 3 : x - 1; px(c, hx, gy - 3, col); px(c, hx, gy - 4, col); px(c, hx, gy - 5 - (twitch ? 1 : 0), dk); px(c, hx, gy - 3, dk);
+  px(c, d > 0 ? x - 1 : x + 3, gy - 3, P.snowHi);
+}
+function fox(c, x, gy, f, d) {
+  x = Math.round(x); const col = '#d9692b', dk = '#3a2a22';
+  rect(c, x, gy - 3, 5, 2, col);
+  if (f % 2) { px(c, x, gy - 1, dk); px(c, x + 4, gy - 1, dk); } else { px(c, x + 1, gy - 1, dk); px(c, x + 3, gy - 1, dk); }
+  const hx = d > 0 ? x + 5 : x - 1; rect(c, hx, gy - 4, 1, 2, col); px(c, hx + d, gy - 3, dk); px(c, hx, gy - 5, dk);
+  const tx = d > 0 ? x - 3 : x + 5; rect(c, tx, gy - 3 + (f % 4 < 2 ? 0 : 1), 3, 1, col); px(c, d > 0 ? tx : tx + 2, gy - 3 + (f % 4 < 2 ? 0 : 1), P.snowHi);
+}
+function moose(c, x, gy, f, d, headTurn) {
+  x = Math.round(x); const col = '#4a3020', lg = '#3a2418', ant = '#c9b48a';
+  rect(c, x, gy - 7, 8, 3, col);
+  [0, 2, 5, 7].forEach((o, i) => rect(c, x + o, gy - 4, 1, 4 - ((f + i) % 2 && f >= 0 ? 0 : 0), lg));
+  const hx = d > 0 ? x + 8 : x - 2;
+  rect(c, hx, gy - 9, 2, 3, col); px(c, hx + (d > 0 ? 2 : -1), gy - 7, col);
+  const ax = headTurn ? hx : hx; rect(c, ax - 1, gy - 10, 4, 1, ant); px(c, ax - 1, gy - 11, ant); px(c, ax + 2, gy - 11, ant);
+}
+function horse(c, x, gy, f, d) {
+  x = Math.round(x); const col = '#6b4428', dk = '#3a2418';
+  rect(c, x, gy - 6, 7, 3, col);
+  for (let i = 0; i < 4; i++) { const lx = x + [0, 1, 5, 6][i]; rect(c, lx, gy - 3, 1, (f + i) % 2 ? 3 : 2, dk); }
+  const nx = d > 0 ? x + 6 : x; rect(c, nx, gy - 8, 1, 2, col); const hx = d > 0 ? nx + 1 : nx - 2; rect(c, hx, gy - 8, 2, 2, col); px(c, d > 0 ? nx - 1 : nx + 1, gy - 8, dk);
+  px(c, d > 0 ? x - 1 : x + 7, gy - 5, dk); px(c, d > 0 ? x - 1 : x + 7, gy - 4, dk);
+  return hx;
+}
+function sledAt(c, x, gy, col) { rect(c, x, gy - 2, 5, 1, col || '#c0392b'); rect(c, x - 1, gy - 1, 7, 1, '#6b3e22'); }
+function smallTree(c, x, gy, h, lights) {
+  for (let i = 0; i < h; i++) { const hw = Math.floor(i / 2.5); rect(c, x - hw, gy - h - 1 + i, hw * 2 + 1, 1, i % 3 === 2 ? P.pine[1] : P.pine[0]); if (lights && i % 3 === 1 && i > 1) px(c, x - hw + ((i + Math.floor(frame / 3)) % (hw * 2 + 1)), gy - h - 1 + i, P.bulbs[(i + Math.floor(frame / 4)) % 4]); }
+  px(c, x, gy - h - 2, P.gold); px(c, x, gy - 1, P.trunk);
+}
+
+/* общие сценки, параметры — места в конкретной деревне */
+const common = {
+  cat: (name, x, baseYfn) => ({ id: 'cat', name, dur: 110, draw(c, t, k) {
+    const by = baseYfn(k), jump = t < 6 ? 6 - t : t > 100 ? t - 100 : 0;
+    cat(c, x, by + jump, t, evening && t % 30 < 26);
+    if (t > 40 && t < 60 && t % 6 < 3) px(c, x + 2, by - 3, '#3a3036');
+  } }),
+  birds: (name, x0, perchFn) => ({ id: 'birds', name, dur: 120, draw(c, t, k) {
+    const y = perchFn(k);
+    [0, 3, 7].forEach((o, i) => {
+      if (t < 12) { bird(c, x0 + o - (12 - t) * 2, y - (12 - t), t); return; }
+      if (t > 100) { const q = t - 100 + i * 2; bird(c, x0 + o + q * 2, y - q * 1.5, t); return; }
+      const hop = (Math.floor(t / 7) + i) % 5 === 0 ? 1 : 0; bird(c, x0 + o, y - hop, 0);
+    });
+  } }),
+  dog: (name, x0, x1) => ({ id: 'dog', name, dur: 120, draw(c, t, k) {
+    const span = x1 - x0, ph = (t * 1.2) % (span * 2), fwd = ph < span, x = fwd ? x0 + ph : x1 - (ph - span);
+    const bark = t % 40 > 32;
+    dog(c, x, k.g(x + 2), bark ? 0 : Math.floor(t / 2), fwd ? 1 : -1);
+    if (bark && t % 4 < 2) { const hx = fwd ? x + 6 : x - 3; px(c, hx, k.g(x) - 6, P.snowHi); px(c, hx + (fwd ? 1 : -1), k.g(x) - 7, P.snowHi); }
+  } }),
+  shovel: (name, x0, x1) => ({ id: 'shovel', name, dur: 140, draw(c, t, k) {
+    const w = walk(x0, x1, t, Math.abs(x1 - x0) / 120), x = Math.round(w.x), gy = k.g(x + 1);
+    for (let xx = Math.min(x0, x); xx <= Math.max(x0, x); xx++) px(c, xx, k.g(xx) - 1, P.snowSh);
+    const swing = t % 10 < 5;
+    person(c, x, gy, { coat: COATS[5], hat: '#2f5f8a', dir: w.d, f: Math.floor(t / 5), arm: 'fwd' });
+    const sx = x + (w.d > 0 ? 4 : -2); px(c, sx, gy - (swing ? 3 : 1), '#9aa4b2'); px(c, sx + w.d, gy - (swing ? 4 : 1), '#9aa4b2');
+    if (!swing) { const q = t % 5; px(c, x - w.d * (2 + q), gy - 3 - q, P.snowHi); px(c, x - w.d * (3 + q), gy - 2 - q, P.snowHi); }
+  } }),
+  carol: (name, x0, xDoor) => ({ id: 'carol', name, dur: 170, draw(c, t, k) {
+    const d = xDoor > x0 ? 1 : -1, sp = Math.abs(xDoor - x0) / 90;
+    const at = t > 90 && t < 130;
+    if (at) { rect(c, xDoor - 1, k.g(xDoor) - 7, 2, 6, '#ffcf5e'); }
+    [0, 1, 2].forEach(i => {
+      const w = t < 130 ? walk(x0 - d * i * 5, xDoor - d * (i * 5 + 3), t, sp) : walk(xDoor - d * (i * 5 + 3), xDoor - d * (i * 5 + 3) + d * 40, t - 130, 0.8);
+      const x = Math.round(w.x), gy = k.g(x + 1);
+      const hand = person(c, x, gy, { kid: true, coat: COATS[(i * 2 + 1) % COATS.length], hat: i === 0 ? '#c0392b' : '#e8eef7', dir: d, f: w.done ? 0 : w.f, arm: i === 0 ? 'up' : null });
+      if (i === 0) { rect(c, hand.hx, hand.hy - 3, 1, 3, '#6b3e22'); const sc = P.bulbs[Math.floor(t / 4) % 4]; px(c, hand.hx, hand.hy - 5, sc); px(c, hand.hx - 1, hand.hy - 4, sc); px(c, hand.hx + 1, hand.hy - 4, sc); px(c, hand.hx, hand.hy - 4, P.gold); }
+      if (i === 2 && evening) px(c, x + 3 * d + (d < 0 ? 2 : 0), gy - 3, P.lamp);
+      if (at && t % 12 < 6) px(c, x + 1, gy - 9, '#ffe9a8');
+    });
+  } })
+};
+
+function woodchop(name, x, logDir) {
+  return { id: 'chop', name, dur: 130, draw(c, t, k) {
+    const gy = k.g(x + 1), ph = t % 12, up = ph < 6, d = logDir;
+    const sx = x + (d > 0 ? 4 : -3); rect(c, sx, gy - 2, 2, 2, '#8a5a3a'); if (ph >= 6 && ph < 9) px(c, sx, gy - 3, '#c99a66'); else rect(c, sx, gy - 4, 2, 2, '#c99a66');
+    const h = person(c, x, gy, { coat: COATS[0], hat: '#5a3a24', dir: d, arm: up ? 'up' : 'fwd' });
+    if (up) { px(c, h.hx, h.hy - 1, '#6b3e22'); rect(c, h.hx - d, h.hy - 2, 2, 1, '#9aa4b2'); }
+    else { px(c, h.hx + d, h.hy + 1, '#9aa4b2'); px(c, h.hx + d, h.hy, '#6b3e22'); }
+    if (ph >= 6 && ph < 10) { const q = ph - 6; px(c, sx - q, gy - 4 - q, '#c99a66'); px(c, sx + 2 + q, gy - 4 - q, '#c99a66'); }
+  } };
+}
+
+const SCENES = {
+  v1: [
+    { id: 'sled', name: 'Санки с холма', dur: 150, draw(c, t, k) {
+      [0, 1].forEach(i => {
+        const tt = t - i * 25; if (tt < 0) return;
+        let x, sit, d;
+        if (tt < 40) { const p = tt / 40; x = L(286, 196 - i * 12, p * p); sit = true; d = -1; }
+        else { const w = walk(196 - i * 12, 286, tt - 46, 0.9); x = w.x; sit = false; d = 1; if (w.done) return; }
+        x = Math.round(x); const gy = k.g(x + 1);
+        if (sit) { sledAt(c, x, gy, i ? '#2f5f8a' : '#c0392b'); person(c, x, gy - 1, { kid: true, sit: true, coat: COATS[i + 1], hat: i ? '#ffd75e' : '#c0392b', dir: -1 }); if (tt > 15) puff(c, x + 6, gy - 1, tt); }
+        else { person(c, x, gy, { kid: true, coat: COATS[i + 1], hat: i ? '#ffd75e' : '#c0392b', dir: 1, f: Math.floor(tt / 3), arm: 'fwd' }); for (let q = 1; q < 4; q++) px(c, x - q, gy - 2 + Math.floor(q / 2), '#6b3e22'); sledAt(c, x - 9, k.g(x - 6), i ? '#2f5f8a' : '#c0392b'); }
+      });
+    } },
+    { id: 'snowball', name: 'Игра в снежки', dur: 180, draw(c, t, k) {
+      const A = 158, B = 192, ga = k.g(A + 1), gb = k.g(B + 1);
+      rect(c, A + 4, ga - 3, 5, 2, P.snowHi); rect(c, A + 5, ga - 4, 3, 1, P.snowHi); rect(c, B - 7, gb - 3, 5, 2, P.snowHi); rect(c, B - 6, gb - 4, 3, 1, P.snowHi);
+      const ph = t % 40, aThrows = ph < 20, q = ph % 20;
+      const duckB = aThrows && q > 12 && q < 18, duckA = !aThrows && q > 12 && q < 18;
+      person(c, A, ga + (duckA ? 2 : 0), { kid: true, coat: COATS[0], hat: '#2f5f8a', dir: 1, arm: aThrows && q < 4 ? 'up' : null });
+      person(c, B, gb + (duckB ? 2 : 0), { kid: true, coat: COATS[3], hat: '#ffd75e', dir: -1, arm: !aThrows && q < 4 ? 'up' : null });
+      person(c, A - 6, k.g(A - 5), { kid: true, coat: COATS[4], hat: '#c0392b', dir: 1, arm: t % 20 < 10 ? 'fwd' : null });
+      if (q >= 3 && q < 15) { const p = (q - 3) / 12, x0 = aThrows ? A + 3 : B - 1, x1 = aThrows ? B : A + 2; const bx = L(x0, x1, p), by = ga - 7 - Math.sin(p * Math.PI) * 8; px(c, bx, by, P.snowHi); px(c, bx, by + 1, '#c3d2e6'); }
+      if (q >= 15 && q < 19) puff(c, aThrows ? B - 3 : A + 6, (aThrows ? gb : ga) - 4, q);
+    } },
+    { id: 'horse', name: 'Сено для лошади', dur: 150, draw(c, t, k) {
+      const hx = 120, gyh = k.g(hx + 3); const head = horse(c, hx, gyh, 0, -1);
+      const eating = t > 95 && t < 140; if (eating && t % 8 < 4) px(c, head, gyh - 6, '#6b4428');
+      let x, d, hay = false;
+      if (t < 45) { const w = walk(66, 108, t, 1); x = w.x; d = 1; }
+      else if (t < 55) { x = 108; d = -1; hay = t > 50; }
+      else { const w = walk(108, 114, t - 55, 0.3); x = w.x; d = 1; hay = !w.done || t < 95; }
+      x = Math.round(x); const h = person(c, x, k.g(x + 1), { coat: COATS[5], hat: '#c0392b', dir: d, f: Math.floor(t / 3), arm: hay ? 'up' : null });
+      if (hay) { rect(c, h.hx - 1, h.hy - 2, 3, 2, '#d8b04a'); }
+      if (eating) { rect(c, head - 2, gyh - 2, 3, 1, '#d8b04a'); }
+    } },
+    { id: 'church', name: 'Люди идут к часовне', dur: 190, draw(c, t, k) {
+      [0, 1, 2].forEach(i => {
+        const w = walk(262 - i * 6, 376, t - i * 14, 0.75); if (t - i * 14 < 0 || w.done) return;
+        const x = Math.round(w.x), gy = k.g(x + 1);
+        const h = person(c, x, gy, { coat: COATS[[2, 1, 6][i]], hat: ['#e8eef7', '#c0392b', '#e8eef7'][i], kid: i === 2, dir: 1, f: w.f, arm: i === 0 ? 'fwd' : null });
+        if (i === 0) { px(c, h.hx, h.hy + 1, evening ? P.lamp : '#9aa4b2'); }
+      });
+      if (t > 150) { const sw = Math.round(Math.sin(t * 0.6) * 1); px(c, 378 + sw, k.g(378) - 30, P.gold); px(c, 377 + sw, k.g(378) - 30, P.gold); }
+    } },
+    common.cat('Кот на заборе', 74, k => k.g(76) - 5),
+    common.birds('Снегири на заборе', 84, k => k.g(88) - 6),
+    common.dog('Собака бегает', 228, 262),
+    common.shovel('Чистят снег', 296, 308),
+    common.carol('Колядующие', 322, 352)
+  ],
+  v2: [
+    { id: 'hockey', name: 'Каток: шайба и падение', dur: 160, draw(c, t, k) {
+      const { pcx, py } = k, x = Math.round(pcx + Math.sin(t * 0.08) * 16), pk = Math.round(pcx + Math.sin(t * 0.08 + 0.3) * 16) + 2;
+      rect(c, x, py - 1, 1, 3, '#2e7d4f'); px(c, x, py - 2, SKIN); px(c, x + 1, py + 1, '#6b3e22'); px(c, pk, py + 2, '#1b1b1f');
+      const fx = pcx - 8, fall = t % 60 > 35 && t % 60 < 52;
+      if (fall) { rect(c, fx - 1, py + 2, 3, 1, '#d8b04a'); px(c, fx + 2, py + 2, SKIN); } else { rect(c, fx, py, 1, 3, '#d8b04a'); px(c, fx, py - 1, SKIN); }
+    } },
+    { id: 'skifall', name: 'Лыжник падает, сноубордист прыгает', dur: 140, draw(c, t, k) {
+      const p1 = k.runs[1], i1 = Math.min(p1.length - 1, Math.floor(t / 2)); const stop = 26;
+      const j = t / 2 < stop ? i1 : t / 2 < stop + 18 ? stop : Math.min(p1.length - 1, Math.floor(t / 2) - 18);
+      const [x, y] = p1[j];
+      if (Math.floor(t / 2) >= stop && Math.floor(t / 2) < stop + 18) { rect(c, x - 1, y - 1, 3, 1, '#7fe08a'); puff(c, x, y - 1, t); }
+      else { px(c, x, y - 2, '#7fe08a'); px(c, x, y - 1, '#1d2433'); px(c, x - 1, y, '#1d2433'); px(c, x + 1, y, '#1d2433'); }
+      const p0 = k.runs[0], i0 = Math.floor(t / 2) % p0.length, [bx, by] = p0[i0];
+      const air = i0 > 18 && i0 < 26 ? Math.round(Math.sin((i0 - 18) / 8 * Math.PI) * 4) : 0;
+      px(c, bx, by - 3 - air, '#ff9f2e'); px(c, bx, by - 2 - air, '#1d2433'); rect(c, bx - 1, by - 1 - air, 3, 1, '#c0392b');
+    } },
+    { id: 'lanterns', name: 'Фонарики на серпантине', dur: 200, draw(c, t, k) {
+      [0, 1, 2].forEach(i => { const n = k.road.length, idx = n - 1 - Math.floor((t / 3 + i * 4)) % n, [x, y] = k.road[Math.max(0, idx)]; px(c, x, y - 1, evening ? P.lamp : '#c0392b'); if (evening && t % 6 < 3) px(c, x, y - 2, '#a57a2c'); });
+    } },
+    woodchop('Колют дрова', 118, -1),
+    common.cat('Кот у крыльца', 66, k => k.g(66)),
+    common.birds('Снегири клюют у дороги', 146, k => k.g(150) - 1),
+    common.dog('Собака бегает', 132, 168),
+    common.shovel('Чистят снег', 186, 204),
+    common.carol('Колядующие', 150, 94)
+  ],
+  v3: [
+    { id: 'iceslide', name: 'Ледяная горка по улице', dur: 120, draw(c, t, k) {
+      for (let x = 168; x < 300; x += 2) px(c, x, k.g(x) - 1, '#c8e0f7');
+      [0, 1].forEach(i => { const tt = t - i * 30; if (tt < 0 || tt > 60) return; const p = tt / 60, x = Math.round(L(300, 168, p * p)), gy = k.g(x + 1);
+        rect(c, x - 1, gy - 1, 5, 1, i ? '#2f5f8a' : '#c0392b'); person(c, x, gy - 1, { kid: true, sit: true, coat: COATS[i * 3 + 1], hat: i ? '#ffd75e' : '#e8eef7', dir: -1 }); if (p > 0.4) puff(c, x + 5, gy - 1, tt); });
+    } },
+    { id: 'sleigh', name: 'Лошадь везёт сани в гору', dur: 230, draw(c, t, k) {
+      const w = walk(150, 318, t, 0.75), x = Math.round(w.x), gy = k.g(x + 4);
+      const sx = x - 9, sg = k.g(sx + 3);
+      rect(c, sx, sg - 3, 6, 2, '#a8322a'); rect(c, sx - 1, sg - 1, 8, 1, '#6b3e22'); px(c, sx + 6, sg - 4, '#a8322a');
+      person(c, sx + 1, sg - 2, { sit: true, coat: COATS[2], hat: '#e8eef7', dir: 1, arm: 'fwd' });
+      for (let q = sx + 6; q < x; q++) px(c, q, Math.round(L(sg - 4, gy - 5, (q - sx - 6) / Math.max(1, x - sx - 6))), '#3a2418');
+      horse(c, x, gy, w.f, 1); if (t % 4 < 2) px(c, x + 5, gy - 5, P.gold);
+    } },
+    { id: 'well', name: 'Вода у колодца', dur: 130, draw(c, t, k) {
+      if (t < 30) { const gy = k.g(196); person(c, 195, gy, { coat: COATS[2], hat: '#c0392b', dir: -1, arm: 'fwd' }); const by = Math.round(L(gy - 2, gy - 8, t / 30)); px(c, 189, by, '#9aa4b2'); return; }
+      const w = walk(195, 228, t - 30, 0.4); if (w.done) return; const x = Math.round(w.x), gy = k.g(x + 1);
+      person(c, x, gy, { coat: COATS[2], hat: '#c0392b', dir: 1, f: w.f });
+      rect(c, x - 3, gy - 5, 9, 1, '#6b3e22'); rect(c, x - 3, gy - 4, 1, 2, '#9aa4b2'); rect(c, x + 5, gy - 4, 1, 2, '#9aa4b2');
+    } },
+    { id: 'lamplighter', name: 'Фонарщик', dur: 210, draw(c, t, k) {
+      const stops = [178, 286]; let x, wait = false;
+      if (t < 15) x = 165 + t * 0.8; else if (t < 35) { x = 177; wait = true; } else if (t < 160) x = Math.min(285, 177 + (t - 35) * 0.87); else { x = 285; wait = t < 185; }
+      x = Math.round(x); const gy = k.g(x + 1);
+      const h = person(c, x, gy, { coat: '#2b2b33', hat: '#2b2b33', dir: 1, f: wait ? 0 : Math.floor(t / 2), arm: wait ? 'up' : 'fwd' });
+      if (wait) { rect(c, h.hx, h.hy - 4, 1, 4, '#6b3e22'); px(c, h.hx, h.hy - 5, '#ff9f2e'); if (t % 4 < 2) { const lx = x === 177 ? 178 : 286; rect(c, lx - 2, k.g(lx) - 13, 5, 3, '#fff2b8'); } }
+      else { for (let q = 0; q < 6; q++) px(c, x - 3 + q, gy - 2 - q, '#8a5a3a'); }
+    } },
+    { id: 'khorovod', name: 'Хоровод у ёлки', dur: 180, draw(c, t, k) {
+      const cx = 304, gy = k.g(cx), n = 6, ppl = [];
+      for (let i = 0; i < n; i++) { const a = t * 0.07 + i * Math.PI * 2 / n; ppl.push({ x: Math.round(cx - 1 + Math.cos(a) * 10), z: Math.sin(a), i }); }
+      const draw = p => person(c, p.x, gy + (p.z > 0 ? 1 : 0), { kid: p.i % 2 === 1, coat: COATS[p.i % COATS.length], hat: p.i % 3 ? '#e8eef7' : '#c0392b', dir: Math.cos(t * 0.07 + p.i * Math.PI * 2 / n) > 0 ? -1 : 1, f: Math.floor(t / 3) + p.i, arm: 'fwd' });
+      ppl.filter(p => p.z <= 0).forEach(draw); smallTree(c, cx, gy, 12, true); ppl.filter(p => p.z > 0).forEach(draw);
+    } },
+    common.cat('Кот на заборе', 96, k => k.g(98) - 5),
+    common.birds('Снегири на заборе', 104, k => k.g(108) - 6),
+    common.dog('Собака бегает', 156, 176),
+    common.shovel('Чистят снег', 122, 134),
+    common.carol('Колядующие', 258, 230)
+  ],
+  v4: [
+    { id: 'banya', name: 'Из бани в сугроб', dur: 95, draw(c, t, k) {
+      const door = 355, gd = k.g(door);
+      if (t < 12) { steam(c, door + 1, gd - 6, t); return; }
+      steam(c, door + 1, gd - 6, t);
+      let x, jumpY = 0, hidden = false, d = 1;
+      if (t < 26) x = L(door, 368, (t - 12) / 14);
+      else if (t < 34) { x = 368 + (t - 26) * 0.4; jumpY = Math.round(Math.sin((t - 26) / 8 * Math.PI) * 4); }
+      else if (t < 58) { x = 371; hidden = true; }
+      else { x = L(371, door, (t - 58) / 18); d = -1; if (t > 78) return; }
+      x = Math.round(x); const gy = k.g(x + 1);
+      if (hidden) { puff(c, x + 1, gy - 2, t); if (t > 46) px(c, x + 1, gy - 3, '#f3c2a0'); return; }
+      person(c, x, gy - jumpY, { coat: '#f3c2a0', nohat: true, dir: d, f: Math.floor(t / 2), arm: jumpY ? 'up' : null }); rect(c, x, gy - jumpY - 2, 3, 1, P.snowHi);
+    } },
+    woodchop('Колют дрова', 289, -1),
+    { id: 'hare', name: 'Заяц', dur: 100, draw(c, t, k) {
+      let x, d = 1, up = 0, tw = false;
+      if (t < 30) { x = 236 + t * 0.9; up = Math.floor(t / 3) % 2; }
+      else if (t < 70) { x = 263; tw = t % 10 < 3; }
+      else { x = 263 - (t - 70) * 1.1; d = -1; up = Math.floor(t / 3) % 2; }
+      hare(c, x, k.g(Math.round(x) + 1), d, up, tw);
+    } },
+    { id: 'fox', name: 'Лиса и следы', dur: 180, draw(c, t, k) {
+      const w = walk(232, 384, t, 0.85), x = Math.round(w.x);
+      for (let q = 236; q < x - 2; q += 3) px(c, q, k.g(q) - 1 + (q % 2), P.snowSh);
+      if (!w.done) fox(c, x, k.g(x + 2), w.f, 1);
+    } },
+    { id: 'moose', name: 'Лось на опушке', dur: 130, draw(c, t, k) {
+      let x; if (t < 30) x = 384 - t * 0.5; else if (t < 100) x = 369; else x = 369 + (t - 100) * 0.6;
+      moose(c, x, k.g(Math.round(x) + 4), Math.floor(t / 3), -1, t > 50 && t < 70);
+    } },
+    { id: 'snowman', name: 'Ребёнок лепит снеговика', dur: 170, draw(c, t, k) {
+      const bx = Math.round(L(308, 318, t / 100)), gy = k.g(bx + 2), r = Math.round(L(1, 3, t / 100));
+      rect(c, bx, gy - r * 2, r * 2, r * 2, P.snowHi); rect(c, bx, gy - r * 2, r * 2, 1, '#d6e2f0');
+      if (t < 100) person(c, bx - 4, gy, { kid: true, coat: COATS[6], hat: '#2f5f8a', dir: 1, f: Math.floor(t / 4), arm: 'fwd' });
+      else { rect(c, bx + 1, gy - r * 2 - 4, 4, 4, P.snowHi); px(c, bx + 3, gy - r * 2 - 3, '#ff9f2e'); px(c, bx + 2, gy - r * 2 - 3, '#1b1b1f'); person(c, bx - 5, gy - (t % 10 < 5 ? 1 : 0), { kid: true, coat: COATS[6], hat: '#2f5f8a', dir: 1, arm: 'up' }); }
+      for (let q = 300; q < bx; q++) px(c, q, gy - 1, P.snowSh);
+    } },
+    { id: 'tree', name: 'Несут ёлку из леса', dur: 140, draw(c, t, k) {
+      const w = walk(378, 308, t, 0.6); if (w.done) return; const x = Math.round(w.x), gy = k.g(x + 1);
+      for (let i = 0; i < 9; i++) { const hw = Math.floor(i / 3); rect(c, x + 2 + i, gy - 6 - hw, 1, hw * 2 + 1, i % 2 ? P.pine[1] : P.pine[0]); }
+      person(c, x, gy, { coat: COATS[0], hat: '#5a3a24', dir: -1, f: w.f, arm: 'fwd' });
+    } },
+    common.cat('Кот у крыльца', 312, k => k.g(312)),
+    common.birds('Снегири у берёзы', 250, k => k.g(250) - 1),
+    common.dog('Собака бегает', 266, 286),
+    common.shovel('Чистят снег', 338, 348),
+    common.carol('Колядующие', 372, 310)
+  ]
+};
+
+/* планировщик: случайно 1–3 сценки на деревню, либо все сразу для просмотра */
+let sceneMode = 'random';
+const sceneState = {};
+function runScenes(c, vid, k) {
+  const list = SCENES[vid], st = sceneState[vid] || (sceneState[vid] = { active: {} });
+  if (sceneMode === 'all') { list.forEach((s, i) => s.draw(c, (frame + i * 29) % s.dur, k)); syncChips(vid, true); return; }
+  for (const id in st.active) { const s = list.find(q => q.id === id); if (frame - st.active[id] >= s.dur) delete st.active[id]; }
+  const n = Object.keys(st.active).length;
+  if (!paused && n < 3 && Math.random() < (n === 0 ? 0.1 : n === 1 ? 0.025 : 0.008)) {
+    const free = list.filter(s => !(s.id in st.active)); if (free.length) st.active[free[Math.floor(Math.random() * free.length)].id] = frame;
+  }
+  list.forEach(s => { if (s.id in st.active) s.draw(c, frame - st.active[s.id], k); });
+  syncChips(vid, false);
+}
+const chipEls = {};
+function buildChips() {
+  Object.keys(SCENES).forEach(vid => {
+    const box = document.querySelector('.chips[data-v="' + vid + '"]'); if (!box) return;
+    chipEls[vid] = SCENES[vid].map(s => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = s.name; b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', () => { if (sceneMode === 'all') return; const st = sceneState[vid] || (sceneState[vid] = { active: {} }); st.active[s.id] = frame; });
+      box.append(b); return [s.id, b];
+    });
+  });
+}
+function syncChips(vid, all) {
+  const st = sceneState[vid]; (chipEls[vid] || []).forEach(([id, b]) => { const on = all || !!(st && id in st.active); if (b.getAttribute('aria-pressed') !== String(on)) b.setAttribute('aria-pressed', String(on)); });
 }
 
 /* ---------- каталог ---------- */
@@ -483,12 +828,12 @@ const TYPES = [
   ['mill', 'Мельница', 'крутятся лопасти'],
   ['aframe', 'Шалаш', 'крыша до земли, одно окно']
 ];
-const cat = document.getElementById('cat');
+const catBox = document.getElementById('cat');
 const catCanvases = TYPES.map(([type, name, desc]) => {
   const fig = document.createElement('figure');
   const cv = document.createElement('canvas'); cv.width = 32; cv.height = 28;
   const cap = document.createElement('figcaption'); cap.innerHTML = '<b>' + name + '</b>' + desc;
-  fig.append(cv, cap); cat.append(fig); return [cv, type];
+  fig.append(cv, cap); catBox.append(fig); return [cv, type];
 });
 function drawCat() {
   catCanvases.forEach(([cv, type], i) => {
@@ -501,6 +846,7 @@ function drawCat() {
 }
 
 /* ---------- цикл ---------- */
+buildChips();
 const views = [['v1', v1], ['v2', v2], ['v3', v3], ['v4', v4]].map(([id, fn]) => [document.getElementById(id).getContext('2d'), fn]);
 function render() {
   views.forEach(([c, fn]) => { c.clearRect(0, 0, W, H); fn(c); });
@@ -511,6 +857,7 @@ setInterval(() => { if (!paused) { frame++; render(); } }, 140);
 render();
 document.getElementById('reseed').addEventListener('click', () => { seed = Math.floor(Math.random() * 100000); render(); });
 document.getElementById('evening').addEventListener('click', e => { evening = !evening; e.currentTarget.setAttribute('aria-pressed', String(evening)); e.currentTarget.textContent = evening ? 'Вечер' : 'День'; render(); });
+document.getElementById('allscenes').addEventListener('click', e => { sceneMode = sceneMode === 'all' ? 'random' : 'all'; e.currentTarget.setAttribute('aria-pressed', String(sceneMode === 'all')); Object.values(sceneState).forEach(st => st.active = {}); render(); });
 const pb = document.getElementById('pause');
 pb.textContent = paused ? 'Запустить' : 'Пауза';
 pb.addEventListener('click', () => { paused = !paused; pb.textContent = paused ? 'Запустить' : 'Пауза'; });

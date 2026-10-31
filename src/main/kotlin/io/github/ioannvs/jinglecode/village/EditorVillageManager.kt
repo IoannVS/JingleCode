@@ -32,6 +32,9 @@ class EditorVillageManager(private val project: Project) : Disposable {
     private val isOn: () -> Boolean = { gate.isActive(JingleFeature.VILLAGE) }
     private val time: () -> VillageTime = { VillageTime.at(JingleClock.now()) }
     private val style: () -> VillageStyle = { JingleCodeSettings.getInstance().state.villageStyle }
+    private val residents: () -> ResidentFrequency? = {
+        JingleCodeSettings.getInstance().state.let { if (it.residentsEnabled) it.residentFrequency else null }
+    }
 
     /** The animator frame, kept by the subscription below; it stands still while the animation is paused. */
     private var frame = 0
@@ -57,7 +60,7 @@ class EditorVillageManager(private val project: Project) : Disposable {
         if (editor.isDisposed || editor.project != project || editor.editorKind != EditorKind.MAIN_EDITOR) return
         if (editor in villages) return
         gate.guard(JingleFeature.VILLAGE, Unit) {
-            val village = EditorVillage(editor, isOn, time, style, { frame }, showStars)
+            val village = EditorVillage(editor, isOn, time, style, { frame }, showStars, residents)
             Disposer.register(this, village)
             villages[editor] = village
         }

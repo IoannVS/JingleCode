@@ -15,6 +15,8 @@ internal object UphillStreetScene : VillageScene {
 
     override val elastic = listOf(0..18, 32..56, 68..90)
 
+    override val residents = UPHILL_STREET_RESIDENTS
+
     override fun draw(p: VillagePainter) = with(p) {
         val h = VILLAGE_ROWS
         val r = MockupRandom(seed * 303 + 3)
@@ -54,5 +56,6 @@ internal object UphillStreetScene : VillageScene {
         ground(hf)
         for (x in 70 until 112 step 2) px(m(x), g(x) + 1 + (if (x % 4 != 0) 0 else 1), JinglePalette.SNOW_SHADE)
         sled(m(160), g(163))
+        Spots(hf)
     }
 }

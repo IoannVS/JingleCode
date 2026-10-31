@@ -14,6 +14,7 @@ import io.github.ioannvs.jinglecode.garland.GarlandSize
 import io.github.ioannvs.jinglecode.snow.SnowAmount
 import io.github.ioannvs.jinglecode.snow.SnowFrameRate
 import io.github.ioannvs.jinglecode.snow.SnowSpeed
+import io.github.ioannvs.jinglecode.village.ResidentFrequency
 import io.github.ioannvs.jinglecode.village.VillageStyle
 
 @Service(Service.Level.APP)
@@ -31,6 +32,8 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var driftEnabled by property(true)
         var villageEnabled by property(true)
         var villageStyle by enum(VillageStyle.HILL_FARM)
+        var residentsEnabled by property(true)
+        var residentFrequency by enum(ResidentFrequency.NORMAL)
         var editorSnowEnabled by property(true)
         var snowAmount by enum(SnowAmount.NORMAL)
         var snowSpeed by enum(SnowSpeed.NORMAL)

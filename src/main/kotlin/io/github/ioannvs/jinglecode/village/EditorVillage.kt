@@ -37,7 +37,8 @@ import kotlin.math.floor
  * because the gutter paints its line numbers after everything a plugin can put into it; popups are
  * cut out of it. The scene is drawn into an image in device pixels, as wide as the gutter and the view
  * together, and copied from there; it is drawn again only when something in it changes: the animator
- * frame (smoke, sails, the lift, skiers, skaters), the size, the day, the evening, the style.
+ * frame (smoke, sails, the lift, skiers, skaters, the residents' scenes), the size, the day, the evening,
+ * the style.
  */
 internal class EditorVillage(
     private val editor: Editor,
@@ -48,6 +49,8 @@ internal class EditorVillage(
     private val frame: () -> Int,
     /** Whether the stars hang over the village: when no snow falls in the editor. */
     private val showStars: () -> Boolean,
+    /** How often the residents play their scenes; null while they are switched off. */
+    private val residents: () -> ResidentFrequency?,
 ) : Disposable {
 
     private data class Key(
@@ -61,6 +64,7 @@ internal class EditorVillage(
         val seam: Int,
         val frame: Int,
         val stoked: Set<Int>,
+        val residents: Map<String, Int>,
     )
 
     private class Picture(val key: Key, val image: BufferedImage, val houses: List<HouseBox>)
@@ -74,6 +78,9 @@ internal class EditorVillage(
     private val stokedAt = HashMap<Int, Long>()
 
     private var gutterPainter: Painter? = null
+
+    /** This village's own planner: each editor plays its scenes on its own. */
+    private val scheduler = ResidentScheduler()
 
     init {
         EditorForeground.of(editor).add(Z_VILLAGE, ::paintInEditor, this)
@@ -196,10 +203,16 @@ internal class EditorVillage(
         val width = ceil(userWidth * sysScale / size).toInt() + 1
         val dark = ColorUtil.isDark(editor.colorsScheme.defaultBackground)
         val time = time()
+        val style = style().on(time.date)
+        val frame = frame()
+        val frequency = residents()
+        if (frequency == null) scheduler.clear()
+        val playing = frequency?.let { scheduler.at(frame, style.scene.residents, it) }.orEmpty()
         // The snow at the left edge runs on from the Project panel's drift at the same height on screen.
         val key = Key(
-            width, size, sysScale, time, style().on(time.date), dark,
-            stars = dark && showStars(), seam = seamRows(pixelUser), frame = frame(), stoked = stoked(System.currentTimeMillis()),
+            width, size, sysScale, time, style, dark,
+            stars = dark && showStars(), seam = seamRows(pixelUser), frame = frame, stoked = stoked(System.currentTimeMillis()),
+            residents = playing,
         )
         val old = picture
         if (old != null && old.key == key) return old
@@ -216,7 +229,7 @@ internal class EditorVillage(
             // Scaled like the screen, so the canvas picks the same whole pixel size as on it.
             ig.scale(sysScale.toDouble(), sysScale.toDouble())
             PixelCanvas.paint(ig, 0, 0, magnify = magnify) {
-                houses = drawVillage(key.style, width, time.seed, key.frame, time.evening, key.stars, key.seam, key.stoked)
+                houses = drawVillage(key.style, width, time.seed, key.frame, time.evening, key.stars, key.seam, key.stoked, key.residents)
             }
         }
         finally {

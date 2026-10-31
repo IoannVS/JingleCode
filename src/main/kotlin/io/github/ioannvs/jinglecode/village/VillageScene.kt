@@ -16,11 +16,16 @@ internal interface VillageScene {
     /** Stretches of empty snow, mockup columns, that grow and shrink with the editor's width. */
     val elastic: List<IntRange>
 
-    fun draw(p: VillagePainter)
+    /** Its residents' scenes, the mockup's `SCENES` for this style. */
+    val residents: List<Resident>
+
+    /** Draws the scene and says where its residents walk. */
+    fun draw(p: VillagePainter): Spots
 }
 
 /**
- * Draws the village of [style] (not [VillageStyle.RANDOM]) at animator [frame] and returns where its
+ * Draws the village of [style] (not [VillageStyle.RANDOM]) at animator [frame], with the [residents]
+ * scenes that run (id to the frame within the scene, see [ResidentScheduler]), and returns where its
  * houses are. See [VillagePainter] for the rest.
  */
 internal fun PixelCanvas.drawVillage(
@@ -32,10 +37,16 @@ internal fun PixelCanvas.drawVillage(
     stars: Boolean,
     leftEdge: Int? = null,
     stoked: Set<Int> = emptySet(),
+    residents: Map<String, Int> = emptyMap(),
 ): List<HouseBox> {
     val scene = style.scene
     val painter = VillagePainter(this, width, seed, frame, evening, stars, leftEdge, scene.elastic, stoked)
-    scene.draw(painter)
+    val spots = scene.draw(painter)
+    // After everything else, in the list's order, as the mockup's `runScenes`.
+    for (resident in scene.residents) {
+        val t = residents[resident.id] ?: continue
+        resident.draw(painter, t, spots)
+    }
     return painter.houses
 }
 

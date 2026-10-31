@@ -18,6 +18,7 @@ import io.github.ioannvs.jinglecode.garland.GarlandSize
 import io.github.ioannvs.jinglecode.snow.SnowAmount
 import io.github.ioannvs.jinglecode.snow.SnowFrameRate
 import io.github.ioannvs.jinglecode.snow.SnowSpeed
+import io.github.ioannvs.jinglecode.village.ResidentFrequency
 import io.github.ioannvs.jinglecode.village.VillageStyle
 
 /** Settings → Appearance → Jingle Code. */
@@ -81,6 +82,20 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                         row { radioButton(style.label(), style) }
                     }
                 }.bind(state::villageStyle)
+                lateinit var residents: Cell<JBCheckBox>
+                row {
+                    residents = checkBox(message("settings.residents.enabled")).bindSelected(state::residentsEnabled)
+                        .comment(message("settings.residents.comment"))
+                }
+                indent {
+                    buttonsGroup {
+                        row(message("settings.residents.frequency")) {
+                            for (frequency in ResidentFrequency.entries) {
+                                radioButton(frequency.label(), frequency)
+                            }
+                        }
+                    }.bind(state::residentFrequency)
+                }.enabledIf(residents.component.selected)
             }.enabledIf(village.component.selected)
         }
         group(message("settings.drift.group")) {
@@ -187,6 +202,12 @@ private fun VillageStyle.label(): String = when (this) {
     VillageStyle.UPHILL_STREET -> message("settings.village.style.uphill_street")
     VillageStyle.FOREST_CLEARING -> message("settings.village.style.forest_clearing")
     VillageStyle.RANDOM -> message("settings.village.style.random")
+}
+
+private fun ResidentFrequency.label(): String = when (this) {
+    ResidentFrequency.RARE -> message("settings.residents.frequency.rare")
+    ResidentFrequency.NORMAL -> message("settings.residents.frequency.normal")
+    ResidentFrequency.OFTEN -> message("settings.residents.frequency.often")
 }
 
 private fun GarlandSize.label(): String = when (this) {

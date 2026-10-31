@@ -11,7 +11,10 @@ import kotlin.math.sin
  */
 internal object HillFarmScene : VillageScene {
 
-    override val elastic = listOf(0..38, 110..148, 160..194, 236..266)
+    // Not between the barn and the birches or across 152..199: the horse and the snowball fight play there.
+    override val elastic = listOf(0..38, 130..147, 217..228, 236..266)
+
+    override val residents = HILL_FARM_RESIDENTS
 
     override fun draw(p: VillagePainter) = with(p) {
         val h = VILLAGE_ROWS
@@ -39,5 +42,6 @@ internal object HillFarmScene : VillageScene {
         drawHouse(m(412), g(418), HouseSpec.random(HouseType.BANYA, r))
         ground(hf)
         snowman(m(395), g(397))
+        Spots(hf)
     }
 }

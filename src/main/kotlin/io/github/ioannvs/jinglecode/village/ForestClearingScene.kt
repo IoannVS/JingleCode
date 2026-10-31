@@ -7,11 +7,13 @@ import kotlin.math.sin
 
 /**
  * The mockup's `v4`, "Поляна в лесу": thick forest on both sides in two tones, in the middle a clearing
- * with one cabin, lit windows, thick smoke, firewood, a snowman, a sled. The forest takes up the width.
+ * with one cabin and its bathhouse, lit windows, thick smoke, firewood, a snowman, a sled. The forest takes up the width.
  */
 internal object ForestClearingScene : VillageScene {
 
     override val elastic = listOf(0..236, 376..460)
+
+    override val residents = FOREST_CLEARING_RESIDENTS
 
     override fun draw(p: VillagePainter) = with(p) {
         val h = VILLAGE_ROWS
@@ -38,9 +40,12 @@ internal object ForestClearingScene : VillageScene {
         birch(m(246), hf(m(246)) + 1, 15, r)
         val cabin = HouseSpec.random(HouseType.IZBA, r).copy(lit = 0.9, chimney = true, smokeHeavy = true, deco = Deco.GARLAND)
         drawHouse(m(296), g(305), cabin)
+        // The bathhouse by the cabin, for the scene with the run into the snow
+        drawHouse(m(350), g(355), HouseSpec.random(HouseType.BANYA, r).copy(wind = 1, chimney = true, smokeHeavy = true))
         woodpile(m(278), g(282))
         snowman(m(330), g(332))
-        sled(m(340), g(343))
         ground(hf)
+        sled(m(258), g(261))
+        Spots(hf)
     }
 }

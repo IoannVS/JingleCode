@@ -23,6 +23,8 @@ internal object ValleyScene : VillageScene {
 
     override val elastic = listOf(0..34, 118..174, 280..296)
 
+    override val residents = VALLEY_RESIDENTS
+
     private val skiers = listOf(JinglePalette.SANTA_RED, JinglePalette.LAMP, JinglePalette.BULBS[2], JinglePalette.SKIER_PINK)
     private val chairs = listOf(JinglePalette.SANTA_RED, JinglePalette.WALL_BLUE, JinglePalette.GOLD, JinglePalette.FIR)
 
@@ -179,5 +181,6 @@ internal object ValleyScene : VillageScene {
         pine(m(446), base(446), 15, r)
         ground(hf)
         sled(m(196), g(199))
+        Spots(hf, pondX = pcx, pondY = py, runs = runs, road = road)
     }
 }

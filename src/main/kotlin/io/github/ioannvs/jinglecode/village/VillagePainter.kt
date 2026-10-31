@@ -48,6 +48,9 @@ internal class VillagePainter(
     /** Mockup column [x] in the picture. */
     fun m(x: Int): Int = jsRound(map.at(x.toDouble()))
 
+    /** Mockup column [x], also a fraction of one, in the picture. */
+    fun m(x: Double): Int = jsRound(map.at(x))
+
     /** Picture column [x] in the mockup, for things laid along the whole width: ground, mountains, forest. */
     fun back(x: Int): Double = map.back(x.toDouble())
 
@@ -62,9 +65,16 @@ internal class VillagePainter(
     fun along(line: (Double) -> Double): (Int) -> Double = { x -> line(back(x)) }
 
     /** The foreground snow line [line], as [along], but laid to the seam height at the left edge. */
-    fun ground(line: (Double) -> Double): (Int) -> Double = { x ->
-        val y = line(back(x))
-        if (leftEdge == null) y else VILLAGE_ROWS - towardsSeam(VILLAGE_ROWS - y, leftEdge, x)
+    fun ground(line: (Double) -> Double): Ground = Ground(line)
+
+    /** A snow line: called with a picture column like [along]; [atMockup] takes a mockup column, for the residents. */
+    inner class Ground(private val line: (Double) -> Double) : (Int) -> Double {
+        override fun invoke(x: Int): Double = seam(line(back(x)), x)
+
+        fun atMockup(x: Double): Double = seam(line(x), jsRound(map.at(x)))
+
+        private fun seam(y: Double, column: Int): Double =
+            if (leftEdge == null) y else VILLAGE_ROWS - towardsSeam(VILLAGE_ROWS - y, leftEdge, column)
     }
 
     /** Whether house [index] got a click: then its chimney smokes, and thick. */

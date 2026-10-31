@@ -9,6 +9,8 @@ import com.intellij.openapi.ui.Painter
 import com.intellij.openapi.wm.IdeGlassPaneUtil
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.scale.JBUIScale
+import io.github.ioannvs.jinglecode.core.FeatureGate
+import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.editor.EditorForeground
 import io.github.ioannvs.jinglecode.editor.Z_VILLAGE
 import io.github.ioannvs.jinglecode.overlay.FrameGeometry
@@ -21,6 +23,7 @@ import java.awt.Rectangle
 import java.awt.geom.AffineTransform
 import java.awt.geom.Area
 import java.awt.geom.Point2D
+import java.awt.geom.RoundRectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
@@ -166,6 +169,15 @@ internal class EditorVillage(
         if (visible.isEmpty) return
         val clip = Area(visible)
         SwingUtilities.getRootPane(gutter)?.let { root ->
+            // The editor's own side is cut by the island's rounded body; the glass pane is above the island,
+            // and the gutter reaches into its border under the garland, so it is cut to the body here.
+            val project = editor.project
+            val body = project?.let { FeatureGate.getInstance().guard(JingleFeature.VILLAGE, null) { FrameGeometry.editorBody(it, root) } }
+            if (body != null) {
+                val b = SwingUtilities.convertRectangle(root, body, glass)
+                val arc = FrameGeometry.islandArc().toFloat()
+                clip.intersect(Area(RoundRectangle2D.Float(b.x.toFloat(), b.y.toFloat(), b.width.toFloat(), b.height.toFloat(), arc, arc)))
+            }
             FrameGeometry.popupsOver(root).forEach { clip.subtract(Area(SwingUtilities.convertRectangle(root, it, glass))) }
         }
         val g2 = g.create() as Graphics2D

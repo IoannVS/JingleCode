@@ -70,9 +70,15 @@ internal object FrameGeometry {
 
     private fun isIslandsUi(): Boolean = JBUI.getInt("Islands", 0) != 0
 
-    fun find(project: Project, root: JRootPane): FrameLayout? {
-        if (!isIslandsUi()) return null
+    /** How round the islands' corners are, user pixels; 0 without the Islands UI. */
+    fun islandArc(): Int = if (isIslandsUi()) JBUI.scale(JBUI.getInt("Island.arc", 20)) else 0
 
+    /** The docked and the sliding tool windows showing in [root], and the editors as one more docked island. */
+    private class Windows(val docked: List<JComponent>, val sliding: List<JComponent>, val editors: JComponent?) {
+        val anchors: List<JComponent> get() = docked + sliding
+    }
+
+    private fun windows(project: Project, root: JRootPane): Windows {
         val docked = ArrayList<JComponent>()
         val sliding = ArrayList<JComponent>()
         val toolWindows = ToolWindowManager.getInstance(project)
@@ -87,11 +93,36 @@ internal object FrameGeometry {
                 else -> Unit // floating and windowed ones live in their own windows
             }
         }
-        FileEditorManagerEx.getInstanceEx(project).component
+        val editors = FileEditorManagerEx.getInstanceEx(project).component
             ?.takeIf { it.isShowing && SwingUtilities.getRootPane(it) === root }
-            ?.let { docked += it }
+            ?.also { docked += it }
+        return Windows(docked, sliding, editors)
+    }
 
-        val anchors = docked + sliding
+    /**
+     * The rounded body of the editors' island, root pane coordinates, or `null` without the Islands UI.
+     * The line numbers reach into the island's border, where the garland hangs; things over them stop here.
+     */
+    fun editorBody(project: Project, root: JRootPane): Rectangle? {
+        if (!isIslandsUi()) return null
+        val windows = windows(project, root)
+        val editors = windows.editors ?: return null
+        return body(boundsIn(islandOf(editors, windows.anchors), root))
+    }
+
+    private fun body(island: Rectangle): Rectangle {
+        val border = JBUI.scale(JBUI.getInt("Island.borderWidth", 6))
+        return Rectangle(island.x + border, island.y + border, island.width - 2 * border, island.height - 2 * border)
+    }
+
+    fun find(project: Project, root: JRootPane): FrameLayout? {
+        if (!isIslandsUi()) return null
+
+        val windows = windows(project, root)
+        val docked = windows.docked
+        val sliding = windows.sliding
+        val toolWindows = ToolWindowManager.getInstance(project)
+        val anchors = windows.anchors
         val islands = docked.map { boundsIn(islandOf(it, anchors), root) }
         val occluders = sliding.map { boundsIn(islandOf(it, anchors), root) } + popupsOver(root)
 
@@ -160,10 +191,8 @@ internal object FrameGeometry {
     /** The island holding [component], and where the scroll pane of its [tree] is inside it. */
     private fun treePanel(component: JComponent, tree: JTree, root: JRootPane, anchors: List<JComponent>): ProjectPanel? {
         val scroll = SwingUtilities.getAncestorOfClass(JScrollPane::class.java, tree) as? JScrollPane ?: return null
-        val island = boundsIn(islandOf(component, anchors), root)
-        val border = JBUI.scale(JBUI.getInt("Island.borderWidth", 6))
-        val body = Rectangle(island.x + border, island.y + border, island.width - 2 * border, island.height - 2 * border)
-        val arc = JBUI.scale(JBUI.getInt("Island.arc", 20))
+        val body = body(boundsIn(islandOf(component, anchors), root))
+        val arc = islandArc()
         val content = boundsIn(scroll, root).intersection(body)
         if (content.isEmpty) return null
         return ProjectPanel(body, arc, content)

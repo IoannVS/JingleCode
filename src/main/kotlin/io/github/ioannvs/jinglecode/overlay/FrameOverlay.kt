@@ -14,6 +14,7 @@ import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.drift.DriftLayer
 import io.github.ioannvs.jinglecode.garland.GarlandLayer
 import io.github.ioannvs.jinglecode.icicles.IciclesLayer
+import io.github.ioannvs.jinglecode.icicles.TabIciclesLayer
 import java.awt.AWTEvent
 import java.awt.Component
 import java.awt.Graphics2D
@@ -26,7 +27,7 @@ import javax.swing.JRootPane
 
 /**
  * The decorations that live on the edges of the project frame's panels: the garland in the gaps,
- * the icicles under the toolbar, the drift in the Project panel. One glass pane painter for all of them.
+ * the icicles under the toolbar, the icicles under the active tab, the drift in the Project panel. One glass pane painter for all of them.
  *
  * Each [OverlayLayer] paints only inside its own strips, minus popups and sliding tool windows,
  * and only those strips are repainted on a frame. Frame geometry comes from [FrameGeometry];
@@ -35,7 +36,7 @@ import javax.swing.JRootPane
 @Service(Service.Level.PROJECT)
 class FrameOverlay(private val project: Project) : Disposable {
 
-    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, DriftLayer)
+    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer)
     private val features = layers.map { it.feature }
 
     private var root: JRootPane? = null

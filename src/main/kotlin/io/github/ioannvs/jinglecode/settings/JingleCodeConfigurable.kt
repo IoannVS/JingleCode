@@ -70,6 +70,12 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                     .comment(message("settings.icicles.comment"))
             }
         }
+        group(message("settings.tabicicles.group")) {
+            row {
+                checkBox(message("settings.tabicicles.enabled")).bindSelected(state::tabIciclesEnabled)
+                    .comment(message("settings.tabicicles.comment"))
+            }
+        }
         group(message("settings.village.group")) {
             lateinit var village: Cell<JBCheckBox>
             row {

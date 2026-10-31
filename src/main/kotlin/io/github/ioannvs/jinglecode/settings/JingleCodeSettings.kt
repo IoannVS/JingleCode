@@ -29,6 +29,7 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var garlandMode by enum(GarlandMode.TWINKLE)
         var garlandSize by enum(GarlandSize.NORMAL)
         var iciclesEnabled by property(true)
+        var tabIciclesEnabled by property(true)
         var driftEnabled by property(true)
         var villageEnabled by property(true)
         var villageStyle by enum(VillageStyle.HILL_FARM)

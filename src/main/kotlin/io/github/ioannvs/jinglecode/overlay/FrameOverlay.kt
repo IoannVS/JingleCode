@@ -14,7 +14,9 @@ import io.github.ioannvs.jinglecode.animation.JingleAnimator
 import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.drift.DriftLayer
+import io.github.ioannvs.jinglecode.fireworks.FireworksLayer
 import io.github.ioannvs.jinglecode.garland.GarlandLayer
+import io.github.ioannvs.jinglecode.icicles.FallingIciclesLayer
 import io.github.ioannvs.jinglecode.icicles.IciclesLayer
 import io.github.ioannvs.jinglecode.icicles.TabIciclesLayer
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
@@ -43,8 +45,8 @@ class FrameOverlay(private val project: Project) : Disposable {
 
     private val panelSnow = PanelSnowLayer()
 
-    // In paint order: the snow falls over the drift.
-    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, panelSnow)
+    // In paint order: the snow falls over the drift, falling icicles over everything.
+    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, panelSnow, FireworksLayer, FallingIciclesLayer)
     private val features = layers.map { it.feature }
 
     private var root: JRootPane? = null
@@ -156,8 +158,13 @@ class FrameOverlay(private val project: Project) : Disposable {
         val layout = if (active.isNotEmpty()) layout() else null
         val scale = OverlayScale.current()
         val dirty = layout?.let { l -> active.flatMap { it.dirtyRects(project, l, scale) } }.orEmpty()
-        (lastDirty + dirty).forEach { glassPane.paintImmediately(it) }
+        withoutNested(lastDirty + dirty).forEach { glassPane.paintImmediately(it) }
         lastDirty = dirty
+    }
+
+    /** [rects] without the ones inside another (the same strip as on the last frame, say): repainted with it. */
+    private fun withoutNested(rects: List<Rectangle>): List<Rectangle> = rects.filterIndexed { i, r ->
+        rects.indices.none { j -> j != i && rects[j].contains(r) && (rects[j] != r || j < i) }
     }
 
     private fun paintLayers(g: Graphics2D) {

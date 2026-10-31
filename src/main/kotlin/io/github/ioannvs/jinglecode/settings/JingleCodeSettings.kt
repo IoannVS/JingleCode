@@ -31,6 +31,8 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var garlandSize by enum(GarlandSize.NORMAL)
         var iciclesEnabled by property(true)
         var tabIciclesEnabled by property(true)
+        var runReactionsEnabled by property(true)
+        var fireworksEnabled by property(true)
         var driftEnabled by property(true)
         var panelSnowEnabled by property(true)
         var villageEnabled by property(true)

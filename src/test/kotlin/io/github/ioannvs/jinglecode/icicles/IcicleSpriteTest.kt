@@ -82,7 +82,7 @@ class IcicleSpriteTest {
         val g = image.createGraphics()
         g.color = empty
         g.fillRect(0, 0, image.width, image.height)
-        PixelCanvas.paint(g, 0, ICICLE_ROOT) { drawRootedIcicles(60, 0) { it in 20..30 } }
+        PixelCanvas.paint(g, 0, ICICLE_ROOT) { drawRootedIcicles(60, 0, skip = { it in 20..30 }) }
         g.dispose()
         for (x in 20..30) for (y in 0 until image.height) assertEquals(empty, image.at(x, y))
     }

@@ -83,6 +83,17 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                 checkBox(message("settings.tabicicles.enabled")).bindSelected(state::tabIciclesEnabled)
                 contextHelp(message("settings.tabicicles.comment"))
             }
+            lateinit var reactions: Cell<JBCheckBox>
+            row {
+                reactions = checkBox(message("settings.run.reactions.enabled")).bindSelected(state::runReactionsEnabled)
+                contextHelp(message("settings.run.reactions.comment"))
+            }
+            indent {
+                row {
+                    checkBox(message("settings.fireworks.enabled")).bindSelected(state::fireworksEnabled)
+                    contextHelp(message("settings.fireworks.comment"))
+                }
+            }.enabledIf(reactions.component.selected)
         }
         group(message("settings.editor.group")) {
             lateinit var snow: Cell<JBCheckBox>

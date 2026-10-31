@@ -44,17 +44,26 @@ internal object TabIciclesLayer : OverlayLayer {
     }
 
     override fun paint(g: Graphics2D, project: Project, layout: FrameLayout, scale: OverlayScale, tick: Long) {
-        val tab = activeTab(project) ?: return
-        val area = icicles(tab, scale)
+        val row = row(project) ?: return
         // Inside the tab the roots fade into its background, solid colors, so they grow out of it rather than glare.
         val background = JBUI.CurrentTheme.EditorTabs.underlinedTabBackground() ?: JBUI.CurrentTheme.EditorTabs.background()
         val root = ColorUtil.mix(background, JinglePalette.SNOW, ROOT_SHARE)
         val ledge = ColorUtil.mix(background, JinglePalette.ICE, LEDGE_SHARE)
         // The origin stays on the tab's bottom edge; the roots go up into the tab from there.
-        PixelCanvas.paint(g, tab.x, tab.y + tab.height, magnify = scale.magnify) {
-            drawRootedIcicles(toLogical(tab.width), (tick % TICK_WRAP).toInt(), root, ledge)
+        PixelCanvas.paint(g, row.x, row.y, magnify = scale.magnify) {
+            val hanging = IcicleFalls.getInstance(project).hanging(row, toLogical(layout.bottom - row.y))
+            drawRootedIcicles(toLogical(row.width), (tick % TICK_WRAP).toInt(), root, ledge, hanging = hanging)
         }
     }
+
+    /** The icicles under the active tab as a row hanging from its bottom edge, if there is such a tab. Not guarded. */
+    fun row(project: Project): IcicleRow? {
+        val tab = activeTab(project) ?: return null
+        return IcicleRow(tab.x, tab.y + tab.height, tab.width, IcicleFall.TAB_SHARE, salt = TAB_SALT)
+    }
+
+    /** Apart from the toolbar rows' salts. */
+    private const val TAB_SALT = 50021
 
     /** How much snow and ice show through the tab background in the upper roots and in the ledge on the edge. */
     private const val ROOT_SHARE = 0.3

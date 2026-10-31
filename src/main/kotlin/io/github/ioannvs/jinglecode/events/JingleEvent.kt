@@ -4,7 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.messages.Topic
 
 /**
- * Something that happened in the IDE that decorations react to. Sources (Git, tests, the build)
+ * Something that happened in the IDE that decorations react to. Sources (Git, runs and builds)
  * publish these on the project's message bus; decorations listen and know nothing about the sources.
  */
 sealed interface JingleEvent {
@@ -22,6 +22,12 @@ sealed interface JingleEvent {
 
     /** Git is there, but the project has no Git repositories: there are no commits to count. */
     data object NoRepositories : JingleEvent
+
+    /**
+     * Something the user ran or built in the IDE ended by itself, not stopped: any run configuration
+     * (tests and Debug too) or the Build action. [succeeded] if it exited with 0 or built without errors.
+     */
+    data class RunFinished(val succeeded: Boolean) : JingleEvent
 }
 
 fun interface JingleEventListener {

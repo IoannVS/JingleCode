@@ -14,6 +14,8 @@
     <depends>com.intellij.modules.platform</depends>
     <!-- Git events (gifts for commits); without Git the plugin works, the gifts just stay put. -->
     <depends optional="true" config-file="jingle-code-git.xml">Git4Idea</depends>
+    <!-- The Build action (builds without a run configuration); run configurations are heard in every IDE. -->
+    <depends optional="true" config-file="jingle-code-lang.xml">com.intellij.modules.lang</depends>
 
     <resource-bundle>messages.JingleCodeBundle</resource-bundle>
 
@@ -39,6 +41,14 @@
     <projectListeners>
         <listener class="io.github.ioannvs.jinglecode.drift.GiftPileListener"
                   topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.garland.RunLightsListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.icicles.IcicleFallsListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.fireworks.FireworksListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.runs.RunWatcher"
+                  topic="com.intellij.execution.ExecutionListener"/>
         <listener class="io.github.ioannvs.jinglecode.snow.CommitTitleButton"
                   topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
     </projectListeners>

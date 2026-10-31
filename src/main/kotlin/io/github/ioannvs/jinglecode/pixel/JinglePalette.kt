@@ -21,6 +21,13 @@ object JinglePalette {
     /** A garland bulb that is off. */
     @JvmField val BULB_OFF = c(0x3a3f47)
 
+    /** Garland bulbs while a run fails: reds only, the bulb red and two shades around it. */
+    @JvmField val ALARM_REDS: List<Color> = listOf(c(0xff5a5a), c(0xd62828), c(0xff8a7a))
+
+    /** The golden wave along the garland after a successful run: its crest and its sides. */
+    @JvmField val GOLD_CREST = c(0xfff3b0)
+    @JvmField val GOLD_WAVE = c(0xffc531)
+
     /** Warm white garland and its brighter twinkle. */
     @JvmField val WARM_WHITE = c(0xffe9a8)
     @JvmField val WARM_WHITE_BRIGHT = c(0xfff7d1)

@@ -8,6 +8,13 @@ enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boole
     GARLAND({ it.garlandEnabled }),
     ICICLES({ it.iciclesEnabled }),
     TAB_ICICLES({ it.tabIciclesEnabled }),
+
+    /** The garland and the icicles react to runs and builds: red lights and falling icicles, a golden wave. */
+    RUN_REACTIONS({ it.runReactionsEnabled }),
+
+    /** Fireworks in the main toolbar after a successful run; finds the toolbar's gaps from its Swing layout. */
+    FIREWORKS({ it.fireworksEnabled }),
+
     DRIFT({ it.driftEnabled }),
     VILLAGE({ it.villageEnabled }),
     EDITOR_SNOW({ it.editorSnowEnabled }),

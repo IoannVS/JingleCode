@@ -40,6 +40,8 @@ internal class FrameLayout(
     val occluders: List<Rectangle>,
     val projectPanel: ProjectPanel? = null,
     val commitPanel: ProjectPanel? = null,
+    /** The bottom of the window, root pane coordinates: falling icicles break there. */
+    val bottom: Int = 0,
 )
 
 /**
@@ -152,6 +154,7 @@ internal object FrameGeometry {
             vertical, horizontal, topEdges(islands, touch), statusBand(project, root, islands), occluders,
             projectPanel(project, root, toolWindows, anchors),
             commitPanel(root, toolWindows, anchors),
+            bottom = root.height,
         )
     }
 

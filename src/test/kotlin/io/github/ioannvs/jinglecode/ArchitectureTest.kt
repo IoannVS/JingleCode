@@ -24,6 +24,25 @@ class ArchitectureTest {
     }
 
     /**
+     * The Build action (`com.intellij.task`) lives in `com.intellij.modules.lang`, an optional dependency,
+     * and runs and builds are heard in one place: decorations only see `JingleEvent.RunFinished`.
+     */
+    @Test
+    fun `only the runs package listens to runs and builds`() {
+        val offenders = sources.walk()
+            .filter { it.isFile && it.extension == "kt" && !it.path.replace('\\', '/').contains("/jinglecode/runs/") }
+            .filter { file ->
+                file.readLines().any {
+                    it.startsWith("import com.intellij.task.") || it.startsWith("import com.intellij.execution.") ||
+                        it.startsWith("import io.github.ioannvs.jinglecode.runs.")
+                }
+            }
+            .map { it.name }
+            .toList()
+        assertEquals(emptyList<String>(), offenders)
+    }
+
+    /**
      * Catching other people's popups leans on how Swing and the platform show them (docs/POPUPS.md):
      * all of it stays in the `popups` package, so that breaking it turns off only the popup snow.
      */

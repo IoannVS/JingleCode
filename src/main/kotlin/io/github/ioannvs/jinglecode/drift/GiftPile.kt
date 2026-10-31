@@ -47,6 +47,7 @@ class GiftPile {
             is JingleEvent.Push -> start(DeliveryKind.DELIVER, event.carried)
             JingleEvent.PushRejected -> start(DeliveryKind.RETURN, count)
             JingleEvent.NoRepositories -> counted = WITHOUT_GIT
+            is JingleEvent.RunFinished -> Unit
         }
     }
 

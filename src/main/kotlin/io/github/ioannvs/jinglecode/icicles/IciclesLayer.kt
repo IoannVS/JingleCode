@@ -37,21 +37,31 @@ internal object IciclesLayer : OverlayLayer {
         return layout.top.map { Rectangle(it.x, it.y - root, it.width, height) }
     }
 
+    /** A row of icicles along each top edge, without the columns over the gaps, where the garland hangs. */
+    fun rows(layout: FrameLayout, scale: OverlayScale): List<IcicleRow> = layout.top.mapIndexed { i, edge ->
+        // Gap lines that start at this edge, in logical pixels from its left end.
+        val gaps = layout.vertical
+            .filter { it.y <= edge.y + scale.user(ICICLE_MAX) && it.x in edge.x..edge.x + edge.width }
+            .map { floor((it.x - edge.x) / scale.pixelUser).toInt() }
+        IcicleRow(edge.x, edge.y, edge.width, IcicleFall.TOOLBAR_SHARE, salt = ROW_SALT * i) { x ->
+            gaps.any { x in it - GARLAND_REACH..it + GARLAND_REACH }
+        }
+    }
+
+    /** Far apart enough that rows lose different icicles. */
+    private const val ROW_SALT = 1009
+
     override fun paint(g: Graphics2D, project: Project, layout: FrameLayout, scale: OverlayScale, tick: Long) {
         val t = (tick % TICK_WRAP).toInt()
         // Above the edge the roots fade into the toolbar background, solid colors, so they grow out of it rather than glare.
         val background = JBUI.CurrentTheme.CustomFrameDecorations.mainToolbarBackground(true)
         val root = ColorUtil.mix(background, JinglePalette.SNOW, ROOT_SHARE)
         val ledge = ColorUtil.mix(background, JinglePalette.ICE, LEDGE_SHARE)
-        for (edge in layout.top) {
-            // Gap lines that start at this edge, in logical pixels from its left end.
-            val gaps = layout.vertical
-                .filter { it.y <= edge.y + scale.user(ICICLE_MAX) && it.x in edge.x..edge.x + edge.width }
-                .map { floor((it.x - edge.x) / scale.pixelUser).toInt() }
-            PixelCanvas.paint(g, edge.x, edge.y, magnify = scale.magnify) {
-                drawRootedIcicles(toLogical(edge.width), t, root, ledge) { x ->
-                    gaps.any { x in it - GARLAND_REACH..it + GARLAND_REACH }
-                }
+        val falls = IcicleFalls.getInstance(project)
+        for (row in rows(layout, scale)) {
+            PixelCanvas.paint(g, row.x, row.y, magnify = scale.magnify) {
+                val hanging = falls.hanging(row, toLogical(layout.bottom - row.y))
+                drawRootedIcicles(toLogical(row.width), t, root, ledge, row.skip, hanging)
             }
         }
     }

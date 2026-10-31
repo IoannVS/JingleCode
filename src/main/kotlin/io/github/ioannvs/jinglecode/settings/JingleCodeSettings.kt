@@ -11,6 +11,7 @@ import com.intellij.openapi.components.service
 import io.github.ioannvs.jinglecode.core.SeasonMode
 import io.github.ioannvs.jinglecode.garland.GarlandMode
 import io.github.ioannvs.jinglecode.garland.GarlandSize
+import io.github.ioannvs.jinglecode.railway.TrainFrequency
 import io.github.ioannvs.jinglecode.snow.SnowAmount
 import io.github.ioannvs.jinglecode.snow.SnowFrameRate
 import io.github.ioannvs.jinglecode.snow.SnowSpeed
@@ -45,6 +46,10 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var snowFrameRate by enum(SnowFrameRate.HIGH)
         var popupSnowEnabled by property(true)
         var menuSnowEnabled by property(true)
+        var railwayEnabled by property(true)
+        var trainFrequency by enum(TrainFrequency.NORMAL)
+        var railwayResidents by property(true)
+        var railwayPoles by property(true)
     }
 
     /** Call after changing [state] so that decorations pick up the change. */

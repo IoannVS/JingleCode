@@ -20,7 +20,10 @@ enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boole
     EDITOR_SNOW({ it.editorSnowEnabled }),
     PANEL_SNOW({ it.panelSnowEnabled }),
     POPUPS({ it.popupSnowEnabled }),
-    CONTEXT_MENUS({ it.menuSnowEnabled });
+    CONTEXT_MENUS({ it.menuSnowEnabled }),
+
+    /** The railway at the bottom of the bottom tool windows; reserves room there with a border on their content. */
+    RAILWAY({ it.railwayEnabled });
 
     fun isEnabledIn(state: JingleCodeSettings.State): Boolean = switch(state)
 }

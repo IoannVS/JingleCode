@@ -30,6 +30,7 @@
                 key="settings.display.name"/>
         <postStartupActivity implementation="io.github.ioannvs.jinglecode.overlay.FrameOverlayStartupActivity"/>
         <postStartupActivity implementation="io.github.ioannvs.jinglecode.popups.PopupSnowStartupActivity"/>
+        <postStartupActivity implementation="io.github.ioannvs.jinglecode.railway.RailwayStartupActivity"/>
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.snow.EditorSnowListener"/>
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.village.EditorVillageListener"/>
         <iw.actionProvider implementation="io.github.ioannvs.jinglecode.snow.EditorSnowWidgetActionProvider"/>
@@ -50,6 +51,8 @@
         <listener class="io.github.ioannvs.jinglecode.runs.RunWatcher"
                   topic="com.intellij.execution.ExecutionListener"/>
         <listener class="io.github.ioannvs.jinglecode.snow.CommitTitleButton"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+        <listener class="io.github.ioannvs.jinglecode.railway.RailwayToolWindowListener"
                   topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
     </projectListeners>
 

@@ -5,6 +5,7 @@ import java.awt.Color
 import java.awt.Component
 import java.awt.Graphics
 import java.awt.Graphics2D
+import java.awt.RadialGradientPaint
 import java.awt.RenderingHints
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
@@ -41,6 +42,33 @@ class PixelCanvas private constructor(
         if (w <= 0 || h <= 0) return
         g.color = color
         g.fillRect(originX + x * pixelSize, originY + y * pixelSize, w * pixelSize, h * pixelSize)
+    }
+
+    /** Runs [block] with drawing clipped to the logical rectangle ([x], [y], [w], [h]), the mockup's `ctx.clip()`. */
+    fun clipped(x: Int, y: Int, w: Int, h: Int, block: PixelCanvas.() -> Unit) {
+        val g2 = g.create() as Graphics2D
+        try {
+            g2.clipRect(originX + x * pixelSize, originY + y * pixelSize, w * pixelSize, h * pixelSize)
+            PixelCanvas(g2, pixelSize, deviceScale, originX, originY).block()
+        } finally {
+            g2.dispose()
+        }
+    }
+
+    /**
+     * Soft light, the mockup's `createRadialGradient(cx, cy, 0, cx, cy, r)` from [color] at [alpha] in the
+     * middle to nothing at [r], filled over the rectangle ([x], [y], [w], [h]). Only for lights the mockup
+     * makes glow; everything else stays opaque.
+     */
+    fun glow(cx: Double, cy: Double, r: Double, color: Color, alpha: Double, x: Int, y: Int, w: Int, h: Int) {
+        if (w <= 0 || h <= 0 || r <= 0) return
+        val center = Point2D.Double(originX + cx * pixelSize, originY + cy * pixelSize)
+        val inner = Color(color.red, color.green, color.blue, (alpha * 255).roundToInt().coerceIn(0, 255))
+        val outer = Color(color.red, color.green, color.blue, 0)
+        val paint = g.paint
+        g.paint = RadialGradientPaint(center, (r * pixelSize).toFloat(), floatArrayOf(0f, 1f), arrayOf(inner, outer))
+        g.fillRect(originX + x * pixelSize, originY + y * pixelSize, w * pixelSize, h * pixelSize)
+        g.paint = paint
     }
 
     companion object {

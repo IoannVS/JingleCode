@@ -181,6 +181,16 @@ object JinglePalette {
     // Penguin (`PENG_C`)
     @JvmField val PENGUIN_BLACK = c(0x3a4152)
 
+    // The railway in the bottom tool windows (`docs/mockup/jingle-code-railway.html`, its `C` and `strip()`);
+    // the rest of its `C` is the village palette above
+    @JvmField val CAR_BLUE_DARK = c(0x1d3f60)
+    @JvmField val FIR_DARK = c(0x1f5a3a)
+    @JvmField val SIGNAL_RED = c(0xff4a3a)
+    @JvmField val SIGNAL_RED_OFF = c(0x2a2230)
+
+    /** Locomotive smoke; the mockup melts it with alpha, the one translucent thing on the railway besides the lights. */
+    @JvmField val RAIL_SMOKE = c(0xc8d2e1)
+
     /** Editor background of the mockup (Darcula/New UI dark), for previews only. */
     @JvmField val IDE_BACKGROUND = c(0x1e1f22)
 }

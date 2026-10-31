@@ -22,6 +22,7 @@ import io.github.ioannvs.jinglecode.animation.JingleAnimator
 import io.github.ioannvs.jinglecode.core.SeasonMode
 import io.github.ioannvs.jinglecode.garland.GarlandMode
 import io.github.ioannvs.jinglecode.garland.GarlandSize
+import io.github.ioannvs.jinglecode.railway.TrainFrequency
 import io.github.ioannvs.jinglecode.snow.SnowAmount
 import io.github.ioannvs.jinglecode.snow.SnowFrameRate
 import io.github.ioannvs.jinglecode.snow.SnowSpeed
@@ -139,6 +140,24 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                 contextHelp(message("settings.panel.snow.comment"))
             }
         }
+        group(message("settings.railway.group")) {
+            lateinit var railway: Cell<JBCheckBox>
+            row {
+                railway = checkBox(message("settings.railway.enabled")).bindSelected(state::railwayEnabled)
+                contextHelp(message("settings.railway.comment"))
+            }
+            indent {
+                row(message("settings.railway.frequency")) {
+                    choice(TrainFrequency.entries, state::trainFrequency) { it.label() }
+                }
+                row {
+                    checkBox(message("settings.railway.residents")).bindSelected(state::railwayResidents)
+                }
+                row {
+                    checkBox(message("settings.railway.poles")).bindSelected(state::railwayPoles)
+                }
+            }.enabledIf(railway.component.selected)
+        }
         group(message("settings.popups.group")) {
             row {
                 checkBox(message("settings.popups.enabled")).bindSelected(state::popupSnowEnabled)
@@ -226,6 +245,12 @@ private fun ResidentFrequency.label(): String = when (this) {
     ResidentFrequency.RARE -> message("settings.residents.frequency.rare")
     ResidentFrequency.NORMAL -> message("settings.residents.frequency.normal")
     ResidentFrequency.OFTEN -> message("settings.residents.frequency.often")
+}
+
+private fun TrainFrequency.label(): String = when (this) {
+    TrainFrequency.RARE -> message("settings.railway.frequency.rare")
+    TrainFrequency.NORMAL -> message("settings.railway.frequency.normal")
+    TrainFrequency.OFTEN -> message("settings.railway.frequency.often")
 }
 
 private fun GarlandSize.label(): String = when (this) {

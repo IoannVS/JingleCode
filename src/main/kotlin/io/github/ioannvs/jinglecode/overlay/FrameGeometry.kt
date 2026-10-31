@@ -8,11 +8,13 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.ToolWindowType
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import java.awt.Component
 import java.awt.Rectangle
 import javax.swing.JComponent
 import javax.swing.JRootPane
 import javax.swing.JScrollPane
+import javax.swing.JTree
 import javax.swing.SwingUtilities
 import kotlin.math.abs
 import kotlin.math.max
@@ -27,6 +29,8 @@ import kotlin.math.min
  * @param statusBand free strip between the islands and the status bar content
  * @param occluders things above the panels (popups, sliding tool windows) that must stay clean
  * @param projectPanel the Project tool window, if it is docked and showing its tree
+ * @param commitPanel the Commit tool window, if it is docked and showing its tree of changes;
+ *   its [ProjectPanel.content] ends where the tree does, above the splitter to the commit message
  */
 internal class FrameLayout(
     val vertical: List<Rectangle>,
@@ -35,10 +39,11 @@ internal class FrameLayout(
     val statusBand: Rectangle?,
     val occluders: List<Rectangle>,
     val projectPanel: ProjectPanel? = null,
+    val commitPanel: ProjectPanel? = null,
 )
 
 /**
- * The Project tool window island.
+ * A tool window island with a tree: the Project panel or the Commit panel.
  *
  * @param body the island's rounded body (its bounds without the border), corners of [arc]
  * @param content where the tree's scroll pane is, inside the body
@@ -115,6 +120,7 @@ internal object FrameGeometry {
         return FrameLayout(
             vertical, horizontal, topEdges(islands, touch), statusBand(project, root, islands), occluders,
             projectPanel(project, root, toolWindows, anchors),
+            commitPanel(root, toolWindows, anchors),
         )
     }
 
@@ -124,14 +130,36 @@ internal object FrameGeometry {
      * `Island.arc`), so things can sit in its rounded bottom corners.
      */
     private fun projectPanel(project: Project, root: JRootPane, toolWindows: ToolWindowManager, anchors: List<JComponent>): ProjectPanel? {
-        val window = toolWindows.getToolWindow(ToolWindowId.PROJECT_VIEW) ?: return null
+        val component = dockedWindow(toolWindows, ToolWindowId.PROJECT_VIEW, root) ?: return null
+        val tree = ProjectView.getInstance(project).currentProjectViewPane?.tree ?: return null
+        if (!tree.isShowing || !SwingUtilities.isDescendingFrom(tree, component)) return null
+        return treePanel(component, tree, root, anchors)
+    }
+
+    /**
+     * The docked Commit tool window showing its tree of changes. The tree's class lives in the VCS
+     * module, which the plugin doesn't depend on, so it is the biggest tree showing in the window;
+     * its scroll pane ends at the splitter above the commit message.
+     */
+    private fun commitPanel(root: JRootPane, toolWindows: ToolWindowManager, anchors: List<JComponent>): ProjectPanel? {
+        val component = dockedWindow(toolWindows, ToolWindowId.COMMIT, root) ?: return null
+        val tree = UIUtil.uiTraverser(component).filter(JTree::class.java)
+            .filter { it.isShowing && SwingUtilities.getAncestorOfClass(JScrollPane::class.java, it) != null }
+            .maxByOrNull { it.visibleRect.height } ?: return null
+        return treePanel(component, tree, root, anchors)
+    }
+
+    private fun dockedWindow(toolWindows: ToolWindowManager, id: String, root: JRootPane): JComponent? {
+        val window = toolWindows.getToolWindow(id) ?: return null
         if (!window.isVisible || window.type != ToolWindowType.DOCKED) return null
         val component = window.component
         if (!component.isShowing || SwingUtilities.getRootPane(component) !== root) return null
-        val tree = ProjectView.getInstance(project).currentProjectViewPane?.tree ?: return null
-        if (!tree.isShowing || !SwingUtilities.isDescendingFrom(tree, component)) return null
-        val scroll = SwingUtilities.getAncestorOfClass(JScrollPane::class.java, tree) as? JScrollPane ?: return null
+        return component
+    }
 
+    /** The island holding [component], and where the scroll pane of its [tree] is inside it. */
+    private fun treePanel(component: JComponent, tree: JTree, root: JRootPane, anchors: List<JComponent>): ProjectPanel? {
+        val scroll = SwingUtilities.getAncestorOfClass(JScrollPane::class.java, tree) as? JScrollPane ?: return null
         val island = boundsIn(islandOf(component, anchors), root)
         val border = JBUI.scale(JBUI.getInt("Island.borderWidth", 6))
         val body = Rectangle(island.x + border, island.y + border, island.width - 2 * border, island.height - 2 * border)

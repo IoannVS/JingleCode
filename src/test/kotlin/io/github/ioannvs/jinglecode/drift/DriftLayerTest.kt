@@ -28,6 +28,12 @@ class DriftLayerTest {
     }
 
     @Test
+    fun `in the Commit panel the scene stands at the bottom of the tree of changes, above the commit message`() {
+        val commit = ProjectPanel(body = Rectangle(6, 46, 288, 588), arc = 20, content = Rectangle(6, 80, 288, 300))
+        assertEquals(Rectangle(6, 380 - 56, 288, 56), DriftLayer.scene(commit, scale))
+    }
+
+    @Test
     fun `no Project panel, no scene`() {
         assertNull(DriftLayer.scene(FrameLayout(emptyList(), emptyList(), emptyList(), null, emptyList()), scale))
     }

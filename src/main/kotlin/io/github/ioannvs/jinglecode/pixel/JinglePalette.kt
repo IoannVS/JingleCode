@@ -154,6 +154,10 @@ object JinglePalette {
     @JvmField val TRUNK = c(0x6b3e22)
     @JvmField val LOG_CUT = c(0xc99a66)
 
+    // Fireplace in the status bar (`drawStrip`)
+    @JvmField val FIREBOX = c(0x120a08)
+    @JvmField val STOCKING_CUFF = c(0xe9e4dc)
+
     // Stocking, Santa, gifts
     @JvmField val STOCKING = c(0xb8322a)
     @JvmField val SANTA_RED = c(0xc0392b)

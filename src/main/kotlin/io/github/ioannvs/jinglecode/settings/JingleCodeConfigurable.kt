@@ -2,13 +2,20 @@ package io.github.ioannvs.jinglecode.settings
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.options.BoundSearchableConfigurable
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.AlignY
 import com.intellij.ui.dsl.builder.Cell
-import com.intellij.ui.dsl.builder.bind
+import com.intellij.ui.dsl.builder.Row
+import com.intellij.ui.dsl.builder.plus
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.toNullableProperty
+import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.ui.layout.selected
 import io.github.ioannvs.jinglecode.JingleCodeBundle.message
 import io.github.ioannvs.jinglecode.animation.JingleAnimator
@@ -20,8 +27,12 @@ import io.github.ioannvs.jinglecode.snow.SnowFrameRate
 import io.github.ioannvs.jinglecode.snow.SnowSpeed
 import io.github.ioannvs.jinglecode.village.ResidentFrequency
 import io.github.ioannvs.jinglecode.village.VillageStyle
+import kotlin.reflect.KMutableProperty0
 
-/** Settings → Appearance → Jingle Code. */
+/**
+ * Settings → Appearance → Jingle Code. Kept short: choices are drop-down lists,
+ * and the explanations sit behind the "?" next to each switch.
+ */
 class JingleCodeConfigurable : BoundSearchableConfigurable(
     message("settings.display.name"),
     "io.github.ioannvs.jinglecode.settings",
@@ -32,130 +43,106 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
     override fun createPanel() = panel {
         val state = settings.state
         row {
-            checkBox(message("settings.enabled")).bindSelected(state::enabled)
-        }
-        buttonsGroup(message("settings.season")) {
-            for (mode in SeasonMode.entries) {
-                row { radioButton(mode.label(), mode) }
-            }
-        }.bind(state::seasonMode)
-        row {
-            checkBox(message("settings.animation")).bindSelected(state::animationEnabled)
-                .comment(message("settings.animation.comment"))
+            panel {
+                row {
+                    checkBox(message("settings.enabled")).bindSelected(state::enabled)
+                }
+                row(message("settings.season")) {
+                    choice(SeasonMode.entries, state::seasonMode) { it.label() }
+                }
+                row {
+                    checkBox(message("settings.animation")).bindSelected(state::animationEnabled)
+                    contextHelp(message("settings.animation.comment"))
+                }
+                row {
+                    checkBox(message("settings.fireplace.enabled")).bindSelected(state::fireplaceEnabled)
+                    contextHelp(message("settings.fireplace.comment"))
+                }
+            }.align(AlignY.TOP)
+            cell(createPreview()).align(AlignX.RIGHT + AlignY.TOP)
         }
         group(message("settings.garland.group")) {
             lateinit var garland: Cell<JBCheckBox>
             row {
                 garland = checkBox(message("settings.garland.enabled")).bindSelected(state::garlandEnabled)
-                    .comment(message("settings.garland.comment"))
+                contextHelp(message("settings.garland.comment"))
             }
             indent {
-                buttonsGroup(message("settings.garland.mode")) {
-                    for (mode in GarlandMode.entries) {
-                        row { radioButton(mode.label(), mode) }
-                    }
-                }.bind(state::garlandMode)
-                buttonsGroup {
-                    row(message("settings.garland.size")) {
-                        for (size in GarlandSize.entries) {
-                            radioButton(size.label(), size)
-                        }
-                    }
-                }.bind(state::garlandSize)
+                row {
+                    label(message("settings.garland.mode"))
+                    choice(GarlandMode.entries, state::garlandMode) { it.label() }
+                    label(message("settings.garland.size"))
+                    choice(GarlandSize.entries, state::garlandSize) { it.label() }
+                }
             }.enabledIf(garland.component.selected)
-        }
-        group(message("settings.icicles.group")) {
             row {
                 checkBox(message("settings.icicles.enabled")).bindSelected(state::iciclesEnabled)
-                    .comment(message("settings.icicles.comment"))
+                contextHelp(message("settings.icicles.comment"))
             }
-        }
-        group(message("settings.tabicicles.group")) {
             row {
                 checkBox(message("settings.tabicicles.enabled")).bindSelected(state::tabIciclesEnabled)
-                    .comment(message("settings.tabicicles.comment"))
+                contextHelp(message("settings.tabicicles.comment"))
             }
         }
-        group(message("settings.village.group")) {
+        group(message("settings.editor.group")) {
+            lateinit var snow: Cell<JBCheckBox>
+            row {
+                snow = checkBox(message("settings.snow.enabled")).bindSelected(state::editorSnowEnabled)
+                contextHelp(message("settings.snow.comment"))
+            }
+            indent {
+                row {
+                    label(message("settings.snow.amount"))
+                    choice(SnowAmount.entries, state::snowAmount) { it.label() }
+                    label(message("settings.snow.speed"))
+                    choice(SnowSpeed.entries, state::snowSpeed) { it.label() }
+                    label(message("settings.snow.frame.rate"))
+                    choice(SnowFrameRate.entries, state::snowFrameRate) { it.label() }
+                }
+            }.enabledIf(snow.component.selected)
             lateinit var village: Cell<JBCheckBox>
             row {
                 village = checkBox(message("settings.village.enabled")).bindSelected(state::villageEnabled)
-                    .comment(message("settings.village.comment"))
+                contextHelp(message("settings.village.comment"))
             }
             indent {
-                buttonsGroup(message("settings.village.style")) {
-                    for (style in VillageStyle.entries) {
-                        row { radioButton(style.label(), style) }
-                    }
-                }.bind(state::villageStyle)
-                lateinit var residents: Cell<JBCheckBox>
-                row {
-                    residents = checkBox(message("settings.residents.enabled")).bindSelected(state::residentsEnabled)
-                        .comment(message("settings.residents.comment"))
+                row(message("settings.village.style")) {
+                    choice(VillageStyle.entries, state::villageStyle) { it.label() }
                 }
-                indent {
-                    buttonsGroup {
-                        row(message("settings.residents.frequency")) {
-                            for (frequency in ResidentFrequency.entries) {
-                                radioButton(frequency.label(), frequency)
-                            }
-                        }
-                    }.bind(state::residentFrequency)
-                }.enabledIf(residents.component.selected)
+                row {
+                    val residents = checkBox(message("settings.residents.enabled")).bindSelected(state::residentsEnabled)
+                    contextHelp(message("settings.residents.comment"))
+                    val residentsOn = residents.component.selected
+                    label(message("settings.residents.frequency")).enabledIf(residentsOn)
+                    choice(ResidentFrequency.entries, state::residentFrequency) { it.label() }.enabledIf(residentsOn)
+                }
             }.enabledIf(village.component.selected)
         }
         group(message("settings.drift.group")) {
             row {
                 checkBox(message("settings.drift.enabled")).bindSelected(state::driftEnabled)
-                    .comment(message("settings.drift.comment"))
+                contextHelp(message("settings.drift.comment"))
             }
             row {
                 checkBox(message("settings.panel.snow.enabled")).bindSelected(state::panelSnowEnabled)
-                    .comment(message("settings.panel.snow.comment"))
+                contextHelp(message("settings.panel.snow.comment"))
             }
-        }
-        group(message("settings.snow.group")) {
-            lateinit var snow: Cell<JBCheckBox>
-            row {
-                snow = checkBox(message("settings.snow.enabled")).bindSelected(state::editorSnowEnabled)
-                    .comment(message("settings.snow.comment"))
-            }
-            indent {
-                buttonsGroup {
-                    row(message("settings.snow.amount")) {
-                        for (amount in SnowAmount.entries) {
-                            radioButton(amount.label(), amount)
-                        }
-                    }
-                }.bind(state::snowAmount)
-                buttonsGroup {
-                    row(message("settings.snow.speed")) {
-                        for (speed in SnowSpeed.entries) {
-                            radioButton(speed.label(), speed)
-                        }
-                    }
-                }.bind(state::snowSpeed)
-                buttonsGroup(message("settings.snow.frame.rate")) {
-                    for (rate in SnowFrameRate.entries) {
-                        row { radioButton(rate.label(), rate) }
-                    }
-                }.bind(state::snowFrameRate)
-            }.enabledIf(snow.component.selected)
         }
         group(message("settings.popups.group")) {
             row {
                 checkBox(message("settings.popups.enabled")).bindSelected(state::popupSnowEnabled)
-                    .comment(message("settings.popups.comment"))
+                contextHelp(message("settings.popups.comment"))
             }
             row {
                 checkBox(message("settings.menus.enabled")).bindSelected(state::menuSnowEnabled)
-                    .comment(message("settings.menus.comment"))
+                contextHelp(message("settings.menus.comment"))
             }
         }
-        group(message("settings.preview.group")) {
-            row { cell(createPreview()) }
-        }
     }
+
+    /** A drop-down list rather than a column of radio buttons, so the page stays short. */
+    private fun <T : Any> Row.choice(items: List<T>, property: KMutableProperty0<T>, text: (T) -> String): Cell<ComboBox<T>> =
+        comboBox(items, textListCellRenderer<T?> { it?.let(text) }).bindItem(property.toNullableProperty())
 
     private fun createPreview(): PalettePreview {
         val disposable = Disposer.newDisposable("Jingle Code settings preview")

@@ -4,6 +4,7 @@ import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
 
 /** A decoration with its own switch in the settings. */
 enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boolean) {
+    FIREPLACE({ it.fireplaceEnabled }),
     GARLAND({ it.garlandEnabled }),
     ICICLES({ it.iciclesEnabled }),
     TAB_ICICLES({ it.tabIciclesEnabled }),

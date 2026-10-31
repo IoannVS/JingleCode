@@ -31,6 +31,9 @@
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.snow.EditorSnowListener"/>
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.village.EditorVillageListener"/>
         <iw.actionProvider implementation="io.github.ioannvs.jinglecode.snow.EditorSnowWidgetActionProvider"/>
+        <statusBarWidgetFactory id="JingleCode.Fireplace"
+                                implementation="io.github.ioannvs.jinglecode.fireplace.FireplaceWidgetFactory"
+                                order="last"/>
     </extensions>
 
     <projectListeners>

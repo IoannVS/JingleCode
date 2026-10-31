@@ -49,8 +49,41 @@ class IcicleSpriteTest {
     }
 
     @Test
+    fun `rooted icicles grow into the edge above row 0 and hang below it`() {
+        val length = 120
+        val image = BufferedImage(length, ICICLE_ROOT + ICICLE_MAX + 2, BufferedImage.TYPE_INT_RGB)
+        val g = image.createGraphics()
+        g.color = empty
+        g.fillRect(0, 0, image.width, image.height)
+        PixelCanvas.paint(g, 0, ICICLE_ROOT) { drawRootedIcicles(length, 0) }
+        g.dispose()
+        // The ledge right on the edge is wider than the icicles: more than every other column is covered.
+        val ledge = (0 until length).count { image.at(it, ICICLE_ROOT - 1) == JinglePalette.ICE }
+        assertTrue("$ledge ledge pixels", ledge > length / 2)
+        // Higher up, only thin roots of the longer icicles, never wider than one column.
+        for (x in 0 until length step 2) assertEquals("column $x", empty, image.at(x, 0))
+        // Below the edge they hang one pixel wide, in odd columns only, at most ICICLE_MAX long.
+        for (x in 0 until length) {
+            val hanging = (ICICLE_ROOT until image.height).takeWhile { image.at(x, it) != empty }.count()
+            if (x % 2 == 0) assertEquals("column $x", 0, hanging)
+            assertTrue("column $x is $hanging long", hanging <= ICICLE_MAX)
+        }
+    }
+
+    @Test
     fun `skipped columns stay empty`() {
         val image = draw(60) { it in 20..30 }
+        for (x in 20..30) for (y in 0 until image.height) assertEquals(empty, image.at(x, y))
+    }
+
+    @Test
+    fun `skipped columns stay empty under rooted icicles, ledge included`() {
+        val image = BufferedImage(60, ICICLE_ROOT + ICICLE_MAX + 2, BufferedImage.TYPE_INT_RGB)
+        val g = image.createGraphics()
+        g.color = empty
+        g.fillRect(0, 0, image.width, image.height)
+        PixelCanvas.paint(g, 0, ICICLE_ROOT) { drawRootedIcicles(60, 0) { it in 20..30 } }
+        g.dispose()
         for (x in 20..30) for (y in 0 until image.height) assertEquals(empty, image.at(x, y))
     }
 

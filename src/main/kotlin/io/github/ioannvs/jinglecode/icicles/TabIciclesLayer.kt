@@ -4,6 +4,7 @@ import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.WindowManager
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.ui.tabs.JBTabs
 import com.intellij.util.ui.JBUI
@@ -12,6 +13,7 @@ import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.overlay.FrameLayout
 import io.github.ioannvs.jinglecode.overlay.OverlayLayer
 import io.github.ioannvs.jinglecode.overlay.OverlayScale
+import io.github.ioannvs.jinglecode.pixel.JinglePalette
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
 import java.awt.Component
 import java.awt.Container
@@ -22,7 +24,7 @@ import kotlin.math.floor
 
 /**
  * Icicles hanging from the bottom edge of the selected tab of the active editor window, the same as
- * under the toolbar. Ivan's call instead of the mockup's snow cap, which ran into those icicles.
+ * under the toolbar, but with their roots grown a little into the tab, as under a roof. Ivan's call instead of the mockup's snow cap, which ran into those icicles.
  * In the Islands UI they hang from the tab's rounded background, not from its taller label.
  *
  * Only for tabs above the editor; the icicles hang over its top edge. The tab is found from public API
@@ -44,14 +46,26 @@ internal object TabIciclesLayer : OverlayLayer {
     override fun paint(g: Graphics2D, project: Project, layout: FrameLayout, scale: OverlayScale, tick: Long) {
         val tab = activeTab(project) ?: return
         val area = icicles(tab, scale)
-        PixelCanvas.paint(g, area.x, area.y, magnify = scale.magnify) {
-            drawIcicles(toLogical(area.width), (tick % TICK_WRAP).toInt())
+        // Inside the tab the roots fade into its background, solid colors, so they grow out of it rather than glare.
+        val background = JBUI.CurrentTheme.EditorTabs.underlinedTabBackground() ?: JBUI.CurrentTheme.EditorTabs.background()
+        val root = ColorUtil.mix(background, JinglePalette.SNOW, ROOT_SHARE)
+        val ledge = ColorUtil.mix(background, JinglePalette.ICE, LEDGE_SHARE)
+        // The origin stays on the tab's bottom edge; the roots go up into the tab from there.
+        PixelCanvas.paint(g, tab.x, tab.y + tab.height, magnify = scale.magnify) {
+            drawRootedIcicles(toLogical(tab.width), (tick % TICK_WRAP).toInt(), root, ledge)
         }
     }
 
-    /** Where the icicles hang for [tab]: right under its bottom edge, as wide as it. */
-    private fun icicles(tab: Rectangle, scale: OverlayScale): Rectangle =
-        Rectangle(tab.x, tab.y + tab.height, tab.width, scale.user(ICICLE_MAX + 1))
+    /** How much snow and ice show through the tab background in the upper roots and in the ledge on the edge. */
+    private const val ROOT_SHARE = 0.3
+    private const val LEDGE_SHARE = 0.6
+
+    /** Where the icicles hang for [tab]: rooted in its bottom edge and hanging below it, as wide as it. */
+    private fun icicles(tab: Rectangle, scale: OverlayScale): Rectangle {
+        // One spare pixel for rounding to device pixels.
+        val root = scale.user(ICICLE_ROOT + 1)
+        return Rectangle(tab.x, tab.y + tab.height - root, tab.width, root + scale.user(ICICLE_MAX + 1))
+    }
 
     /** The selected tab of the active editor window, root pane coordinates, if it is above the editor. */
     private fun activeTab(project: Project): Rectangle? {

@@ -261,6 +261,8 @@ internal object FrameGeometry {
         return root.layeredPane.components
             .filter { it.isVisible && it !== root.contentPane && it.width.toLong() * it.height < half }
             .map { boundsIn(it, root) }
+            // The frame header with the toolbar lives there too, across the whole top: the icicles grow into it.
+            .filterNot { it.y <= 0 && it.x <= 0 && it.width >= root.width }
     }
 
     private fun boundsIn(component: Component, root: JRootPane): Rectangle =

@@ -191,6 +191,20 @@ object JinglePalette {
     /** Locomotive smoke; the mockup melts it with alpha, the one translucent thing on the railway besides the lights. */
     @JvmField val RAIL_SMOKE = c(0xc8d2e1)
 
+    // Santa's yard in the right tool windows (`docs/mockup/jingle-code-santa-yard.html`, the colours in its code
+    // beyond its `C`); the rest is the village palette above
+    @JvmField val FAR_FIR_TIP = c(0x9fb0c8)
+    @JvmField val CHIMNEY_BAND = c(0x7d2a22)
+    @JvmField val WINDOW_FLICKER = c(0xffb347)
+    @JvmField val GATE = c(0x4a2e1c)
+    @JvmField val CHUTE_SHADE = c(0x8a5a34)
+    @JvmField val STALL = c(0x22160e)
+    @JvmField val HAY_SHADE = c(0xc9b088)
+    @JvmField val TREE_BULB_OFF = c(0x3a4a3a)
+    @JvmField val PINK = c(0xe98fa8)
+    @JvmField val SACK_SHADE = c(0xa8845a)
+    @JvmField val LETTER_YELLOW = c(0xf3e2a8)
+
     /** Editor background of the mockup (Darcula/New UI dark), for previews only. */
     @JvmField val IDE_BACKGROUND = c(0x1e1f22)
 }

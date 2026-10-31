@@ -28,6 +28,18 @@ sealed interface JingleEvent {
      * (tests and Debug too) or the Build action. [succeeded] if it exited with 0 or built without errors.
      */
     data class RunFinished(val succeeded: Boolean) : JingleEvent
+
+    /**
+     * Something the user runs or builds in the IDE has started: a run configuration or the Build action. It ends
+     * with [RunFinished], or with [RunStopped] if the user stopped it or the build was cancelled.
+     */
+    data object RunStarted : JingleEvent
+
+    /** A run or a build ended without a result: the user stopped or detached it, or cancelled the build. */
+    data object RunStopped : JingleEvent
+
+    /** The IDE showed a notification (a balloon, or one that went straight to the Notifications window). */
+    data object Notification : JingleEvent
 }
 
 fun interface JingleEventListener {

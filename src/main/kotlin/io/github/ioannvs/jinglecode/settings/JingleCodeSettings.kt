@@ -50,6 +50,11 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var trainFrequency by enum(TrainFrequency.NORMAL)
         var railwayResidents by property(true)
         var railwayPoles by property(true)
+        var santaYardEnabled by property(true)
+        var santaYardReactions by property(true)
+        var santaYardLetters by property(true)
+        var rightSnowEnabled by property(true)
+        var yardButtonEnabled by property(true)
     }
 
     /** Call after changing [state] so that decorations pick up the change. */

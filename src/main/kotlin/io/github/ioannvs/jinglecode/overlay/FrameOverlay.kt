@@ -10,6 +10,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.IdeGlassPaneUtil
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.scale.JBUIScale
+import com.intellij.util.ui.UIUtil
 import io.github.ioannvs.jinglecode.animation.JingleAnimator
 import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleFeature
@@ -22,6 +23,8 @@ import io.github.ioannvs.jinglecode.icicles.TabIciclesLayer
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
 import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
 import io.github.ioannvs.jinglecode.snow.PanelSnowLayer
+import io.github.ioannvs.jinglecode.snow.SnowPlace
+import io.github.ioannvs.jinglecode.yard.YardLayer
 import java.awt.AWTEvent
 import java.awt.Component
 import java.awt.Graphics2D
@@ -43,10 +46,12 @@ import javax.swing.JRootPane
 @Service(Service.Level.PROJECT)
 class FrameOverlay(private val project: Project) : Disposable {
 
-    private val panelSnow = PanelSnowLayer()
+    private val panelSnow = PanelSnowLayer(JingleFeature.PANEL_SNOW, ::treePanels) { UIUtil.getTreeBackground() }
+    private val rightSnow = PanelSnowLayer(JingleFeature.RIGHT_SNOW, ::rightPanels) { UIUtil.getPanelBackground() }
+    private val santaYard = YardLayer()
 
     // In paint order: the snow falls over the drift, falling icicles over everything.
-    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, panelSnow, FireworksLayer, FallingIciclesLayer)
+    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, santaYard, panelSnow, rightSnow, FireworksLayer, FallingIciclesLayer)
     private val features = layers.map { it.feature }
 
     private var root: JRootPane? = null
@@ -95,29 +100,43 @@ class FrameOverlay(private val project: Project) : Disposable {
         }
         // The panel snow falls on its own clock, as fast as the editor's, and repaints only itself.
         val settings = JingleCodeSettings.getInstance()
-        animator.subscribeMotion(this, JingleFeature.PANEL_SNOW, intervalMs = { settings.state.snowFrameRate.intervalMs }) { dt ->
-            moveSnow(dt)
+        for (snow in listOf(panelSnow, rightSnow)) {
+            animator.subscribeMotion(this, snow.feature, intervalMs = { settings.state.snowFrameRate.intervalMs }) { dt ->
+                moveSnow(snow, dt)
+            }
         }
+        // Santa's yard moves on the smooth clock too, like the mockup, and repaints only its strips.
+        animator.subscribeMotion(this, JingleFeature.SANTA_YARD) { dt -> moveYard(dt) }
         ApplicationManager.getApplication().messageBus.connect(this)
             .subscribe(FeatureGate.TOPIC, FeatureGate.Listener { repaintLayers() })
         repaintLayers()
         return true
     }
 
-    private fun moveSnow(dt: Double) {
+    private fun moveSnow(snow: PanelSnowLayer, dt: Double) {
         val rootPane = root ?: return
         val glassPane = rootPane.glassPane as? JComponent ?: return
-        if (!gate.isActive(panelSnow.feature)) return
+        if (!gate.isActive(snow.feature)) return
         val layout = layout() ?: return
         val scale = OverlayScale.current()
         val state = JingleCodeSettings.getInstance().state
-        val moved = gate.guard(panelSnow.feature, false) {
+        val moved = gate.guard(snow.feature, false) {
             // The pixel as the canvas rounds it on this screen, so the flakes move pixel by pixel.
             val sysScale = JBUIScale.sysScale(rootPane)
             val pixelUser = PixelCanvas.pixelSize(sysScale, magnify = scale.magnify) / sysScale
-            panelSnow.move(layout, pixelUser, dt, state.snowAmount, state.snowSpeed)
+            snow.move(layout, pixelUser, dt, state.snowAmount, state.snowSpeed)
         }
-        if (moved) panelSnow.dirtyRects(project, layout, scale).forEach { glassPane.paintImmediately(it) }
+        if (moved) snow.dirtyRects(project, layout, scale).forEach { glassPane.paintImmediately(it) }
+    }
+
+    private fun moveYard(dt: Double) {
+        val rootPane = root ?: return
+        val glassPane = rootPane.glassPane as? JComponent ?: return
+        if (!gate.isActive(santaYard.feature)) return
+        val layout = layout() ?: return
+        val scale = OverlayScale.current()
+        val moved = gate.guard(santaYard.feature, false) { santaYard.move(project, layout, scale, JBUIScale.sysScale(rootPane), dt) }
+        if (moved) santaYard.dirtyRects(project, layout, scale).forEach { glassPane.paintImmediately(it) }
     }
 
     private fun activeLayers(): List<OverlayLayer> = layers.filter { gate.isActive(it.feature) }
@@ -203,3 +222,12 @@ class FrameOverlay(private val project: Project) : Disposable {
         fun getInstance(project: Project): FrameOverlay = project.service()
     }
 }
+
+/** Where the panel snow falls: the trees of the Project and Commit panels. */
+private fun treePanels(layout: FrameLayout): List<SnowPlace> = listOfNotNull(
+    layout.projectPanel?.let { SnowPlace("project", it.body, it.arc, it.content) },
+    layout.commitPanel?.let { SnowPlace("commit", it.body, it.arc, it.content) },
+)
+
+/** Where the snow over Santa's yard falls: the content of every tool window at the right. */
+private fun rightPanels(layout: FrameLayout): List<SnowPlace> = layout.rightPanels.map { SnowPlace(it.id, it.body, it.arc, it.content) }

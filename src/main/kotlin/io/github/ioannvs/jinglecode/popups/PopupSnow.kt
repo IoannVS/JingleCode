@@ -15,6 +15,8 @@ import com.intellij.ui.scale.JBUIScale
 import io.github.ioannvs.jinglecode.animation.JingleAnimator
 import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleFeature
+import io.github.ioannvs.jinglecode.events.JingleEvent
+import io.github.ioannvs.jinglecode.events.JingleEvents
 import io.github.ioannvs.jinglecode.overlay.OverlayScale
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
 import java.awt.AWTEvent
@@ -85,6 +87,8 @@ class PopupSnow(private val project: Project) : Disposable {
         val shown = object : Notifications {
             override fun notify(notification: Notification) {
                 notifications += notification
+                // Santa's yard gets a letter; only this package listens to notifications (ArchitectureTest).
+                JingleEvents.publish(project, JingleEvent.Notification)
                 queueRefresh()
             }
         }

@@ -48,11 +48,15 @@
                   topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
         <listener class="io.github.ioannvs.jinglecode.fireworks.FireworksListener"
                   topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.yard.YardEventsListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
         <listener class="io.github.ioannvs.jinglecode.runs.RunWatcher"
                   topic="com.intellij.execution.ExecutionListener"/>
         <listener class="io.github.ioannvs.jinglecode.snow.CommitTitleButton"
                   topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
         <listener class="io.github.ioannvs.jinglecode.railway.RailwayToolWindowListener"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+        <listener class="io.github.ioannvs.jinglecode.yard.YardTitleButtons"
                   topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
     </projectListeners>
 
@@ -65,5 +69,8 @@
                 icon="/icons/snow_snowman.svg">
             <add-to-group group-id="ProjectViewToolbar" anchor="last"/>
         </action>
+        <action id="JingleCode.ToggleYardDecor"
+                class="io.github.ioannvs.jinglecode.yard.ToggleYardDecorAction"
+                icon="/icons/snow_santa.svg"/>
     </actions>
 </idea-plugin>

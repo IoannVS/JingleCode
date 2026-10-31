@@ -23,7 +23,16 @@ enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boole
     CONTEXT_MENUS({ it.menuSnowEnabled }),
 
     /** The railway at the bottom of the bottom tool windows; reserves room there with a border on their content. */
-    RAILWAY({ it.railwayEnabled });
+    RAILWAY({ it.railwayEnabled }),
+
+    /** Santa's yard at the bottom of the right tool windows; drawn over their last rows, like the drift. */
+    SANTA_YARD({ it.santaYardEnabled }),
+
+    /** Snow falling in the right tool windows, over Santa's yard; without it stars hang over the yard. */
+    RIGHT_SNOW({ it.rightSnowEnabled }),
+
+    /** The yard's button in the headers of the right tool windows; put there by their Swing layout. */
+    YARD_BUTTON({ it.yardButtonEnabled });
 
     fun isEnabledIn(state: JingleCodeSettings.State): Boolean = switch(state)
 }

@@ -2,6 +2,7 @@ package io.github.ioannvs.jinglecode.drift
 
 import io.github.ioannvs.jinglecode.pixel.JinglePalette
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
+import java.awt.Color
 
 /** Where gifts land in the sleigh: the middle of its bed, behind Santa. Relative to `drawSleigh`'s x, y. */
 internal val SLEIGH_BED = At(6, -1)
@@ -10,9 +11,10 @@ internal val SLEIGH_BED = At(6, -1)
  * Mockup `drawSleigh`: Santa with his own little sack in a red sleigh on golden runners, pulled by
  * two reindeer; the lead one has a red nose (no name: that one is somebody else's character).
  * [x], [y] as in the mockup; [gallop] alternates the legs and blinks the nose. [cargo] gifts are
- * piled up in the bed behind Santa, and [riders] elves sit on top.
+ * piled up in the bed behind Santa, and [riders] elves sit on top. Without [santa] the sleigh stands
+ * empty, his sack and all (Santa's yard: he sits on the bench until he rides off).
  */
-internal fun PixelCanvas.drawSleigh(x: Int, y: Int, gallop: Int, cargo: Int = 0, riders: Boolean = false) {
+internal fun PixelCanvas.drawSleigh(x: Int, y: Int, gallop: Int, cargo: Int = 0, riders: Boolean = false, santa: Boolean = true) {
     if (cargo > 0) {
         rect(x + 6, y, 3, 2, JinglePalette.SANTA_RED)
         px(x + 7, y, JinglePalette.GOLD)
@@ -28,13 +30,15 @@ internal fun PixelCanvas.drawSleigh(x: Int, y: Int, gallop: Int, cargo: Int = 0,
         drawElfHead(x + 9, y - 1)
         drawElfHead(x - 1, y - 1)
     }
-    rect(x, y - 2, 3, 3, JinglePalette.SACK)
-    rect(x + 3, y - 1, 3, 3, JinglePalette.SANTA_RED)
-    px(x + 5, y - 1, JinglePalette.SKIN)
-    px(x + 3, y - 2, JinglePalette.SANTA_RED)
-    px(x + 4, y - 2, JinglePalette.SANTA_RED)
-    px(x + 2, y - 3, JinglePalette.WHITE)
-    px(x + 5, y, JinglePalette.WHITE)
+    if (santa) {
+        rect(x, y - 2, 3, 3, JinglePalette.SACK)
+        rect(x + 3, y - 1, 3, 3, JinglePalette.SANTA_RED)
+        px(x + 5, y - 1, JinglePalette.SKIN)
+        px(x + 3, y - 2, JinglePalette.SANTA_RED)
+        px(x + 4, y - 2, JinglePalette.SANTA_RED)
+        px(x + 2, y - 3, JinglePalette.WHITE)
+        px(x + 5, y, JinglePalette.WHITE)
+    }
     rect(x, y + 2, 9, 3, JinglePalette.SANTA_RED)
     rect(x, y + 2, 9, 1, JinglePalette.GOLD)
     rect(x, y + 6, 11, 1, JinglePalette.GOLD)
@@ -56,15 +60,10 @@ private fun PixelCanvas.drawElfHead(x: Int, y: Int) {
     rect(x, y, 3, 1, JinglePalette.SKIN)
 }
 
-/** Mockup `drawReindeer`. */
-private fun PixelCanvas.drawReindeer(x: Int, y: Int, leg: Int, lead: Boolean, blink: Boolean) {
+/** Mockup `drawReindeer`, facing right; [x], [y] its top left. */
+internal fun PixelCanvas.drawReindeer(x: Int, y: Int, leg: Int, lead: Boolean, blink: Boolean) {
     rect(x + 1, y + 3, 6, 2, JinglePalette.REINDEER)
-    rect(x + 6, y + 1, 2, 3, JinglePalette.REINDEER)
-    rect(x + 7, y + 1, 2, 2, JinglePalette.REINDEER_LIGHT)
-    px(x + 6, y, JinglePalette.ANTLER)
-    px(x + 8, y, JinglePalette.ANTLER)
-    px(x + 5, y, JinglePalette.ANTLER)
-    px(x + 9, y + 2, if (lead) (if (blink) JinglePalette.RED_NOSE_LIT else JinglePalette.RED_NOSE) else JinglePalette.NOSE_DARK)
+    drawReindeerHead(x, y, if (lead) (if (blink) JinglePalette.RED_NOSE_LIT else JinglePalette.RED_NOSE) else JinglePalette.NOSE_DARK)
     px(x, y + 3, JinglePalette.TAIL)
     if (leg == 1) {
         px(x, y + 6, JinglePalette.STICK)
@@ -76,6 +75,16 @@ private fun PixelCanvas.drawReindeer(x: Int, y: Int, leg: Int, lead: Boolean, bl
         rect(x + 1, y + 5, 1, 2, JinglePalette.STICK)
         rect(x + 6, y + 5, 1, 2, JinglePalette.STICK)
     }
+}
+
+/** The reindeer's neck, head, antlers and [nose], where [drawReindeer] at [x], [y] puts them. */
+internal fun PixelCanvas.drawReindeerHead(x: Int, y: Int, nose: Color) {
+    rect(x + 6, y + 1, 2, 3, JinglePalette.REINDEER)
+    rect(x + 7, y + 1, 2, 2, JinglePalette.REINDEER_LIGHT)
+    px(x + 6, y, JinglePalette.ANTLER)
+    px(x + 8, y, JinglePalette.ANTLER)
+    px(x + 5, y, JinglePalette.ANTLER)
+    px(x + 9, y + 2, nose)
 }
 
 /**

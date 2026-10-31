@@ -158,6 +158,31 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                 }
             }.enabledIf(railway.component.selected)
         }
+        group(message("settings.yard.group")) {
+            lateinit var yard: Cell<JBCheckBox>
+            row {
+                yard = checkBox(message("settings.yard.enabled")).bindSelected(state::santaYardEnabled)
+                contextHelp(message("settings.yard.comment"))
+            }
+            indent {
+                row {
+                    checkBox(message("settings.yard.reactions")).bindSelected(state::santaYardReactions)
+                    contextHelp(message("settings.yard.reactions.comment"))
+                }
+                row {
+                    checkBox(message("settings.yard.letters")).bindSelected(state::santaYardLetters)
+                    contextHelp(message("settings.yard.letters.comment"))
+                }
+            }.enabledIf(yard.component.selected)
+            row {
+                checkBox(message("settings.yard.snow")).bindSelected(state::rightSnowEnabled)
+                contextHelp(message("settings.yard.snow.comment"))
+            }
+            row {
+                checkBox(message("settings.yard.button")).bindSelected(state::yardButtonEnabled)
+                contextHelp(message("settings.yard.button.comment"))
+            }
+        }
         group(message("settings.popups.group")) {
             row {
                 checkBox(message("settings.popups.enabled")).bindSelected(state::popupSnowEnabled)

@@ -3,6 +3,7 @@ package io.github.ioannvs.jinglecode.overlay
 import com.intellij.ide.projectView.ProjectView
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowId
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.ToolWindowType
@@ -42,7 +43,18 @@ internal class FrameLayout(
     val commitPanel: ProjectPanel? = null,
     /** The bottom of the window, root pane coordinates: falling icicles break there. */
     val bottom: Int = 0,
+    /** The tool windows docked at the right, each its own island: Santa's yard stands at their bottom. */
+    val rightPanels: List<RightPanel> = emptyList(),
 )
+
+/**
+ * A tool window island docked at the right.
+ *
+ * @param id the tool window's id
+ * @param body the island's rounded body (its bounds without the border), corners of [arc]
+ * @param content the window's content under its header, inside the body
+ */
+internal class RightPanel(val id: String, val body: Rectangle, val arc: Int, val content: Rectangle)
 
 /**
  * A tool window island with a tree: the Project panel or the Commit panel.
@@ -155,7 +167,21 @@ internal object FrameGeometry {
             projectPanel(project, root, toolWindows, anchors),
             commitPanel(root, toolWindows, anchors),
             bottom = root.height,
+            rightPanels = rightPanels(root, toolWindows, anchors),
         )
+    }
+
+    /** The visible tool windows docked at the right, in this frame. */
+    private fun rightPanels(root: JRootPane, toolWindows: ToolWindowManager, anchors: List<JComponent>): List<RightPanel> {
+        val arc = islandArc()
+        return toolWindows.toolWindowIds.mapNotNull { id ->
+            val window = toolWindows.getToolWindow(id) ?: return@mapNotNull null
+            if (window.anchor != ToolWindowAnchor.RIGHT) return@mapNotNull null
+            val component = dockedWindow(toolWindows, id, root) ?: return@mapNotNull null
+            val body = body(boundsIn(islandOf(component, anchors), root))
+            val content = boundsIn(component, root).intersection(body)
+            if (content.isEmpty) null else RightPanel(id, body, arc, content)
+        }
     }
 
     /**

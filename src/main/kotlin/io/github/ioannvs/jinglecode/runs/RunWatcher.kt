@@ -38,22 +38,23 @@ internal class BuildTasks {
 }
 
 /**
- * Publishes [JingleEvent.RunFinished] when a run configuration's process ends by itself, in every IDE:
- * exit code 0 is a success, anything else a failure. Processes the user stopped or detached don't count,
- * nor do the ones a build started (the build itself reports).
+ * Publishes [JingleEvent.RunStarted] when a run configuration's process starts and [JingleEvent.RunFinished] when it
+ * ends by itself, in every IDE: exit code 0 is a success, anything else a failure. Processes the user stopped or
+ * detached end with [JingleEvent.RunStopped]; the ones a build started don't count at all (the build itself reports).
  */
 internal class RunWatcher(private val project: Project) : ExecutionListener {
 
     override fun processStarted(executorId: String, env: ExecutionEnvironment, handler: ProcessHandler) {
         if (BuildTasks.getInstance(project).isRunning) handler.putUserData(PART_OF_BUILD, true)
+        else JingleEvents.publish(project, JingleEvent.RunStarted)
     }
 
     override fun processTerminated(executorId: String, env: ExecutionEnvironment, handler: ProcessHandler, exitCode: Int) {
         val stopped = handler.getUserData(ProcessHandler.TERMINATION_REQUESTED) == true
         val partOfBuild = handler.getUserData(PART_OF_BUILD) == true
         thisLogger().info("Jingle Code: '${env.runProfile.name}' ended, exit code $exitCode, stopped $stopped, part of a build $partOfBuild")
-        if (stopped || partOfBuild) return
-        JingleEvents.publish(project, JingleEvent.RunFinished(succeeded = exitCode == 0))
+        if (partOfBuild) return
+        JingleEvents.publish(project, if (stopped) JingleEvent.RunStopped else JingleEvent.RunFinished(succeeded = exitCode == 0))
     }
 
     private companion object {

@@ -68,7 +68,7 @@ internal object FrameGeometry {
     /** The tallest thing in the status bar is a 16 px icon. */
     private const val STATUS_ICON = 16
 
-    private fun isIslandsUi(): Boolean = JBUI.getInt("Islands", 0) != 0
+    fun isIslandsUi(): Boolean = JBUI.getInt("Islands", 0) != 0
 
     /** How round the islands' corners are, user pixels; 0 without the Islands UI. */
     fun islandArc(): Int = if (isIslandsUi()) JBUI.scale(JBUI.getInt("Island.arc", 20)) else 0

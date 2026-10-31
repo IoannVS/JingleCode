@@ -10,6 +10,7 @@ enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boole
     DRIFT({ it.driftEnabled }),
     VILLAGE({ it.villageEnabled }),
     EDITOR_SNOW({ it.editorSnowEnabled }),
+    PANEL_SNOW({ it.panelSnowEnabled }),
     POPUPS({ it.popupSnowEnabled }),
     CONTEXT_MENUS({ it.menuSnowEnabled });
 

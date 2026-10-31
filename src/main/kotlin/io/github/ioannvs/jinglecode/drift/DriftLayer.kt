@@ -2,6 +2,7 @@ package io.github.ioannvs.jinglecode.drift
 
 import com.intellij.openapi.project.Project
 import io.github.ioannvs.jinglecode.animation.JingleAnimator
+import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.overlay.FrameLayout
 import io.github.ioannvs.jinglecode.overlay.OverlayLayer
@@ -77,6 +78,8 @@ internal object DriftLayer : OverlayLayer {
         // The pixel size as the canvas rounds it on this screen, so the seam with the village is exact.
         val sysScale = maxOf(g.transform.scaleX, g.transform.scaleY).toFloat().takeIf { it > 0 } ?: 1f
         val pixelUser = PixelCanvas.pixelSize(sysScale, magnify = scale.magnify) / sysScale
+        // While the panel snow falls the scene drops its own few flakes.
+        val sharedSnow = FeatureGate.getInstance().isActive(JingleFeature.PANEL_SNOW)
         for (place in places(layout)) {
             val panel = place.panel
             val scene = scene(panel, scale)
@@ -87,7 +90,7 @@ internal object DriftLayer : OverlayLayer {
                 g2.clip(panel.content)
                 PixelCanvas.paint(g2, scene.x, scene.y, magnify = scale.magnify) {
                     // One column more than fits, so the drift reaches the right wall; the clip cuts the rest.
-                    drawProjectScene(toLogical(scene.width) + 1, f, t, view, rightEdge = if (place.seam) seamRows(pixelUser) else null)
+                    drawProjectScene(toLogical(scene.width) + 1, f, t, view, rightEdge = if (place.seam) seamRows(pixelUser) else null, flakes = !sharedSnow)
                 }
             }
             finally {

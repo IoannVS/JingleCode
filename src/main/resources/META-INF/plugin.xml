@@ -36,11 +36,18 @@
     <projectListeners>
         <listener class="io.github.ioannvs.jinglecode.drift.GiftPileListener"
                   topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.snow.CommitTitleButton"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
     </projectListeners>
 
     <actions>
         <action id="JingleCode.ToggleEditorSnow"
                 class="io.github.ioannvs.jinglecode.snow.ToggleEditorSnowAction"
                 icon="/icons/snowflake.svg"/>
+        <action id="JingleCode.TogglePanelSnow"
+                class="io.github.ioannvs.jinglecode.snow.TogglePanelSnowAction"
+                icon="/icons/snow_snowman.svg">
+            <add-to-group group-id="ProjectViewToolbar" anchor="last"/>
+        </action>
     </actions>
 </idea-plugin>

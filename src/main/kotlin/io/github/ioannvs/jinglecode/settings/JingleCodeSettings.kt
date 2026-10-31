@@ -31,6 +31,7 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var iciclesEnabled by property(true)
         var tabIciclesEnabled by property(true)
         var driftEnabled by property(true)
+        var panelSnowEnabled by property(true)
         var villageEnabled by property(true)
         var villageStyle by enum(VillageStyle.HILL_FARM)
         var residentsEnabled by property(true)

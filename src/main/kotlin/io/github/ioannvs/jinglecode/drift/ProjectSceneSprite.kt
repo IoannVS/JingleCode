@@ -24,9 +24,17 @@ internal const val SCENE_ROWS = 28
  *
  * At the right wall the snow lies [rightEdge] high, if given, where the editor's village snow goes on
  * (see `SnowSeam`), and a fir tree like the village's stands there, so it reads as one snow line.
+ * Without [flakes] the scene has none of its own: the panel snow falls over it instead.
  */
-internal fun PixelCanvas.drawProjectScene(width: Int, f: Int, t: Int, pile: PileView = PileView(0), rightEdge: Int? = null) {
-    drawSceneFlakes(width, t)
+internal fun PixelCanvas.drawProjectScene(
+    width: Int,
+    f: Int,
+    t: Int,
+    pile: PileView = PileView(0),
+    rightEdge: Int? = null,
+    flakes: Boolean = true,
+) {
+    if (flakes) drawSceneFlakes(width, t)
     // The mockup centres its 84 pixels of props in the panel. Where they stand the snow is
     // low and bumpy; the big heaps pile up on both sides.
     val ox = max(4, (width - 84) / 2)

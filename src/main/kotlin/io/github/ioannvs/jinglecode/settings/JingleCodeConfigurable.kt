@@ -109,6 +109,10 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                 checkBox(message("settings.drift.enabled")).bindSelected(state::driftEnabled)
                     .comment(message("settings.drift.comment"))
             }
+            row {
+                checkBox(message("settings.panel.snow.enabled")).bindSelected(state::panelSnowEnabled)
+                    .comment(message("settings.panel.snow.comment"))
+            }
         }
         group(message("settings.snow.group")) {
             lateinit var snow: Cell<JBCheckBox>

@@ -9,12 +9,17 @@ import com.intellij.openapi.ui.Painter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.IdeGlassPaneUtil
 import com.intellij.openapi.wm.WindowManager
+import com.intellij.ui.scale.JBUIScale
 import io.github.ioannvs.jinglecode.animation.JingleAnimator
 import io.github.ioannvs.jinglecode.core.FeatureGate
+import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.drift.DriftLayer
 import io.github.ioannvs.jinglecode.garland.GarlandLayer
 import io.github.ioannvs.jinglecode.icicles.IciclesLayer
 import io.github.ioannvs.jinglecode.icicles.TabIciclesLayer
+import io.github.ioannvs.jinglecode.pixel.PixelCanvas
+import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
+import io.github.ioannvs.jinglecode.snow.PanelSnowLayer
 import java.awt.AWTEvent
 import java.awt.Component
 import java.awt.Graphics2D
@@ -27,7 +32,7 @@ import javax.swing.JRootPane
 
 /**
  * The decorations that live on the edges of the project frame's panels: the garland in the gaps,
- * the icicles under the toolbar, the icicles under the active tab, the drift in the Project panel. One glass pane painter for all of them.
+ * the icicles under the toolbar, the icicles under the active tab, the drift and the snow in the Project and Commit panels. One glass pane painter for all of them.
  *
  * Each [OverlayLayer] paints only inside its own strips, minus popups and sliding tool windows,
  * and only those strips are repainted on a frame. Frame geometry comes from [FrameGeometry];
@@ -36,7 +41,10 @@ import javax.swing.JRootPane
 @Service(Service.Level.PROJECT)
 class FrameOverlay(private val project: Project) : Disposable {
 
-    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer)
+    private val panelSnow = PanelSnowLayer()
+
+    // In paint order: the snow falls over the drift.
+    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, panelSnow)
     private val features = layers.map { it.feature }
 
     private var root: JRootPane? = null
@@ -83,10 +91,31 @@ class FrameOverlay(private val project: Project) : Disposable {
                 }
             }
         }
+        // The panel snow falls on its own clock, as fast as the editor's, and repaints only itself.
+        val settings = JingleCodeSettings.getInstance()
+        animator.subscribeMotion(this, JingleFeature.PANEL_SNOW, intervalMs = { settings.state.snowFrameRate.intervalMs }) { dt ->
+            moveSnow(dt)
+        }
         ApplicationManager.getApplication().messageBus.connect(this)
             .subscribe(FeatureGate.TOPIC, FeatureGate.Listener { repaintLayers() })
         repaintLayers()
         return true
+    }
+
+    private fun moveSnow(dt: Double) {
+        val rootPane = root ?: return
+        val glassPane = rootPane.glassPane as? JComponent ?: return
+        if (!gate.isActive(panelSnow.feature)) return
+        val layout = layout() ?: return
+        val scale = OverlayScale.current()
+        val state = JingleCodeSettings.getInstance().state
+        val moved = gate.guard(panelSnow.feature, false) {
+            // The pixel as the canvas rounds it on this screen, so the flakes move pixel by pixel.
+            val sysScale = JBUIScale.sysScale(rootPane)
+            val pixelUser = PixelCanvas.pixelSize(sysScale, magnify = scale.magnify) / sysScale
+            panelSnow.move(layout, pixelUser, dt, state.snowAmount, state.snowSpeed)
+        }
+        if (moved) panelSnow.dirtyRects(project, layout, scale).forEach { glassPane.paintImmediately(it) }
     }
 
     private fun activeLayers(): List<OverlayLayer> = layers.filter { gate.isActive(it.feature) }

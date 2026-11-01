@@ -3,6 +3,7 @@ package io.github.ioannvs.jinglecode.yard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.roundToInt
 
 class YardSceneTest {
 
@@ -43,7 +44,7 @@ class YardSceneTest {
             val scene = YardScene(seed = 1)
             scene.step(dt, 214)
             scene.taskFinished(succeeded = true)
-            repeat(Math.round(5.5 / dt).toInt()) { scene.step(dt, 214) }
+            repeat((5.5 / dt).roundToInt()) { scene.step(dt, 214) }
             return scene.sleighX!!
         }
         val park = YardScene(seed = 1).apply { step(0.01, 214) }.sleighX!!

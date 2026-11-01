@@ -178,9 +178,6 @@ object JinglePalette {
     // Reindeer
     @JvmField val REINDEER = c(0x8a5a3a)
 
-    // Penguin (`PENG_C`)
-    @JvmField val PENGUIN_BLACK = c(0x3a4152)
-
     // The railway in the bottom tool windows (`docs/mockup/jingle-code-railway.html`, its `C` and `strip()`);
     // the rest of its `C` is the village palette above
     @JvmField val CAR_BLUE_DARK = c(0x1d3f60)
@@ -203,7 +200,4 @@ object JinglePalette {
     @JvmField val PINK = c(0xe98fa8)
     @JvmField val SACK_SHADE = c(0xa8845a)
     @JvmField val LETTER_YELLOW = c(0xf3e2a8)
-
-    /** Editor background of the mockup (Darcula/New UI dark), for previews only. */
-    @JvmField val IDE_BACKGROUND = c(0x1e1f22)
 }

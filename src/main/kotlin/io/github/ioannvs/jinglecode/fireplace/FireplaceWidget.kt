@@ -59,7 +59,7 @@ private class FireplaceComponent(private val project: Project) : JComponent() {
 
     override fun addNotify() {
         super.addNotify()
-        val disposable = Disposer.newDisposable(project, "Jingle Code fireplace")
+        val disposable = Disposer.newDisposable(JingleAnimator.getInstance(project), "Jingle Code fireplace")
         subscriptions = disposable
         ApplicationManager.getApplication().messageBus.connect(disposable)
             .subscribe(FeatureGate.TOPIC, FeatureGate.Listener { updateVisibility() })

@@ -74,11 +74,11 @@ internal object ToolbarSky {
 }
 
 /**
- * Plans a show of fireworks: every show is different, from its [show] number. Five to eight bursts of
+ * Plans a show of fireworks: every show is different, from its `show` number. Five to eight bursts of
  * different kinds, colors and sizes, at different heights, in random places of the [Sky.gaps], after
  * uneven pauses. Bursts burning at the same time never overlap; one that is out leaves its place to the
  * next. If a burst finds no place, it gets smaller, and at the smallest size it goes into the widest gap
- * anyway, so a show always has all its bursts. [pixelUser] is user pixels per logical pixel.
+ * anyway, so a show always has all its bursts. `pixelUser` is user pixels per logical pixel.
  *
  * Pure: the same show in the same sky is the same plan.
  */

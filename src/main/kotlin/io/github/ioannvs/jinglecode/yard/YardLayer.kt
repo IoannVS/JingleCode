@@ -37,9 +37,6 @@ internal class YardLayer : OverlayLayer {
 
     private val scenes = HashMap<String, YardScene>()
 
-    /** The yards showing now, by tool window id. */
-    val activeScenes: Collection<YardScene> get() = scenes.values
-
     /** The overlay's pixel (the garland size setting against the UI font), as the drift's. */
     private fun magnify(scale: OverlayScale): Float = scale.magnify
 

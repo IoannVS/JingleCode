@@ -43,6 +43,8 @@ internal class RailwayBorder(private val component: JComponent, seed: Int) : Bor
 
     override fun isBorderOpaque(): Boolean = false
 
+    // inset() is already in user pixels: JBUI.insets would scale it a second time
+    @Suppress("UseDPIAwareInsets")
     override fun getBorderInsets(c: Component): Insets = Insets(0, 0, inset(), 0)
 
     /** The island's body in [component] coordinates, or the component itself without the Islands UI. */

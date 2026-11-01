@@ -22,7 +22,7 @@ internal class RailwayOptions(val frequency: TrainFrequency, val residents: Bool
 /**
  * The railway mockup's `strip()` for one tool window: snow, rails and the path behind them, poles with
  * bullfinches on the wires, the halt with its lamp, the level crossing, the semaphore, the trains and the walkers.
- * Coordinates are logical pixels of a strip [width] wide and [STRIP_HEIGHT] high, with `win` at (0, 0). One logical
+ * Coordinates are logical pixels of a strip `width` wide and [STRIP_HEIGHT] high, with `win` at (0, 0). One logical
  * pixel is a sprite pixel, the pixel of the yard and the snowman's drift, so the mockup's coordinates and speeds
  * are halved (Ivan: one pixel and one style along the line). The snow is the yard's and the village's: heaps,
  * a white crest, shade on the steps down, speckles.
@@ -471,6 +471,7 @@ internal class RailwayScene(seed: Int) {
         private val SPARK = JinglePalette.BULBS[2]
 
         /** Melting smoke by alpha, made once. */
+        @Suppress("UseJBColor")
         private val smokeColors: List<Color> = List(256) {
             Color(JinglePalette.RAIL_SMOKE.red, JinglePalette.RAIL_SMOKE.green, JinglePalette.RAIL_SMOKE.blue, it)
         }

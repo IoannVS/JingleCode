@@ -55,15 +55,12 @@ class PixelCanvas private constructor(
         }
     }
 
-    /** Runs [block] with the logical origin moved by ([dx], [dy]) logical pixels. */
-    fun translated(dx: Int, dy: Int, block: PixelCanvas.() -> Unit) =
-        PixelCanvas(g, pixelSize, deviceScale, originX + dx * pixelSize, originY + dy * pixelSize).block()
-
     /**
      * Soft light, the mockup's `createRadialGradient(cx, cy, 0, cx, cy, r)` from [color] at [alpha] in the
      * middle to nothing at [r], filled over the rectangle ([x], [y], [w], [h]). Only for lights the mockup
      * makes glow; everything else stays opaque.
      */
+    @Suppress("UseJBColor")
     fun glow(cx: Double, cy: Double, r: Double, color: Color, alpha: Double, x: Int, y: Int, w: Int, h: Int) {
         if (w <= 0 || h <= 0 || r <= 0) return
         val center = Point2D.Double(originX + cx * pixelSize, originY + cy * pixelSize)

@@ -19,7 +19,7 @@ A gift appears for every commit you haven't pushed yet, and a bullfinch brings S
 
 ## Season
 
-Jingle Code switches itself on on December 1 and puts the decorations away after the Old New Year,
+Jingle Code switches itself on December 1 and puts the decorations away after the Old New Year,
 January 14. Want them earlier? Set **Season** to **Always** in the settings.
 
 ## Settings

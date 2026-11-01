@@ -49,7 +49,7 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
             choice(SeasonMode.entries, state::seasonMode) { it.label() }
         }
         row(message("settings.preset")) {
-            val box = comboBox(JinglePreset.entries, textListCellRenderer<JinglePreset?> { it?.label() })
+            val box = comboBox(JinglePreset.entries, textListCellRenderer { it?.label() })
             box.component.addItemListener { if (!syncing && it.stateChange == ItemEvent.SELECTED) applyPreset(box.component.item) }
             presetBox = box.component
             contextHelp(message("settings.preset.comment"))
@@ -171,7 +171,7 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
 
     /** A drop-down list rather than a column of radio buttons, so the page stays short. */
     private fun <T : Any> Row.choice(items: List<T>, property: KMutableProperty0<T>, text: (T) -> String): Cell<ComboBox<T>> =
-        comboBox(items, textListCellRenderer<T?> { it?.let(text) }).bindItem(property.toNullableProperty())
+        comboBox(items, textListCellRenderer { it?.let(text) }).bindItem(property.toNullableProperty())
 
     override fun reset() {
         super.reset()

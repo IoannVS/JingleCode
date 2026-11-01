@@ -1,6 +1,6 @@
 # Двор Санты в правых окнах
 
-Эталон: `docs/mockup/jingle-code-santa-yard.html` (открыть в браузере). Опубликован: https://claude.ai/artifact/BfyVZ1sCpNmXHMy3ig2v1V. Если описание и макет расходятся, прав макет. Спрайты (`SANTA`, `ELF`, `DEER`, `DEER2`, `SLEIGH`, `FINCH`, `FINCHF`) и функции рисования (`workshop`, `stable`, `grazer`, `bigTree`, `chute`, `mailbox`, `sack`, `bench`, `fir`, `farFir`, `birch`, `ground`, `layout`, `strip`) переносим в Kotlin один в один, по пикселям. Цвета берём из `JinglePalette`: они совпадают с палитрой деревни.
+Эталон: `docs/mockup/jingle-code-santa-yard.html` (открыть в браузере). Если описание и макет расходятся, прав макет. Спрайты (`SANTA`, `ELF`, `DEER`, `DEER2`, `SLEIGH`, `FINCH`, `FINCHF`) и функции рисования (`workshop`, `stable`, `grazer`, `bigTree`, `chute`, `mailbox`, `sack`, `bench`, `fir`, `farFir`, `birch`, `ground`, `layout`, `strip`) переносим в Kotlin один в один, по пикселям. Цвета берём из `JinglePalette`: они совпадают с палитрой деревни.
 
 Герой только Санта. Вариант с Дедом Морозом отвергнут.
 

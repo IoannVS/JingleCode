@@ -1,6 +1,6 @@
 # Железная дорога в нижних окнах
 
-Эталон: `docs/mockup/jingle-code-railway.html` (открыть в браузере). Опубликован: https://claude.ai/artifact/FaZDiBUzZMoNcYxe5cDvhd. Если описание и макет расходятся, прав макет. Спрайты (`STEAM`, `DIESEL`, `TRAM`, `PLOW`, `PASS`, `FIRS`, `LOGS`, `GIFTS`, `HAND`, `SLEIGH`, `SKIER`, `KID`, `DOGS`, `FOX`, `HARE`, `LAMP`, `FINCH`) и функцию `strip()` переносим в Kotlin один в один, по пикселям. Палитра `C` в макете совпадает с палитрой деревни, цвета берём из `JinglePalette`.
+Эталон: `docs/mockup/jingle-code-railway.html` (открыть в браузере). Если описание и макет расходятся, прав макет. Спрайты (`STEAM`, `DIESEL`, `TRAM`, `PLOW`, `PASS`, `FIRS`, `LOGS`, `GIFTS`, `HAND`, `SLEIGH`, `SKIER`, `KID`, `DOGS`, `FOX`, `HARE`, `LAMP`, `FINCH`) и функцию `strip()` переносим в Kotlin один в один, по пикселям. Палитра `C` в макете совпадает с палитрой деревни, цвета берём из `JinglePalette`.
 
 В макете есть ещё переключатель верхней полосы (флажки, варежки и т. д.). **Верх не выбран, его не делаем.** Переносим только низ, функцию `strip()`.
 

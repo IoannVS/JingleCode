@@ -3,6 +3,7 @@ package io.github.ioannvs.jinglecode.railway
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
+import kotlin.math.roundToInt
 
 class RailwaySceneTest {
 
@@ -10,7 +11,7 @@ class RailwaySceneTest {
 
     private fun trainAfter(seconds: Double, dt: Double): Double {
         val scene = RailwayScene(seed = 1)
-        repeat(Math.round(seconds / dt).toInt()) { scene.step(dt, width = 1000, options) }
+        repeat((seconds / dt).roundToInt()) { scene.step(dt, width = 1000, options) }
         val x = scene.trainX
         assertNotNull(x)
         return x!!

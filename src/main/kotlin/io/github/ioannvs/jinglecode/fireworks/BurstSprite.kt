@@ -116,13 +116,13 @@ private fun sparkColor(colors: Int, k: Int, seed: Int): Color {
 }
 
 /**
- * A burst [a] ms after its rocket started, with its center at ([cx], [burst.centerY]): the rocket flies
+ * A burst [a] ms after its rocket started, with its center at ([cx], `burst.centerY`): the rocket flies
  * up for 300 ms from near the bottom of the sky ([rows] rows), then the sparks spread to [Burst.radius]
  * as [Burst.kind] says and flicker out by [BURST_MS]. A [BurstKind.RING] of radius 8 in the mockup's
  * colors is the mockup's `drawBurst` pixel for pixel.
  */
 internal fun PixelCanvas.drawBurst(cx: Int, burst: Burst, a: Long, rows: Int) {
-    if (a < 0 || a > BURST_MS) return
+    if (a !in 0..BURST_MS) return
     val cy = burst.centerY
     if (a < RISE_MS) {
         val rise = min(MOCKUP_RISE, rows - 2 - cy).coerceAtLeast(1)

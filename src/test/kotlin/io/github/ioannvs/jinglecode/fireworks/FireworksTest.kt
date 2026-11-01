@@ -28,7 +28,7 @@ class FireworksTest {
     private fun mockup(cx: Int, cy: Int, a: Double, seed: Int): Map<Pair<Int, Int>, Color> {
         val out = HashMap<Pair<Int, Int>, Color>()
         fun px(x: Int, y: Int, c: Color) { out[x to y] = c }
-        if (a < 0 || a > 1400) return out
+        if (a !in 0.0..1400.0) return out
         if (a < 300) { val y = PixelCanvas.jsRound(cy + (1 - a / 300) * 10); px(cx, y, Color(0xfff7d1)); px(cx, y + 1, Color(0xff9f2e)); return out }
         val r = min(8.0, (a - 300) / 70)
         for (k in 0 until 12) {

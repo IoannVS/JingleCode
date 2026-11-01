@@ -36,7 +36,7 @@ import kotlin.random.Random
  * grazing reindeer, the family of little snowmen, the sleigh, the chute, the workshop with its clock, an elf on
  * the roof, Santa on the bench.
  * Firs are the village's ([drawFirTree]); the sleigh, the reindeer and the elves are the ones that come for
- * the gifts after a push ([drawSleigh], [drawElf]). Coordinates are logical pixels of a strip [width] wide
+ * the gifts after a push ([drawSleigh], [drawElf]). Coordinates are logical pixels of a strip `width` wide
  * and [STRIP_HEIGHT] high.
  *
  * The mockup moves things while drawing; here [step] moves them by the seconds passed (so the speed doesn't
@@ -780,6 +780,7 @@ internal class YardScene(seed: Int) {
         private val alphas = HashMap<Color, Array<Color?>>()
 
         /** [color] at [a] opacity, made once per level. */
+        @Suppress("UseJBColor")
         private fun alpha(color: Color, a: Double): Color {
             val level = (a * 255).roundToInt().coerceIn(0, 255)
             val cache = alphas.getOrPut(color) { arrayOfNulls(256) }

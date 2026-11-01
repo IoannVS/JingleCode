@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-01
+
 ### Added
 
 - Garland in the gaps between panels and above the status bar: twinkle, chase, color flow and warm white.
@@ -17,3 +19,6 @@
 - Reactions to runs, tests and builds: a golden garland and fireworks on success, falling icicles on failure.
 - Season: switches on December 1 and puts itself away after January 14.
 - Settings | Appearance | Jingle Code with Minimal, Normal and Maximum modes.
+
+[Unreleased]: https://github.com/IoannVS/JingleCode/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/IoannVS/JingleCode/commits/v1.0.0

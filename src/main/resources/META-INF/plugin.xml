@@ -5,10 +5,15 @@
     <vendor url="https://github.com/IoannVS">IoannVS</vendor>
 
     <description><![CDATA[
-        Pixel-art winter decorations for JetBrains IDEs: a garland in the gaps between panels,
-        a fireplace in the status bar, a snowy village behind the editor.
-        Decorations never cover your code and switch themselves on in December.<br>
-        Зимний пиксельный декор для IDE: сугроб, новый год, зима.
+        Pixel-art winter decorations for JetBrains IDEs that sit on the real edges of the interface:
+        a garland in the gaps between panels, icicles under the toolbar, a fireplace in the status bar,
+        falling snow and a small village along the bottom of the editor, a snowman under the Project tree,
+        a railway in the bottom tool windows and Santa's yard in the right ones.
+        The garland, icicles and Santa's elves react to runs, tests and builds.<br>
+        Everything switches on in December and puts itself away after January 14.
+        Snow and the village have a button in the editor corner, and every part can be turned off
+        in Settings | Appearance | Jingle Code. Animation pauses when the IDE is inactive, in Power Save
+        and in Presentation mode.
         ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

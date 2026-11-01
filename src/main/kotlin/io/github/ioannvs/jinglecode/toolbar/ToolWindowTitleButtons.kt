@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.ActionUiKind
+import com.intellij.openapi.actionSystem.ActionWrapperUtil
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
@@ -89,11 +90,16 @@ internal abstract class ToolWindowTitleButtons(
         return null
     }
 
-    /** What [toolbar]'s group holds now. */
+    /**
+     * What [toolbar]'s group holds now. The header's group builds its children from the event, so they have to be
+     * asked for; `ActionGroup.getChildren` itself is override-only and fails the plugin verifier, the public
+     * `ActionWrapperUtil.getChildren` makes the same call for an event outside an update session.
+     */
     private fun children(toolbar: ActionToolbar): Array<AnAction> {
         val context = DataManager.getInstance().getDataContext(toolbar.component)
         val event = AnActionEvent.createEvent(context, null, ActionPlaces.TOOLWINDOW_TITLE, ActionUiKind.TOOLBAR, null)
-        return toolbar.actionGroup.getChildren(event)
+        val group = toolbar.actionGroup
+        return ActionWrapperUtil.getChildren(event, group, group)
     }
 
     /**

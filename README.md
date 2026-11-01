@@ -1,155 +1,60 @@
-# JingleCode
+# Jingle Code
 
-[![Twitter Follow](https://img.shields.io/badge/follow-%40JBPlatform-1DA1F2?logo=twitter)](https://twitter.com/JBPlatform)
-[![Developers Forum](https://img.shields.io/badge/JetBrains%20Platform-Join-blue)][jb:forum]
+Pixel-art winter decorations for JetBrains IDEs. Nothing floats in the air: every piece sits on a real edge
+of the interface.
 
-## Overview
+- **Garland** in the gaps between panels and above the status bar: twinkle, chase, color flow or warm white.
+- **Icicles** under the main toolbar and under the active editor tab; their tips glint now and then.
+- **Fireplace** with a stocking in the status bar.
+- **Snow** over the editor and a **village** along its bottom edge, in four styles. The details change every day,
+  windows and lamps light up in the evening, residents drop by now and then. Click a house to light its stove.
+- **Snowdrift with a snowman** at the bottom of the Project panel.
+- **Railway** at the bottom of Terminal, Run, Debug, Git and other bottom tool windows.
+- **Santa's yard** at the bottom of Gradle, Maven, Database and other right tool windows.
+- **Snow caps** on popups and context menus, a holly sprig on notifications.
 
-This repository implements an IntelliJ Platform plugin.
+The decorations react to your work. When a run, test or build succeeds, the garland turns gold and fireworks
+go off over the toolbar; when it fails, the lights blink red and icicles fall down the window, then grow back.
+A gift appears for every commit you haven't pushed yet, and a bullfinch brings Santa a letter for every notification.
 
-## Demo Functionality
+## Season
 
-The sample plugin adds a `My Tool Window` tool window with a simple functionality of shuffling a random number.
+Jingle Code switches itself on on December 1 and puts the decorations away after the Old New Year,
+January 14. Want them earlier? Set **Season** to **Always** in the settings.
 
-## Plugin structure
+## Settings
 
-A generated project contains the following content structure:
+**Settings | Appearance | Jingle Code.** Pick a mode (Minimal, Normal, Maximum) or turn every decoration
+on and off on its own. Snow and the scenes also have a button in the top right corner of the editor
+and in the panel headers: garland bulb (nothing) → snowflake (snow only) → snow with the scene → the scene alone.
 
-```
-.
-├── .run/                   Predefined Run/Debug Configurations
-├── gradle
-│   ├── wrapper/            Gradle Wrapper
-│   ├── libs.versions.toml  Version catalog
-├── src                     Plugin sources
-│   └── main
-│       ├── kotlin/         Kotlin production sources
-│       └── resources/      Plugin resources
-│           ├── META-INF/   Plugin configuration file and logo
-│           └── messages/   Message bundles
-├── .gitignore              Git ignoring rules
-├── build.gradle.kts        Gradle build configuration
-├── gradle.properties       Gradle configuration properties
-├── gradlew                 *nix Gradle Wrapper script
-├── gradlew.bat             Windows Gradle Wrapper script
-├── README.md               This file
-└── settings.gradle.kts     Gradle project settings
-```
+The animation pauses when the IDE window is inactive, in Power Save mode and in Presentation mode.
 
-In addition to the configuration files, the most crucial part is the `src` directory, which contains our implementation
-and the manifest for our plugin – [plugin.xml][file:plugin.xml].
+## Compatibility
 
-> [!NOTE]
-> To use Java in your plugin, create the `/src/main/java` directory.
+Any JetBrains IDE 2025.1 or newer. The garland, icicles, snowman and Santa's yard need the new Islands UI.
+Git is optional: without it the plugin works, the gifts just don't appear.
 
-The plugin logo is placed in `src/main/resources/META-INF/pluginIcon.svg`.
-See [Plugin Logo][docs:logo] for more information and logo requirements.
+## Building
 
-## Build script
-
-The [build.gradle.kts][file:build.gradle.kts] is the core of the project definition.
-It applies three Gradle plugins:
-
-| Plugin                            | Description                                                                      |
-|-----------------------------------|----------------------------------------------------------------------------------|
-| `org.jetbrains.kotlin.jvm`        | Adds Kotlin support                                                              |
-| `org.jetbrains.changelog`         | Simplifies patching the [CHANGELOG.md][file:CHANGELOG.md] file                   |
-| `org.jetbrains.intellij.platform` | The [IntelliJ Platform Gradle Plugin][docs:intellij-platform-gradle-plugin-docs] |
-
-The `intellijPlatform` dependencies block selects the IDE to compile against:
-
-```kotlin
-intellijIdea("2025.3.6.1")
+```shell
+./gradlew runIde                              # sandbox IDE with the plugin
+./gradlew runIde -PjingleNow=2026-12-31T23:59 # pretend it's another day (or a date alone)
+./gradlew test buildPlugin                    # the plugin zip goes to build/distributions
+./gradlew verifyPlugin                        # compatibility check, slow; run before a release
 ```
 
-See [Target Versions][docs:target-version] for more information.
+## Releasing
 
-The `intellijPlatform` dependencies block also contains a dependency on the platform testing framework:
+1. On `develop`, set `version` in `gradle.properties` and run `./gradlew patchChangelog` to move
+   the `[Unreleased]` notes under it.
+2. Open a pull request into `master`: CI builds, tests and runs `verifyPlugin`.
+3. Merge it. The Release workflow publishes the plugin to JetBrains Marketplace with the `PUBLISH_TOKEN`
+   secret, tags the commit `v<version>` and makes a GitHub release with the zip.
+   A merge without a version bump publishes nothing.
 
-```kotlin
-testFramework(TestFrameworkType.Platform)
-```
+The very first version goes to Marketplace by hand: `./gradlew buildPlugin`, then upload `build/distributions/*.zip`.
 
-See [Testing][docs:testing] for more information
+## License
 
-## Plugin configuration file
-
-The plugin configuration file is a [plugin.xml][file:plugin.xml] file located in the `src/main/resources/META-INF`
-directory.
-It provides general information about the plugin, its dependencies, extensions, and listeners.
-
-You can read more about this file in the [Plugin Configuration File][docs:plugin.xml] section of our documentation.
-
-### Plugin ID and name
-
-Generated plugin ID and name may require adjustment.
-
-These values are generated based on _Group ID_ and _Artifact ID_ provided in the IDE Plugin wizard.
-It is recommended to review `<id>` and `<name>` elements in the plugin.xml file, and adjust them if needed.
-
-Please note that Gradle properties `rootProject.name` and `project.group` don't need to match the `<id>` and `<name>`
-elements.
-There is no IntelliJ Platform-related reason they should as they serve different functions.
-
-## Predefined Run/Debug configurations
-
-Within the default project structure, there is a `.run` directory provided containing predefined *Run/Debug
-configurations* that expose corresponding Gradle tasks:
-
-| Configuration name  | Description                                                                                                                                                                           |
-|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Run IDE with Plugin | Runs [`:runIde`][docs:intellij-platform-gradle-plugin-runIde] IntelliJ Platform Gradle Plugin task. Use the *Debug* icon for plugin debugging.                                        |
-| Run Tests           | Runs [`:check`][gradle:lifecycle-tasks] Gradle task.                                                                                                                                  |
-| Run Verifications   | Runs [`:verifyPlugin`][docs:intellij-platform-gradle-plugin-verifyPlugin] IntelliJ Platform Gradle Plugin task to check the plugin compatibility against the specified IntelliJ IDEs. |
-
-> [!NOTE]
-> You can find the logs from the running task in the `idea.log` tab.
-
-## Publishing the plugin
-
-> [!TIP]
-> Make sure to follow all guidelines listed in [Publishing a Plugin][docs:publishing] to follow all recommended and
-required steps.
-
-Releasing a plugin to [JetBrains Marketplace](https://plugins.jetbrains.com) is a straightforward operation that uses
-the `publishPlugin` Gradle task provided by
-the [intellij-platform-gradle-plugin][docs:intellij-platform-gradle-plugin-docs].
-
-You can also upload the plugin to the [JetBrains Plugin Repository](https://plugins.jetbrains.com/plugin/upload)
-manually via UI.
-
-## Useful links
-
-- [IntelliJ Platform SDK Plugin SDK][docs]
-- [IntelliJ Platform Gradle Plugin Documentation][docs:intellij-platform-gradle-plugin-docs]
-- [IntelliJ Platform Explorer][jb:ipe]
-- [JetBrains Marketplace Quality Guidelines][jb:quality-guidelines]
-- [IntelliJ Platform UI Guidelines][jb:ui-guidelines]
-- [JetBrains Marketplace Paid Plugins][jb:paid-plugins]
-- [IntelliJ SDK Code Samples][gh:code-samples]
-
-[docs]: https://plugins.jetbrains.com/docs/intellij
-[docs:plugin.xml]: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html?from=IJPluginReadmeFile
-[docs:publishing]: https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginReadmeFile
-[docs:intellij-platform-gradle-plugin-docs]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html?from=IJPluginReadmeFile
-[docs:intellij-platform-gradle-plugin-runIde]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html?from=IJPluginReadmeFile#runIde
-[docs:intellij-platform-gradle-plugin-verifyPlugin]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html?from=IJPluginReadmeFile#verifyPlugin
-[docs:logo]: https://plugins.jetbrains.com/docs/intellij/plugin-icon-file.html?from=IJPluginReadmeFile
-[docs:target-version]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html?from=IJPluginReadmeFile#target-versions
-[docs:testing]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html?from=IJPluginReadmeFile#testing
-
-[file:build.gradle.kts]: ./build.gradle.kts
-[file:CHANGELOG.md]: ./CHANGELOG.md
-[file:gradle.properties]: ./gradle.properties
-[file:plugin.xml]: ./src/main/resources/META-INF/plugin.xml
-
-[gh:code-samples]: https://github.com/JetBrains/intellij-sdk-code-samples
-
-[gradle:lifecycle-tasks]: https://docs.gradle.org/current/userguide/java_plugin.html#lifecycle_tasks
-
-[jb:github]: https://github.com/JetBrains/.github/blob/main/profile/README.md
-[jb:forum]: https://platform.jetbrains.com/
-[jb:quality-guidelines]: https://plugins.jetbrains.com/docs/marketplace/quality-guidelines.html
-[jb:paid-plugins]: https://plugins.jetbrains.com/docs/marketplace/paid-plugins-marketplace.html
-[jb:ipe]: https://jb.gg/ipe
-[jb:ui-guidelines]: https://jetbrains.github.io/ui
+[Apache License 2.0](LICENSE)

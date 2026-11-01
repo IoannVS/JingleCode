@@ -2,12 +2,18 @@ name: Build
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ develop ]
   pull_request:
   schedule:
     # Weekly: catch breakage from new IDE releases and EAPs.
     - cron: '0 6 * * 1'
+  # The Run workflow button; tick "verify" to run the plugin verifier as well.
   workflow_dispatch:
+    inputs:
+      verify:
+        description: Run verifyPlugin (downloads three IDEs, about 10 minutes)
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -35,7 +41,13 @@ jobs:
           name: jingle-code
           path: build/distributions/*.zip
 
+  # About 10 minutes, so not on every push: on pull requests into master (the gate before a release),
+  # weekly against new releases and EAPs, and on demand.
   verify:
+    if: >-
+      ${{ (github.event_name == 'pull_request' && github.base_ref == 'master')
+      || github.event_name == 'schedule'
+      || (github.event_name == 'workflow_dispatch' && inputs.verify) }}
     needs: build
     runs-on: ubuntu-latest
     steps:

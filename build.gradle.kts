@@ -1,17 +1,21 @@
+import org.jetbrains.changelog.Changelog
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
-    id("org.jetbrains.kotlin.jvm")
-    id("org.jetbrains.changelog")
+    alias(libs.plugins.kotlin)
+    alias(libs.plugins.changelog)
     id("org.jetbrains.intellij.platform")
 }
+
+// The oldest supported IDE line: plugin.xml's since-build and the oldest IDE the verifier checks.
+val oldestBuild = "251"
 
 kotlin {
     jvmToolchain(21)
     compilerOptions {
-        // 2025.1 (sinceBuild 251) bundles Kotlin 2.1: don't use newer stdlib API.
+        // 2025.1 (since-build 251) bundles Kotlin 2.1: don't use newer stdlib API.
         apiVersion = KotlinVersion.KOTLIN_2_1
     }
 }
@@ -34,19 +38,39 @@ intellijPlatform {
 
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "251"
-            untilBuild = provider { null }
+            // No until-build: every IDE from since-build on. The Gradle plugin no longer adds one by default.
+            sinceBuild = oldestBuild
         }
+
+        // "What's new" on Marketplace: this version's section of CHANGELOG.md, or [Unreleased] before patchChangelog.
+        val pluginVersion = project.version.toString()
+        changeNotes = provider {
+            with(changelog) {
+                renderItem(
+                    (getOrNull(pluginVersion) ?: getUnreleased())
+                        .withHeader(false)
+                        .withEmptySections(false),
+                    Changelog.OutputType.HTML,
+                )
+            }
+        }
+    }
+
+    // publishPlugin, from CI on merge to master: .github/workflows/release.yml.
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
     }
 
     pluginVerification {
         ides {
-            // The oldest supported line, the latest release and the latest EAP.
+            // We compile against a newer IDE than since-build: the oldest line catches API added after it,
+            // the latest release and EAP catch API removed since. IntelliJ IDEA holds the whole platform plus
+            // Git, all we depend on; Marketplace checks the other IDEs itself on every upload.
             latest {
                 types = listOf(IntelliJPlatformType.IntellijIdea)
                 channels = listOf(ProductRelease.Channel.RELEASE)
-                sinceBuild = "251"
-                untilBuild = "251.*"
+                sinceBuild = oldestBuild
+                untilBuild = "$oldestBuild.*"
             }
             latest {
                 types = listOf(IntelliJPlatformType.IntellijIdea)
@@ -58,6 +82,11 @@ intellijPlatform {
             }
         }
     }
+}
+
+changelog {
+    groups.empty()
+    repositoryUrl = "https://github.com/IoannVS/JingleCode"
 }
 
 tasks.runIde {

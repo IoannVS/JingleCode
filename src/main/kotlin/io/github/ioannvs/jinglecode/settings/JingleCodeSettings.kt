@@ -24,7 +24,7 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
 
     class State : BaseState() {
         var enabled by property(true)
-        var seasonMode by enum(SeasonMode.AUTO)
+        var seasonMode by enum(SeasonMode.ALWAYS)
         var animationEnabled by property(true)
         var fireplaceEnabled by property(true)
         var garlandEnabled by property(true)

@@ -112,7 +112,7 @@ internal class RailwayBorder(private val component: JComponent, seed: Int) : Bor
         val strip = strip() ?: return null
         val pixel = pixelUser()
         val top = if (sky) {
-            max(0, strip.y - ceil((RailwayScene.SKY + 2 * RailSprites.FINCH.h) * pixel).toInt())
+            max(0, strip.y - ceil((RailwayScene.SKY + 2 * RailSprites.FINCH_GLIDE.h) * pixel).toInt())
         } else {
             strip.y + floor(RailwayScene.CUT * pixel).toInt()
         }

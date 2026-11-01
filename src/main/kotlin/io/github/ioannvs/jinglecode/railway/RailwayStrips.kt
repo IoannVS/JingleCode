@@ -50,15 +50,17 @@ internal class RailwayStrips(private val project: Project) : Disposable {
     }
 
     /**
-     * The strips are painted on the frame's glass pane, over the window but under popups, like the frame overlay:
-     * they reach the island's rounded edges outside the content panel, and their top (the upper half of the poles,
-     * the wires) and the flying birds lie over the window's text (Ivan's call).
+     * The strips are painted on the frame's glass pane, over the window but under popups: they reach the island's
+     * rounded edges outside the content panel, and their top (the upper half of the poles, the wires) and the
+     * flying birds lie over the window's text (Ivan's call). The frame overlay paints the ones in docked windows
+     * with the Islands UI ([RailwayLayer]), so the bottom windows' snow falls over the trains as over the other
+     * scenes; our own painter does the rest (sliding windows, which the overlay keeps clear of, and the classic UI).
      */
     private var root: JRootPane? = null
 
     private val painter = object : Painter {
         override fun needsRepaint(): Boolean = true
-        override fun paint(component: Component, g: Graphics2D) = paintStrips(component, g)
+        override fun paint(component: Component, g: Graphics2D) = paintStrips(g, overlay = false)
         override fun addListener(listener: Painter.Listener) = Unit
         override fun removeListener(listener: Painter.Listener) = Unit
     }
@@ -70,18 +72,32 @@ internal class RailwayStrips(private val project: Project) : Disposable {
         root = rootPane
     }
 
-    private fun paintStrips(glass: Component, g: Graphics2D) {
+    /** Whether the frame overlay paints the strip of tool window [id]. */
+    private fun inOverlay(id: String): Boolean =
+        FrameGeometry.isIslandsUi() && ToolWindowManager.getInstance(project).getToolWindow(id)?.type == ToolWindowType.DOCKED
+
+    /** Where the overlay's strips and their birds may be, glass pane (root pane) coordinates. */
+    fun stripRects(): List<Rectangle> {
+        val glass = root?.glassPane ?: return emptyList()
+        return installed.mapNotNull { (id, entry) -> if (inOverlay(id)) entry.border.repaintRect(glass, sky = true) else null }
+    }
+
+    /**
+     * Paints the strips the [overlay] paints, or the others, on the glass pane, never over a popup; each clips
+     * itself to its own island.
+     */
+    fun paintStrips(g: Graphics2D, overlay: Boolean) {
         val rootPane = root ?: return
+        val glass = rootPane.glassPane ?: return
         if (installed.isEmpty()) return
         val gate = FeatureGate.getInstance()
         if (!gate.isActive(JingleFeature.RAILWAY)) return
         gate.guard(JingleFeature.RAILWAY, Unit) {
-            // Never over a popup; each strip clips itself to its own island.
             val clip = Area(Rectangle(0, 0, glass.width, glass.height))
             FrameGeometry.popupsOver(rootPane).forEach { clip.subtract(Area(it)) }
-            for (entry in installed.values) {
+            for ((id, entry) in installed) {
                 val c = entry.component
-                if (!c.isShowing || SwingUtilities.getRootPane(c) !== rootPane) continue
+                if (!c.isShowing || SwingUtilities.getRootPane(c) !== rootPane || inOverlay(id) != overlay) continue
                 entry.border.paint(g, glass, clip)
             }
         }

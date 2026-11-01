@@ -82,18 +82,21 @@ internal object RailSprites {
     val FOX = sprite("O.......O.", "OO.....OO.", "OOOOOOOWO.", ".OOOOOOO..", "OO.O.O.O..")
     val HARE = sprite("..W.W.", "..WWW.", ".WWWWW", "WWWWW.", ".W..W.")
     val LAMP = sprite(".LL.", ".KK.", "..K.", "..K.", "..K.", "..K.", "..K.", "..K.", "..K.", "..K.", ".KKK.")
-    /** A bullfinch sitting, looking right (the mockup's `FINCH`). */
+    /** A bullfinch sitting, looking left: beak and cap at the left, tail at the right (the mockup's `FINCH`). */
     val FINCH = sprite("..KK..", ".KKKg.", "KRRgg.", ".RRggK", "..RW..", "..K...")
 
     /**
      * A bullfinch flying right, wings up and wings down; not in the mockup, where birds fly off without flapping.
-     * Black tail and white rump behind, red breast, black cap; the body is on the same row in both frames.
+     * Plump and round, as big as the one sitting, not long like a duck. Head first, so it never seems to fly tail
+     * first, on a dark background too, where black is lost: a black cap over a red cheek with a grey beak in front;
+     * a short slate tail and the white rump behind, the grey back, the round red breast under it. The body is on
+     * the same row in every frame.
      */
-    val FINCH_WINGS_UP = sprite("..gg..", "...gg.", "KWRRKK", ".RRRg.", "......", "......")
-    val FINCH_WINGS_DOWN = sprite("......", "......", "KWRRKK", ".RRgg.", "..gg..", ".g....")
+    val FINCH_WINGS_UP = sprite(".gg....", "..gg.KK", "hWggRRg", ".RRRRR.", "..RRR..", ".......")
+    val FINCH_WINGS_DOWN = sprite(".......", ".....KK", "hWggRRg", ".RgRRR.", "..gRR..", "..g....")
 
     /** Gliding between wing beats, wings folded, as finches fly: a few beats, a short glide. */
-    val FINCH_GLIDE = sprite("......", "......", "KWggKK", ".RRRR.", "......", "......")
+    val FINCH_GLIDE = sprite(".......", ".....KK", "hWKgRRg", ".RRRRR.", "..RRR..", ".......")
     val BENCH = sprite("NNNNNN", "N....N")
 
     /** The mockup's `TRAINS`, in turn. */

@@ -45,10 +45,12 @@ internal class FrameLayout(
     val bottom: Int = 0,
     /** The tool windows docked at the right, each its own island: Santa's yard stands at their bottom. */
     val rightPanels: List<RightPanel> = emptyList(),
+    /** The tool windows docked at the bottom, each its own island: the railway runs along their bottom. */
+    val bottomPanels: List<RightPanel> = emptyList(),
 )
 
 /**
- * A tool window island docked at the right.
+ * A tool window island docked at the right (or at the bottom, in [FrameLayout.bottomPanels]).
  *
  * @param id the tool window's id
  * @param body the island's rounded body (its bounds without the border), corners of [arc]
@@ -189,16 +191,17 @@ internal object FrameGeometry {
             projectPanel(project, root, toolWindows, anchors),
             commitPanel(root, toolWindows, anchors),
             bottom = root.height,
-            rightPanels = rightPanels(root, toolWindows, anchors),
+            rightPanels = toolWindowPanels(ToolWindowAnchor.RIGHT, root, toolWindows, anchors),
+            bottomPanels = toolWindowPanels(ToolWindowAnchor.BOTTOM, root, toolWindows, anchors),
         )
     }
 
-    /** The visible tool windows docked at the right, in this frame. */
-    private fun rightPanels(root: JRootPane, toolWindows: ToolWindowManager, anchors: List<JComponent>): List<RightPanel> {
+    /** The visible tool windows docked at [anchor], in this frame. */
+    private fun toolWindowPanels(anchor: ToolWindowAnchor, root: JRootPane, toolWindows: ToolWindowManager, anchors: List<JComponent>): List<RightPanel> {
         val arc = islandArc()
         return toolWindows.toolWindowIds.mapNotNull { id ->
             val window = toolWindows.getToolWindow(id) ?: return@mapNotNull null
-            if (window.anchor != ToolWindowAnchor.RIGHT) return@mapNotNull null
+            if (window.anchor != anchor) return@mapNotNull null
             val component = dockedWindow(toolWindows, id, root) ?: return@mapNotNull null
             val body = body(boundsIn(islandOf(component, anchors), root))
             val content = boundsIn(component, root).intersection(body)

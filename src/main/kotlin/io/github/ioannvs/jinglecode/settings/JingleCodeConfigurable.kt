@@ -157,6 +157,14 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                     checkBox(message("settings.railway.poles")).bindSelected(state::railwayPoles)
                 }
             }.enabledIf(railway.component.selected)
+            row {
+                checkBox(message("settings.railway.snow")).bindSelected(state::bottomSnowEnabled)
+                contextHelp(message("settings.railway.snow.comment"))
+            }
+            row {
+                checkBox(message("settings.railway.button")).bindSelected(state::railwayButtonEnabled)
+                contextHelp(message("settings.railway.button.comment"))
+            }
         }
         group(message("settings.yard.group")) {
             lateinit var yard: Cell<JBCheckBox>

@@ -58,6 +58,8 @@
                   topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
         <listener class="io.github.ioannvs.jinglecode.yard.YardTitleButtons"
                   topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+        <listener class="io.github.ioannvs.jinglecode.railway.RailwayTitleButtons"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
     </projectListeners>
 
     <actions>
@@ -72,5 +74,8 @@
         <action id="JingleCode.ToggleYardDecor"
                 class="io.github.ioannvs.jinglecode.yard.ToggleYardDecorAction"
                 icon="/icons/snow_santa.svg"/>
+        <action id="JingleCode.ToggleRailwayDecor"
+                class="io.github.ioannvs.jinglecode.railway.ToggleRailwayDecorAction"
+                icon="/icons/snow_locomotive.svg"/>
     </actions>
 </idea-plugin>

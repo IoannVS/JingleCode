@@ -24,6 +24,7 @@ import io.github.ioannvs.jinglecode.pixel.PixelCanvas
 import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
 import io.github.ioannvs.jinglecode.snow.PanelSnowLayer
 import io.github.ioannvs.jinglecode.snow.SnowPlace
+import io.github.ioannvs.jinglecode.railway.RailwayLayer
 import io.github.ioannvs.jinglecode.yard.YardLayer
 import java.awt.AWTEvent
 import java.awt.Component
@@ -48,10 +49,11 @@ class FrameOverlay(private val project: Project) : Disposable {
 
     private val panelSnow = PanelSnowLayer(JingleFeature.PANEL_SNOW, ::treePanels) { UIUtil.getTreeBackground() }
     private val rightSnow = PanelSnowLayer(JingleFeature.RIGHT_SNOW, ::rightPanels) { UIUtil.getPanelBackground() }
+    private val bottomSnow = PanelSnowLayer(JingleFeature.BOTTOM_SNOW, ::bottomPanels) { UIUtil.getPanelBackground() }
     private val santaYard = YardLayer()
 
     // In paint order: the snow falls over the drift, falling icicles over everything.
-    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, santaYard, panelSnow, rightSnow, FireworksLayer, FallingIciclesLayer)
+    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, santaYard, RailwayLayer, panelSnow, rightSnow, bottomSnow, FireworksLayer, FallingIciclesLayer)
     private val features = layers.map { it.feature }
 
     private var root: JRootPane? = null
@@ -100,7 +102,7 @@ class FrameOverlay(private val project: Project) : Disposable {
         }
         // The panel snow falls on its own clock, as fast as the editor's, and repaints only itself.
         val settings = JingleCodeSettings.getInstance()
-        for (snow in listOf(panelSnow, rightSnow)) {
+        for (snow in listOf(panelSnow, rightSnow, bottomSnow)) {
             animator.subscribeMotion(this, snow.feature, intervalMs = { settings.state.snowFrameRate.intervalMs }) { dt ->
                 moveSnow(snow, dt)
             }
@@ -231,3 +233,6 @@ private fun treePanels(layout: FrameLayout): List<SnowPlace> = listOfNotNull(
 
 /** Where the snow over Santa's yard falls: the content of every tool window at the right. */
 private fun rightPanels(layout: FrameLayout): List<SnowPlace> = layout.rightPanels.map { SnowPlace(it.id, it.body, it.arc, it.content) }
+
+/** Where the snow over the railway falls: the content of every tool window docked at the bottom. */
+private fun bottomPanels(layout: FrameLayout): List<SnowPlace> = layout.bottomPanels.map { SnowPlace("bottom:" + it.id, it.body, it.arc, it.content) }

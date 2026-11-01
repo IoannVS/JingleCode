@@ -358,7 +358,7 @@ internal class RailwayScene(seed: Int) {
             for (bird in birds) {
                 if (bird.seg + 1 >= g.poles.size) continue
                 val wy = sagAt(g.poles[bird.seg], g.poles[bird.seg + 1], gTop - 15, bird.x)
-                if (bird.sitting) RailSprites.FINCH.draw(c, bird.x - 3, wy - 6, flip = bird.faceLeft)
+                if (bird.sitting) RailSprites.FINCH.draw(c, bird.x - 3, wy - 6, flip = !bird.faceLeft)
                 else flyingBird(c, bird, bird.fly - bird.delay, wy, x0, x1, skyHeight)
             }
         }
@@ -401,8 +401,8 @@ internal class RailwayScene(seed: Int) {
     private fun flyingBird(c: PixelCanvas, bird: Bird, k: Double, wy: Double, x0: Int, x1: Int, skyHeight: Int) {
         if (k >= FLIGHT) return
         val dist = if (k < TAKE_OFF) bird.vx * k * k / (2 * TAKE_OFF) else bird.vx * (k - TAKE_OFF / 2)
-        val x = bird.x - 3 + bird.dir * dist
-        if (x < x0 || x + RailSprites.FINCH.w > x1) return
+        val x = bird.x - RailSprites.FINCH_GLIDE.w / 2 + bird.dir * dist
+        if (x < x0 || x + RailSprites.FINCH_GLIDE.w > x1) return
         val start = wy - 6
         val y = start + (-SKY - start) * (1 - exp(-bird.vy * k))
         if (y < -skyHeight) return

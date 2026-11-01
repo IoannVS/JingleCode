@@ -25,6 +25,12 @@ enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boole
     /** The railway at the bottom of the bottom tool windows; reserves room there with a border on their content. */
     RAILWAY({ it.railwayEnabled }),
 
+    /** Snow falling in the bottom tool windows, over the railway. */
+    BOTTOM_SNOW({ it.bottomSnowEnabled }),
+
+    /** The railway's button in the headers of the bottom tool windows; put there by their Swing layout. */
+    RAILWAY_BUTTON({ it.railwayButtonEnabled }),
+
     /** Santa's yard at the bottom of the right tool windows; drawn over their last rows, like the drift. */
     SANTA_YARD({ it.santaYardEnabled }),
 

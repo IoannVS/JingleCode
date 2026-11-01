@@ -18,7 +18,6 @@ import io.github.ioannvs.jinglecode.garland.GarlandMode
 import io.github.ioannvs.jinglecode.garland.GarlandSize
 import io.github.ioannvs.jinglecode.railway.TrainFrequency
 import io.github.ioannvs.jinglecode.snow.SnowAmount
-import io.github.ioannvs.jinglecode.snow.SnowFrameRate
 import io.github.ioannvs.jinglecode.snow.SnowSpeed
 import io.github.ioannvs.jinglecode.village.ResidentFrequency
 import io.github.ioannvs.jinglecode.village.VillageStyle
@@ -68,7 +67,6 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
         row(message("settings.snow")) {
             choice(SnowAmount.entries, state::snowAmount) { it.label() }
             choice(SnowSpeed.entries, state::snowSpeed) { it.label() }
-            choice(SnowFrameRate.entries, state::snowFrameRate) { it.label() }
             contextHelp(message("settings.snow.comment"))
         }
         // One row per place: snow first, so the snow boxes line up in a column, then the scene and its options.
@@ -215,12 +213,6 @@ private fun SnowSpeed.label(): String = when (this) {
     SnowSpeed.SLOW -> message("settings.snow.speed.slow")
     SnowSpeed.NORMAL -> message("settings.snow.speed.normal")
     SnowSpeed.FAST -> message("settings.snow.speed.fast")
-}
-
-private fun SnowFrameRate.label(): String = when (this) {
-    SnowFrameRate.LOW -> message("settings.snow.frame.rate.low", fps)
-    SnowFrameRate.MEDIUM -> message("settings.snow.frame.rate.medium", fps)
-    SnowFrameRate.HIGH -> message("settings.snow.frame.rate.high", fps)
 }
 
 private fun VillageStyle.label(): String = when (this) {

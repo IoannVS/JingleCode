@@ -13,7 +13,11 @@ import com.intellij.openapi.wm.WindowManager
 import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
+import java.awt.AWTEvent
+import java.awt.Frame
 import java.awt.KeyboardFocusManager
+import java.awt.Toolkit
+import java.awt.event.AWTEventListener
 import java.beans.PropertyChangeListener
 import javax.swing.Timer
 
@@ -22,9 +26,13 @@ import javax.swing.Timer
  * ([subscribe]) and, for things that move continuously like falling snow, a smooth [MOTION_MS] clock
  * ([subscribeMotion]), as the mockup moves them on every browser frame.
  *
- * A timer runs only while one of its subscribers' decorations is active (see [FeatureGate]), animation
- * is enabled in settings and the project window (or a dialog it owns) is active. Both pause in Power
- * Save and Presentation mode. While paused, decorations keep showing their last frame.
+ * A timer runs only while one of its subscribers' decorations is active (see [FeatureGate]) and animation
+ * is enabled in settings. Both pause in Power Save and Presentation mode and while the project window is
+ * minimized; while paused, decorations keep
+ * showing their last frame. While the project window (or a dialog it owns) is not active, or nobody has
+ * touched the keyboard or mouse for [IDLE_MS], everything goes on in slow motion, [SLOWDOWN] times slower:
+ * the timers tick that much less often and the motion covers that much less per tick, so the snow still
+ * steps pixel by pixel, and the IDE repaints that much less under it.
  *
  * All methods are called on the EDT.
  */
@@ -47,6 +55,21 @@ class JingleAnimator(private val project: Project) : Disposable {
 
     private val focusListener = PropertyChangeListener { updateState() }
 
+    /** How many times slower everything goes now: 1, or [SLOWDOWN] in slow motion. */
+    private var slowdown = 1
+
+    private var lastInput = System.nanoTime()
+    private var idle = false
+
+    // Only notes the time: it sees every mouse move in the IDE.
+    private val inputListener = AWTEventListener {
+        lastInput = System.nanoTime()
+        if (idle) {
+            idle = false
+            updateState()
+        }
+    }
+
     init {
         timer.isRepeats = true
         motionTimer.isRepeats = true
@@ -58,6 +81,10 @@ class JingleAnimator(private val project: Project) : Disposable {
         val focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
         focusManager.addPropertyChangeListener(ACTIVE_WINDOW, focusListener)
         Disposer.register(this) { focusManager.removePropertyChangeListener(ACTIVE_WINDOW, focusListener) }
+
+        val toolkit = Toolkit.getDefaultToolkit()
+        toolkit.addAWTEventListener(inputListener, INPUT_EVENTS)
+        Disposer.register(this) { toolkit.removeAWTEventListener(inputListener) }
     }
 
     /**
@@ -89,7 +116,16 @@ class JingleAnimator(private val project: Project) : Disposable {
         updateState()
     }
 
+    /** Goes into slow motion once nobody has touched the IDE for [IDLE_MS]; input brings it back. */
+    private fun checkIdle() {
+        if (!idle && System.nanoTime() - lastInput > IDLE_MS * 1_000_000L) {
+            idle = true
+            updateState()
+        }
+    }
+
     private fun tick() {
+        checkIdle()
         tick++
         current = JingleFrame((tick % FRAMES).toInt(), tick)
         for (subscriber in subscribers.toList()) {
@@ -98,10 +134,11 @@ class JingleAnimator(private val project: Project) : Disposable {
     }
 
     private fun move() {
+        checkIdle()
         val now = System.nanoTime()
         // Like the mockup, never jump much further than a step: a late timer slows the snow down instead.
         val maxStep = maxOf(MAX_MOTION_STEP, 2 * motionTimer.delay / 1000.0)
-        val dt = ((now - lastMotion) / 1e9).coerceIn(0.0, maxStep)
+        val dt = ((now - lastMotion) / 1e9).coerceIn(0.0, maxStep) / slowdown
         lastMotion = now
         for (subscriber in motionSubscribers.toList()) {
             subscriber.listener.onMotion(dt)
@@ -112,8 +149,10 @@ class JingleAnimator(private val project: Project) : Disposable {
         val canRun = canRun()
         val gate = FeatureGate.getInstance()
         fun <L> List<Subscriber<L>>.wanted() = if (canRun) filter { it.feature == null || gate.isActive(it.feature) } else emptyList()
+        slowdown = if (idle || !isProjectWindowActive()) SLOWDOWN else 1
 
         if (subscribers.wanted().isNotEmpty()) {
+            timer.delay = FRAME_MS * slowdown
             if (!timer.isRunning) timer.start()
         }
         else {
@@ -121,7 +160,7 @@ class JingleAnimator(private val project: Project) : Disposable {
         }
         val moving = motionSubscribers.wanted()
         if (moving.isNotEmpty()) {
-            motionTimer.delay = moving.minOf { it.intervalMs() }.coerceAtLeast(MIN_MOTION_MS)
+            motionTimer.delay = moving.minOf { it.intervalMs() }.coerceAtLeast(MIN_MOTION_MS) * slowdown
             if (!motionTimer.isRunning) {
                 lastMotion = System.nanoTime()
                 motionTimer.start()
@@ -135,7 +174,9 @@ class JingleAnimator(private val project: Project) : Disposable {
     private fun canRun(): Boolean {
         if (project.isDisposed || !JingleCodeSettings.getInstance().state.animationEnabled) return false
         if (PowerSaveMode.isEnabled() || UISettings.getInstance().presentationMode) return false
-        return isProjectWindowActive()
+        // A minimized window shows nothing: no need to move what nobody sees.
+        val frame = WindowManager.getInstance().getFrame(project) ?: return false
+        return frame.isShowing && frame.extendedState and Frame.ICONIFIED == 0
     }
 
     private fun isProjectWindowActive(): Boolean {
@@ -169,6 +210,15 @@ class JingleAnimator(private val project: Project) : Disposable {
         private const val MAX_MOTION_STEP = 0.05
 
         private const val ACTIVE_WINDOW = "activeWindow"
+
+        /** How many times slower everything goes outside the active window or while nobody is at the IDE. */
+        const val SLOWDOWN = 3
+
+        /** Without keyboard or mouse input for this long, milliseconds, the animation goes into slow motion. */
+        const val IDLE_MS = 5 * 60_000L
+
+        private const val INPUT_EVENTS = AWTEvent.KEY_EVENT_MASK or AWTEvent.MOUSE_EVENT_MASK or
+            AWTEvent.MOUSE_MOTION_EVENT_MASK or AWTEvent.MOUSE_WHEEL_EVENT_MASK
 
         @JvmStatic
         fun getInstance(project: Project): JingleAnimator = project.service()

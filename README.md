@@ -28,7 +28,7 @@ January 14. Want them earlier? Set **Season** to **Always** in the settings.
 on and off on its own. Snow and the scenes also have a button in the top right corner of the editor
 and in the panel headers: garland bulb (nothing) → snowflake (snow only) → snow with the scene → the scene alone.
 
-The animation pauses when the IDE window is inactive, in Power Save mode and in Presentation mode.
+The animation pauses in Power Save mode, in Presentation mode and while the IDE window is minimized. While the window is inactive or nobody has touched the IDE for five minutes, it goes on in slow motion.
 
 ## Compatibility
 

@@ -23,6 +23,7 @@ import io.github.ioannvs.jinglecode.icicles.TabIciclesLayer
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
 import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
 import io.github.ioannvs.jinglecode.snow.PanelSnowLayer
+import io.github.ioannvs.jinglecode.snow.SNOW_INTERVAL_MS
 import io.github.ioannvs.jinglecode.snow.SnowPlace
 import io.github.ioannvs.jinglecode.railway.RailwayLayer
 import io.github.ioannvs.jinglecode.yard.YardLayer
@@ -101,9 +102,8 @@ class FrameOverlay(private val project: Project) : Disposable {
             }
         }
         // The panel snow falls on its own clock, as fast as the editor's, and repaints only itself.
-        val settings = JingleCodeSettings.getInstance()
         for (snow in listOf(panelSnow, rightSnow, bottomSnow)) {
-            animator.subscribeMotion(this, snow.feature, intervalMs = { settings.state.snowFrameRate.intervalMs }) { dt ->
+            animator.subscribeMotion(this, snow.feature, intervalMs = { SNOW_INTERVAL_MS }) { dt ->
                 moveSnow(snow, dt)
             }
         }
@@ -195,7 +195,8 @@ class FrameOverlay(private val project: Project) : Disposable {
         val scale = OverlayScale.current()
         val tick = JingleAnimator.getInstance(project).current.tick
         for (layer in active) {
-            val strips = layer.dirtyRects(project, layout, scale)
+            // A repaint covers one strip at a time: layers it doesn't touch are not drawn just to be clipped away.
+            val strips = layer.dirtyRects(project, layout, scale).filter { g.hitClip(it.x, it.y, it.width, it.height) }
             if (strips.isEmpty()) continue
             val clip = Area()
             strips.forEach { clip.add(Area(it)) }

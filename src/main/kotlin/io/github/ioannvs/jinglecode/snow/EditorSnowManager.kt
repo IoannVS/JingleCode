@@ -32,7 +32,7 @@ class EditorSnowManager(private val project: Project) : Disposable {
     init {
         val settings = JingleCodeSettings.getInstance()
         JingleAnimator.getInstance(project).subscribeMotion(
-            this, JingleFeature.EDITOR_SNOW, intervalMs = { settings.state.snowFrameRate.intervalMs },
+            this, JingleFeature.EDITOR_SNOW, intervalMs = { SNOW_INTERVAL_MS },
         ) { dt ->
             time += dt
             gate.guard(JingleFeature.EDITOR_SNOW, Unit) {

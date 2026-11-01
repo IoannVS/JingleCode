@@ -65,6 +65,7 @@ internal class PanelSnowLayer(
         for (place in places(layout)) {
             val field = fields[place.key] ?: continue
             if (field.flakes.isEmpty()) continue
+            if (!g.hitClip(place.content.x, place.content.y, place.content.width, place.content.height)) continue
             val g2 = g.create() as Graphics2D
             try {
                 val body = place.body

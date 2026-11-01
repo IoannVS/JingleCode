@@ -13,7 +13,6 @@ import io.github.ioannvs.jinglecode.garland.GarlandMode
 import io.github.ioannvs.jinglecode.garland.GarlandSize
 import io.github.ioannvs.jinglecode.railway.TrainFrequency
 import io.github.ioannvs.jinglecode.snow.SnowAmount
-import io.github.ioannvs.jinglecode.snow.SnowFrameRate
 import io.github.ioannvs.jinglecode.snow.SnowSpeed
 import io.github.ioannvs.jinglecode.village.ResidentFrequency
 import io.github.ioannvs.jinglecode.village.VillageStyle
@@ -43,7 +42,6 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var editorSnowEnabled by property(true)
         var snowAmount by enum(SnowAmount.NORMAL)
         var snowSpeed by enum(SnowSpeed.NORMAL)
-        var snowFrameRate by enum(SnowFrameRate.HIGH)
         var popupSnowEnabled by property(true)
         var menuSnowEnabled by property(true)
         var railwayEnabled by property(true)

@@ -38,7 +38,7 @@
 - События только через публичные топики платформы, чтобы работало во всех IDE: `ExecutionManager.EXECUTION_TOPIC` (запуск и завершение процессов), `ExternalSystemProgressNotificationManager` (Gradle/Maven задачи и sync, optional-зависимость, если требуется), `Notifications.TOPIC` (уведомления), `ToolWindowManagerListener`. Успех и ошибка определяются по коду выхода и результату задачи. Если окно, к которому привязана полоса, не связано с событием, реагирует полоса в любом видимом правом окне.
 - Новое значение `JingleFeature.SANTA_YARD`, видимость через `core/FeatureGate`, всё, что опирается на раскладку Swing, в `FeatureGate.guard`.
 - Анимация от общего `JingleAnimator`, время из `core/JingleClock`, положение саней и подарков считаем от времени, не от кадров. Случайность через зерно.
-- Пауза вне фокуса, в Power Save и Presentation mode. Скрытое окно не рисуем.
+- Пауза в Power Save, Presentation mode и в свёрнутом окне; вне фокуса и без ввода пять минут — замедление (см. `JingleAnimator`).
 - Пиксель-арт по правилам CLAUDE.md. Исключения как в макете: свет окна, тающий дым и конфетти.
 
 ## Настройки

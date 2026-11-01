@@ -215,6 +215,8 @@ internal class EditorVillage(
         if (visible.isEmpty) return
         val clip = Area(visible)
         underView()?.let { (_, r) -> clip.add(Area(SwingUtilities.convertRectangle(root, r, glass))) }
+        // Most glass pane repaints are the overlay's strips elsewhere in the frame.
+        g.clipBounds?.let { if (!clip.intersects(it)) return }
         // The editor's own side is cut by the island's rounded body; the glass pane is above the island,
         // and the gutter reaches into its border under the garland, so it is cut to the body here.
         val body = editorBody(root)

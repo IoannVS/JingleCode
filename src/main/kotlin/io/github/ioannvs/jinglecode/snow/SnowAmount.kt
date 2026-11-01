@@ -17,11 +17,8 @@ enum class SnowSpeed(val factor: Double) {
     FAST(2.0),
 }
 
-/** How often the snow moves on. More is smoother and costs more repaints of the editor. */
-enum class SnowFrameRate(val fps: Int) {
-    LOW(15),
-    MEDIUM(20),
-    HIGH(30);
-
-    val intervalMs: Int get() = 1000 / fps
-}
+/**
+ * How often the snow moves on, milliseconds: 15 times a second. Every step repaints the code and the panels
+ * under the flakes; 20 and 30 cost up to half as much CPU again and look no different on the pixel grid.
+ */
+const val SNOW_INTERVAL_MS = 1000 / 15

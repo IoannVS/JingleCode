@@ -1,14 +1,20 @@
 package io.github.ioannvs.jinglecode.pixel
 
 import com.intellij.ui.scale.JBUIScale
+import java.awt.AlphaComposite
 import java.awt.Color
 import java.awt.Component
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RadialGradientPaint
+import java.awt.Rectangle
 import java.awt.RenderingHints
+import java.awt.Shape
 import java.awt.geom.AffineTransform
+import java.awt.geom.Area
 import java.awt.geom.Point2D
+import java.awt.geom.Rectangle2D
+import java.awt.image.BufferedImage
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -93,13 +99,71 @@ class PixelCanvas private constructor(
                 val scale = deviceScale(tx)
                 val size = pixelSize(scale, zoom, magnify)
                 g2.transform = AffineTransform()
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
-                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
-                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED)
-                g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
-                PixelCanvas(g2, size, scale.toDouble(), jsRound(origin.x), jsRound(origin.y)).block()
+                setHints(g2)
+                val ox = jsRound(origin.x)
+                val oy = jsRound(origin.y)
+                val clip = g2.clip
+                if (isRectangular(clip)) {
+                    PixelCanvas(g2, size, scale.toDouble(), ox, oy).block()
+                }
+                else {
+                    // Under a shape clip (strips, rounded islands, popups cut out) Java2D fills every rectangle
+                    // through its general paint pipe, allocating a raster and a hints map each time: about
+                    // a gigabyte a second for a scene. So draw into a buffer and copy it through the clip once.
+                    val bounds = clip.bounds
+                    if (bounds.isEmpty) return
+                    paintBuffered(g2, bounds) { ig -> PixelCanvas(ig, size, scale.toDouble(), ox - bounds.x, oy - bounds.y).block() }
+                }
             } finally {
                 g2.dispose()
+            }
+        }
+
+        private fun setHints(g: Graphics2D) {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED)
+            g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
+        }
+
+        private fun isRectangular(clip: Shape?): Boolean = clip == null || clip is Rectangle2D || (clip is Area && clip.isRectangular)
+
+        /** A buffer kept between paints; taken while in use, so a nested paint gets its own. */
+        private var spare: BufferedImage? = null
+
+        @Synchronized
+        private fun takeBuffer(w: Int, h: Int): BufferedImage {
+            val image = spare?.takeIf { it.width >= w && it.height >= h }
+            spare = null
+            // Plain device pixels on purpose: copied 1:1 with an identity transform, not scaled like a HiDPI image.
+            @Suppress("UndesirableClassUsage")
+            return image ?: BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
+        }
+
+        @Synchronized
+        private fun returnBuffer(image: BufferedImage) {
+            val old = spare
+            if (old == null || old.width * old.height < image.width * image.height) spare = image
+        }
+
+        /** Runs [draw] on a transparent buffer for the device rectangle [bounds] and copies it into [g] under its clip. */
+        private fun paintBuffered(g: Graphics2D, bounds: Rectangle, draw: (Graphics2D) -> Unit) {
+            val image = takeBuffer(bounds.width, bounds.height)
+            try {
+                val ig = image.createGraphics()
+                try {
+                    ig.composite = AlphaComposite.Clear
+                    ig.fillRect(0, 0, bounds.width, bounds.height)
+                    ig.composite = AlphaComposite.SrcOver
+                    ig.clipRect(0, 0, bounds.width, bounds.height)
+                    setHints(ig)
+                    draw(ig)
+                } finally {
+                    ig.dispose()
+                }
+                g.drawImage(image, bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, 0, 0, bounds.width, bounds.height, null)
+            } finally {
+                returnBuffer(image)
             }
         }
 

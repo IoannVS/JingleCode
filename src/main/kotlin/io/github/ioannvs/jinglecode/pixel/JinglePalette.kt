@@ -200,7 +200,6 @@ object JinglePalette {
     @JvmField val CHUTE_SHADE = c(0x8a5a34)
     @JvmField val STALL = c(0x22160e)
     @JvmField val HAY_SHADE = c(0xc9b088)
-    @JvmField val TREE_BULB_OFF = c(0x3a4a3a)
     @JvmField val PINK = c(0xe98fa8)
     @JvmField val SACK_SHADE = c(0xa8845a)
     @JvmField val LETTER_YELLOW = c(0xf3e2a8)

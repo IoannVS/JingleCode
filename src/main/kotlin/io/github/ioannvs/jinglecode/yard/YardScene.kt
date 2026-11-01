@@ -32,8 +32,9 @@ import kotlin.random.Random
 /**
  * The Santa's yard mockup's `strip()` for one right tool window, at the pixel of the snowman's drift and the
  * editor's village: the mockup at half its size, so one logical pixel here is one sprite pixel there. Distant
- * firs, the village's snow, the stable with the fence and the hay, the grazing reindeer, the workshop with its
- * clock, an elf on the roof, Santa on the bench, the chute, the sleigh, the big fir, the mailbox and the sack.
+ * firs, the village's snow, the mailbox and the sack, the stable with the fence and the hay, the
+ * grazing reindeer, the family of little snowmen, the sleigh, the chute, the workshop with its clock, an elf on
+ * the roof, Santa on the bench.
  * Firs are the village's ([drawFirTree]); the sleigh, the reindeer and the elves are the ones that come for
  * the gifts after a push ([drawSleigh], [drawElf]). Coordinates are logical pixels of a strip [width] wide
  * and [STRIP_HEIGHT] high.
@@ -48,7 +49,7 @@ internal class YardScene(seed: Int) {
     private enum class SleighState { PARK, GO, AWAY, BACK }
     private enum class ElfState { IDLE, TO_PILE, TO_SLEIGH }
     private enum class BirdState { IN, DROP, OUT }
-    private enum class TreeMode { OK, FAIL }
+    private enum class Mood { CHEER, SHIVER }
 
     private class Chief(var x: Double, var state: ChiefState = ChiefState.SIT)
     private class Sleigh(var x: Double, var state: SleighState = SleighState.PARK, var v: Double = 0.0)
@@ -89,8 +90,8 @@ internal class YardScene(seed: Int) {
     private var bird: Bird? = null
     private var smokeT = 0.0
     private var shovelT = 0.0
-    private var treeMode: TreeMode? = null
-    private var treeT = 0.0
+    private var mood: Mood? = null
+    private var moodT = 0.0
     private var fetching = false
     private var departed = false
     private var awayFor = 0.0
@@ -243,7 +244,7 @@ internal class YardScene(seed: Int) {
             when (b.state) {
                 BirdState.IN -> {
                     val k = min(1.0, b.k / 1.6)
-                    b.x = g.x1 + 5 + (tx - g.x1 - 5) * k
+                    b.x = g.x0 - 10 + (tx - g.x0 + 10) * k
                     b.y = g.base - 29 + (ty - g.base + 29) * k + sin(b.k * 10)
                     if (k >= 1) {
                         b.state = BirdState.DROP
@@ -260,9 +261,9 @@ internal class YardScene(seed: Int) {
                     }
                 }
                 BirdState.OUT -> {
-                    b.x += 35 * dt
+                    b.x -= 35 * dt
                     b.y -= 10 * dt
-                    if (b.x > g.x1 + 10) bird = null
+                    if (b.x < g.x0 - 15) bird = null
                 }
             }
         }
@@ -303,8 +304,8 @@ internal class YardScene(seed: Int) {
             }
             s.life <= 0
         }
-        treeT = max(0.0, treeT - dt)
-        if (treeT == 0.0) treeMode = null
+        moodT = max(0.0, moodT - dt)
+        if (moodT == 0.0) mood = null
     }
 
     // ---------- events (the mockup's EV) ----------
@@ -317,13 +318,13 @@ internal class YardScene(seed: Int) {
         elves?.forEachIndexed { i, e -> e.wait = .3 + i * .9 }
     }
 
-    /** A task finished: the tree flashes gold and Santa rides off, or a gift bursts and the tree blinks red. */
+    /** A task finished: the snowmen hop for joy and Santa rides off, or a gift bursts and the snowmen shiver. */
     fun taskFinished(succeeded: Boolean) = if (succeeded) success() else error()
 
     private fun success() {
         running = false
-        treeMode = TreeMode.OK
-        treeT = 3.0
+        mood = Mood.CHEER
+        moodT = 3.0
         val ch = chief ?: return
         val sl = sleigh ?: return
         if (sl.state == SleighState.PARK && ch.state == ChiefState.SIT) {
@@ -335,8 +336,8 @@ internal class YardScene(seed: Int) {
 
     private fun error() {
         running = false
-        treeMode = TreeMode.FAIL
-        treeT = 2.5
+        mood = Mood.SHIVER
+        moodT = 2.5
         scratch = 2.6
         val g = geometry ?: return
         val e = elves?.firstOrNull { it.carry != null }
@@ -461,25 +462,21 @@ internal class YardScene(seed: Int) {
         // the chute from the hatch to the sleigh
         val chuteEnd = jsRound(g.chuteEnd)
         val gyP = jsRound(g.gyP)
-        c.chute(wx + 24, gy - 9, chuteEnd, gyP - 2, gyP)
+        c.chute(wx, gy - 9, chuteEnd, gyP - 2, gyP)
         for (k in 0 until min(pile, 3)) {
             c.gift(chuteEnd - 4 + k * 3 - (if (k > 1) 3 else 0), gyP - 3 - (if (k > 1) 3 else 0), GIFT_COLORS[(k + 2) % 5])
         }
-        // tree, mail
-        groups[TREE]?.let { tr -> c.bigTree(jsRound(tr + 10), jsRound(g.gyAt(tr + 10))) }
+        // the snowmen, the mail
+        groups[FAMILY]?.let { fx -> c.snowFamily(g, fx) }
         val mx = jsRound(g.mx)
         val mgy = jsRound(g.mgy)
         c.mailbox(mx, mgy)
         c.sack(mx + 10, mgy, mail)
-        groups[FIRS_R]?.let { f ->
-            c.fir(g, f + 4, 11)
-            c.fir(g, f + 9, 8)
-        }
 
         // gifts sliding down the chute
         for (gift in chute) {
             val k = min(1.0, gift.k)
-            c.gift(jsRound(wx + 24 + (chuteEnd - wx - 24) * k) - 1, jsRound(gy - 9 + (gyP - 2 - (gy - 9)) * k) - 4, gift.color)
+            c.gift(jsRound(wx + (chuteEnd - wx) * k) - 1, jsRound(gy - 9 + (gyP - 2 - (gy - 9)) * k) - 4, gift.color)
         }
 
         if (ch.state == ChiefState.SIT) c.chief(ch.x, (gy - 3).toDouble(), sitting = true)
@@ -508,14 +505,14 @@ internal class YardScene(seed: Int) {
             val flap = if (floor(b.k * 8).toInt() % 2 != 0) FINCH else FINCHF
             when (b.state) {
                 BirdState.IN -> {
-                    flap.draw(c, b.x, b.y, flip = true)
+                    flap.draw(c, b.x, b.y, flip = false)
                     c.letterAt(b.x, b.y + 6)
                 }
                 BirdState.DROP -> {
                     c.letterAt(b.x, b.ly)
-                    FINCH.draw(c, b.x, b.y, flip = true)
+                    FINCH.draw(c, b.x, b.y, flip = false)
                 }
-                BirdState.OUT -> flap.draw(c, b.x, b.y, flip = false)
+                BirdState.OUT -> flap.draw(c, b.x, b.y, flip = true)
             }
         }
 
@@ -531,11 +528,12 @@ internal class YardScene(seed: Int) {
     }
 
     /**
-     * How high the sleigh flies over the snow: it takes off a little after it sets off and lands as it comes back
-     * (it rides on the ground in the mockup; Ivan: the sleigh flies off).
+     * How high the sleigh flies over the snow: it takes off as it sets off and lands as it comes back (it rides on
+     * the ground in the mockup; Ivan: the sleigh flies off). It parks left of the workshop, so it climbs at once,
+     * up to the roof by the time it passes the house.
      */
     private fun lift(g: Geometry, sl: Sleigh): Double = when (sl.state) {
-        SleighState.GO -> ((sl.x - g.parkX - 10) * .3).coerceIn(0.0, MAX_LIFT)
+        SleighState.GO -> ((sl.x - g.parkX) * .8).coerceIn(0.0, MAX_LIFT)
         SleighState.BACK -> ((g.parkX - sl.x - 10) * .3).coerceIn(0.0, MAX_LIFT)
         else -> 0.0
     }
@@ -592,24 +590,26 @@ internal class YardScene(seed: Int) {
         rect(cx, gy - 23, 1, 2, JinglePalette.ROOF_BROWN)
         rect(cx, gy - 26, 1, 3, JinglePalette.GOLD)
         rect(cx - 1, gy - 25, 3, 1, JinglePalette.GOLD)
+        // the front is the mockup's mirrored (Ivan: the workshop by the right edge): the hatch and the chute face
+        // the sleigh on the left, the window with Santa's bench is on the right
         // the window, flickering while a task runs
         val lit = if (running && floor(t * 6).toInt() % 3 == 0) JinglePalette.WINDOW_FLICKER else JinglePalette.LAMP
-        glowAt(wx + 5.5, gy - 6.5, if (running) 13.0 else 8.0, if (running) .38 else .22)
-        rect(wx + 2, gy - 9, 7, 5, JinglePalette.LOG_CUT)
-        rect(wx + 3, gy - 8, 5, 3, lit)
-        rect(wx + 5, gy - 8, 1, 3, JinglePalette.LOG_CUT)
-        rect(wx + 1, gy - 4, 9, 1, JinglePalette.FAR_SNOW)
+        glowAt(wx + 18.5, gy - 6.5, if (running) 13.0 else 8.0, if (running) .38 else .22)
+        rect(wx + 16, gy - 9, 7, 5, JinglePalette.LOG_CUT)
+        rect(wx + 17, gy - 8, 5, 3, lit)
+        rect(wx + 19, gy - 8, 1, 3, JinglePalette.LOG_CUT)
+        rect(wx + 15, gy - 4, 9, 1, JinglePalette.FAR_SNOW)
         // the big double gate with a wreath
-        rect(wx + 11, gy - 9, 9, 9, JinglePalette.GATE)
-        rect(wx + 12, gy - 8, 3, 8, JinglePalette.ROOF_BROWN)
-        rect(wx + 16, gy - 8, 3, 8, JinglePalette.ROOF_BROWN)
-        px(wx + 14, gy - 4, JinglePalette.GOLD)
-        rect(wx + 14, gy - 12, 3, 3, JinglePalette.FIR)
-        px(wx + 15, gy - 11, JinglePalette.TRUNK)
-        px(wx + 15, gy - 10, JinglePalette.SANTA_RED)
+        rect(wx + 5, gy - 9, 9, 9, JinglePalette.GATE)
+        rect(wx + 10, gy - 8, 3, 8, JinglePalette.ROOF_BROWN)
+        rect(wx + 6, gy - 8, 3, 8, JinglePalette.ROOF_BROWN)
+        px(wx + 10, gy - 4, JinglePalette.GOLD)
+        rect(wx + 8, gy - 12, 3, 3, JinglePalette.FIR)
+        px(wx + 9, gy - 11, JinglePalette.TRUNK)
+        px(wx + 9, gy - 10, JinglePalette.SANTA_RED)
         // the hatch the chute starts from, lit while a task runs
-        rect(wx + 20, gy - 11, 4, 4, JinglePalette.GATE)
-        rect(wx + 21, gy - 10, 2, 2, if (running) JinglePalette.LAMP else JinglePalette.CLOTH_DARK)
+        rect(wx + 1, gy - 11, 4, 4, JinglePalette.GATE)
+        rect(wx + 2, gy - 10, 2, 2, if (running) JinglePalette.LAMP else JinglePalette.CLOTH_DARK)
     }
 
     private fun PixelCanvas.stable(sx: Int, gy: Int) {
@@ -663,44 +663,71 @@ internal class YardScene(seed: Int) {
         rect(x + 6, y + 5, 1, 2, JinglePalette.STICK)
     }
 
-    /** The mockup's `bigTree`: the village's fir, taller, with lights on its tiers, a star and gifts. */
-    private fun PixelCanvas.bigTree(cx: Int, gy: Int) {
-        val height = 23
-        drawFirTree(cx, gy, height / 18.0)
-        val top = gy - height
-        var k = 0
-        for (r in intArrayOf(6, 9, 12, 16, 19, 22)) {
-            val half = (r / 2.5).toInt()
-            for (dx in -half + 1 until half step 3) {
-                k++
-                var color = YardSprites.TREE_LIGHTS[k % 4]
-                var on = (floor(t * 2).toInt() + k) % 3 != 0
-                when (treeMode) {
-                    TreeMode.OK -> {
-                        color = JinglePalette.LAMP
-                        on = true
-                    }
-                    TreeMode.FAIL -> {
-                        color = JinglePalette.SIGNAL_RED
-                        on = floor(t * 6).toInt() % 2 == 0
-                    }
-                    null -> Unit
-                }
-                px(cx + dx, top + r, if (on) color else JinglePalette.TREE_BULB_OFF)
+    /**
+     * The family of little snowmen in place of the big fir (Ivan): papa in a top hat, mama in a kerchief, two
+     * kids in knitted caps between them, all looking at the sleigh. They hop in a wave after a success and
+     * shiver after an error; the rest of the time a kid now and then bounces.
+     */
+    private fun PixelCanvas.snowFamily(g: Geometry, fx: Double) {
+        for ((i, at) in FAMILY_AT.withIndex()) {
+            val kid = i % 2 == 1
+            var dx = 0
+            var dy = 0
+            when (mood) {
+                Mood.CHEER -> if (sin(t * 10 - i * 1.1) > .2) dy = if (kid) -2 else -1
+                Mood.SHIVER -> dx = (floor(t * 14).toInt() + i) % 2
+                null -> if (kid && sin(t * 2.3 + i * 1.9) > .96) dy = -1
+            }
+            val x = jsRound(fx + at) + dx
+            val gy = jsRound(g.gyAt(fx + at + 2)) + dy
+            when (i) {
+                0 -> papa(x, gy)
+                1 -> kid(x, gy, JinglePalette.BULBS[2])
+                2 -> mama(x, gy)
+                else -> kid(x, gy, JinglePalette.BULBS[3])
             }
         }
-        rect(cx, top - 3, 1, 3, JinglePalette.GOLD)
-        rect(cx - 1, top - 2, 3, 1, JinglePalette.GOLD)
-        if (treeMode == TreeMode.OK && floor(t * 8).toInt() % 2 != 0) {
-            px(cx - 2, top - 2, JinglePalette.STAR)
-            px(cx + 2, top - 2, JinglePalette.STAR)
-            px(cx, top - 4, JinglePalette.STAR)
-        }
-        val ok = treeMode == TreeMode.OK
-        glowAt(cx + .5, top - 1.5, if (ok) 11.0 else 6.0, if (ok) .45 else .25)
-        gift(cx - 6, gy - 3, JinglePalette.SANTA_RED)
-        gift(cx + 3, gy - 3, JinglePalette.WALL_BLUE)
-        gift(cx - 2, gy - 2, JinglePalette.GIFT_PLUM)
+    }
+
+    /** The village's snowman, its right side ice blue to read against the snow; arms up when the family cheers. */
+    private fun PixelCanvas.papa(x: Int, gy: Int) {
+        rect(x, gy - 5, 5, 5, JinglePalette.SNOWMAN)
+        rect(x + 4, gy - 4, 1, 3, JinglePalette.ICE)
+        rect(x + 1, gy - 9, 3, 4, JinglePalette.SNOWMAN)
+        px(x + 3, gy - 7, JinglePalette.ICE)
+        px(x + 2, gy - 8, JinglePalette.COAL)
+        px(x + 4, gy - 7, JinglePalette.CARROT)
+        rect(x + 1, gy - 6, 3, 1, JinglePalette.SCARF)
+        px(x + 1, gy - 5, JinglePalette.SCARF)
+        px(x + 2, gy - 3, JinglePalette.COAL)
+        rect(x, gy - 10, 5, 1, JinglePalette.COAL)
+        rect(x + 1, gy - 12, 3, 2, JinglePalette.COAL)
+        val up = if (mood == Mood.CHEER) 1 else 0
+        px(x - 1, gy - 4 - up, JinglePalette.STICK)
+        px(x - 2, gy - 5 - up * 2, JinglePalette.STICK)
+    }
+
+    private fun PixelCanvas.mama(x: Int, gy: Int) {
+        rect(x, gy - 4, 5, 4, JinglePalette.SNOWMAN)
+        rect(x + 4, gy - 3, 1, 2, JinglePalette.ICE)
+        rect(x + 1, gy - 7, 3, 3, JinglePalette.SNOWMAN)
+        px(x + 3, gy - 5, JinglePalette.ICE)
+        px(x + 2, gy - 6, JinglePalette.COAL)
+        px(x + 4, gy - 6, JinglePalette.CARROT)
+        rect(x + 1, gy - 4, 3, 1, JinglePalette.SANTA_RED)
+        rect(x + 1, gy - 8, 3, 1, JinglePalette.PINK)
+        px(x, gy - 7, JinglePalette.PINK)
+        px(x + 2, gy - 9, JinglePalette.PINK)
+    }
+
+    private fun PixelCanvas.kid(x: Int, gy: Int, cap: Color) {
+        rect(x, gy - 3, 4, 3, JinglePalette.SNOWMAN)
+        px(x + 3, gy - 2, JinglePalette.ICE)
+        rect(x + 1, gy - 5, 2, 2, JinglePalette.SNOWMAN)
+        px(x + 2, gy - 5, JinglePalette.COAL)
+        px(x + 3, gy - 4, JinglePalette.CARROT)
+        rect(x + 1, gy - 6, 2, 1, cap)
+        px(x + 1, gy - 7, cap)
     }
 
     /** Santa, his bottom row above [yb]; scratching his head with a `?` after an error. */
@@ -741,6 +768,9 @@ internal class YardScene(seed: Int) {
         /** How high the sleigh flies, logical pixels. */
         private const val MAX_LIFT = 22.0
 
+        /** Where the snowmen stand in their group: papa, a kid, mama, a kid. */
+        private val FAMILY_AT = intArrayOf(2, 9, 14, 20)
+
         /** The sleigh comes back by itself if nobody calls it back within this many seconds. */
         private const val AWAY_MAX = 40.0
 
@@ -765,33 +795,44 @@ internal const val STABLE = "stable"
 internal const val GRAZE = "graze"
 internal const val SHOP = "shop"
 internal const val PARK = "park"
-internal const val TREE = "tree"
+internal const val FAMILY = "family"
 internal const val MAIL = "mail"
-internal const val FIRS_R = "firsR"
 
 /** The drift's sleigh with its two reindeer, from the elf riding at its back to the lead reindeer's nose. */
 private const val TEAM_LEN = 34
+
+/** Snow in front of the workshop, left of its wall: the chute comes down there, the gifts pile up under it. */
+private const val SHOP_YARD = 16
+
+/** The workshop's width with its log ends, and the snow always left between it and the right edge. */
+private const val SHOP_W = 27
+private const val SHOP_MARGIN = 6
+
+/** The weight of the gap after the last group, before the right edge. */
+private const val END = "end"
 
 private class Group(val key: String, val w: Int, val opt: Int = 0)
 
 /**
  * The mockup's `layout(x0, w)` at half size: the groups left to right with uneven gaps (their weights), the
- * optional ones dropping out of a narrow strip: the grazing reindeer first, then the stable, then the big fir,
- * then the firs on the left. Returns each group's left edge.
+ * workshop last, by the right edge with some room before it (Ivan: the window is freer there), the sleigh
+ * parked left of it, the snowmen family right of the middle, the stable and the mail on the left; the optional ones
+ * dropping out of a narrow strip: the grazing reindeer first, then the stable, then the snowmen, then the firs
+ * on the left. Returns each group's left edge.
  */
 internal fun yardLayout(x0: Double, w: Double): Map<String, Double> {
     val groups = listOf(
-        Group(FIRS_L, 12), Group(STABLE, 43, opt = 2), Group(GRAZE, 13, opt = 3), Group(SHOP, 43),
-        Group(PARK, TEAM_LEN + 2), Group(TREE, 20, opt = 1), Group(MAIL, 15), Group(FIRS_R, 11),
+        Group(FIRS_L, 12), Group(MAIL, 15), Group(STABLE, 43, opt = 2), Group(GRAZE, 13, opt = 3),
+        Group(FAMILY, 24, opt = 1), Group(PARK, TEAM_LEN + 2), Group(SHOP, SHOP_YARD + SHOP_W + SHOP_MARGIN),
     )
-    val gaps = mapOf(GRAZE to .15, STABLE to .6, SHOP to 1.0, PARK to .5, TREE to 1.5, MAIL to .35, FIRS_R to .5)
+    val gaps = mapOf(MAIL to .4, STABLE to 1.0, GRAZE to .15, FAMILY to 1.0, PARK to .5, SHOP to .3, END to .5)
     var use = groups
     val minGap = 3
     fun need(a: List<Group>) = a.sumOf { it.w } + minGap * (a.size - 1)
     for (lvl in intArrayOf(3, 2, 1)) if (need(use) > w) use = use.filter { it.opt != lvl }
     if (need(use) > w) use = use.filter { it.key != FIRS_L }
     val spare = max(0.0, w - use.sumOf { it.w })
-    val ws = use.drop(1).sumOf { gaps[it.key] ?: 1.0 }
+    val ws = use.drop(1).sumOf { gaps[it.key] ?: 1.0 } + gaps.getValue(END)
     val layout = LinkedHashMap<String, Double>()
     var x = x0
     for ((i, g) in use.withIndex()) {
@@ -818,18 +859,18 @@ internal class Geometry(val width: Int) {
     val base = YardScene.STRIP_HEIGHT.toDouble()
     val gTop = base - 7
     val layout = yardLayout(x0, x1 - x0)
-    val wx = layout.getValue(SHOP) + 1
-    val bx = wx + 1
+    val wx = layout.getValue(SHOP) + SHOP_YARD
+    val bx = wx + 15
     val parkX = jsRound(layout.getValue(PARK)).toDouble()
-    val chuteEnd = parkX - 2
+    val chuteEnd = wx - 10
     private val mounds: List<Mound> = buildList {
         add(Mound(wx + 12, 40.0, 3.4))
         add(Mound(x0 + 7, 20.0, 3.0))
-        layout[TREE]?.let { add(Mound(it + 10, 22.0, 3.4)) }
+        layout[FAMILY]?.let { add(Mound(it + 12, 22.0, 2.4)) }
         layout[STABLE]?.let { add(Mound(it + 25, 30.0, 3.0)) }
-        layout[MAIL]?.let { add(Mound(it + 18, 15.0, 2.0)) }
+        layout[MAIL]?.let { add(Mound(it + 8, 15.0, 2.0)) }
     }
-    val homes: List<Double> = listOf(wx + 27, layout[STABLE]?.let { it + 37 } ?: (wx - 8))
+    val homes: List<Double> = listOf(wx + 9, wx - 6)
     val gy = gyAt(wx + 13)
     val gyP = gyAt(chuteEnd)
     val mx = layout.getValue(MAIL)
@@ -912,7 +953,7 @@ internal fun PixelCanvas.chute(xa: Int, ya: Int, xb: Int, yb: Int, ground: Int) 
         val y = yAt(x)
         rect(x, y + 2, 1, ground - y - 2, JinglePalette.ROOF_BROWN)
     }
-    for (x in xa..xb) {
+    for (x in min(xa, xb)..max(xa, xb)) {
         val y = yAt(x)
         px(x, y - 1, JinglePalette.FAR_SNOW)
         px(x, y, JinglePalette.LOG_CUT)
@@ -986,5 +1027,5 @@ private fun PixelCanvas.stars(width: Int, sky: YardSky) {
     }
 }
 
-/** Rows of the strip the stars hang in: above the roofs' snow, behind the workshop's chimney and the big fir. */
+/** Rows of the strip the stars hang in: above the roofs' snow, behind the workshop's chimney. */
 private const val SKY_ROWS = 20

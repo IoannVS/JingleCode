@@ -67,6 +67,4 @@ internal object YardSprites {
     /** Confetti of a burst gift, the mockup's `burst` colours. */
     val CONFETTI: List<Color> = listOf(JinglePalette.SANTA_RED, JinglePalette.LAMP, JinglePalette.WALL_BLUE, JinglePalette.FIR, JinglePalette.PINK, JinglePalette.FAR_SNOW)
 
-    /** The big fir's lights (`cols` in `bigTree`). */
-    val TREE_LIGHTS: List<Color> = listOf(JinglePalette.LAMP, JinglePalette.SANTA_RED, JinglePalette.BULBS[2], JinglePalette.PINK)
 }

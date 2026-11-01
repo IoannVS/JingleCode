@@ -26,6 +26,8 @@ import java.awt.geom.Point2D
 import java.awt.geom.RoundRectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JComponent
+import javax.swing.JRootPane
+import javax.swing.JViewport
 import javax.swing.SwingUtilities
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -98,10 +100,47 @@ internal class EditorVillage(
 
     private val gutterWidth: Int get() = gutter?.width ?: 0
 
+    private val viewport: JViewport? get() = (editor as? EditorEx)?.scrollPane?.viewport
+
+    /** The editors' island body, root pane coordinates; `null` without the Islands UI. */
+    private fun editorBody(root: JRootPane): Rectangle? {
+        val project = editor.project ?: return null
+        return FeatureGate.getInstance().guard(JingleFeature.VILLAGE, null) { FrameGeometry.editorBody(project, root) }
+    }
+
+    /**
+     * Where the village stands, root pane coordinates: on the line of the snowman's drift and Santa's yard,
+     * the bottom of the island, under a horizontal scroll bar and the corner the line numbers reach into.
+     */
+    private fun groundIn(root: JRootPane): Int? {
+        val pane = (editor as? EditorEx)?.scrollPane ?: return null
+        if (!pane.isShowing) return null
+        return FrameGeometry.ground(SwingUtilities.convertRectangle(pane.parent, pane.bounds, root), editorBody(root))
+    }
+
+    /** How far below the bottom of the view the village stands, user pixels: 0 when the view reaches down to the line. */
+    private fun belowView(): Int {
+        val viewport = viewport ?: return 0
+        val root = SwingUtilities.getRootPane(viewport) ?: return 0
+        val ground = groundIn(root) ?: return 0
+        return ground - SwingUtilities.convertPoint(viewport, 0, viewport.height, root).y
+    }
+
+    /** The part of the village under the view, root pane coordinates; it is painted over the glass pane. */
+    private fun underView(): Pair<JRootPane, Rectangle>? {
+        val viewport = viewport ?: return null
+        val root = SwingUtilities.getRootPane(viewport) ?: return null
+        val below = belowView()
+        if (below <= 0) return null
+        val view = SwingUtilities.convertRectangle(viewport.parent, viewport.bounds, root)
+        return root to Rectangle(view.x - gutterWidth, view.y + view.height, view.width + gutterWidth, below)
+    }
+
     fun repaint() {
         if (editor.isDisposed) return
         editor.contentComponent.repaint(editor.scrollingModel.visibleArea)
         gutter?.repaint()
+        underView()?.let { (root, r) -> root.repaint(r) }
     }
 
     /** Repaints the strip the village takes, for the next frame of what moves in it. */
@@ -109,8 +148,10 @@ internal class EditorVillage(
         if (editor.isDisposed || !isOn()) return
         val visible = editor.scrollingModel.visibleArea
         val h = ceil(VILLAGE_ROWS * pixelUser).toInt()
-        editor.contentComponent.repaint(Rectangle(visible.x, visible.y + visible.height - h, visible.width, h))
+        val below = belowView()
+        editor.contentComponent.repaint(Rectangle(visible.x, visible.y + visible.height + below - h, visible.width, h))
         gutter?.let { it.repaint(Rectangle(0, it.visibleRect.let { r -> r.y + r.height - h }, it.width, h)) }
+        underView()?.let { (root, r) -> root.repaint(r) }
     }
 
     /** Repaints if the picture would change now (a new day, the evening, another style). */
@@ -128,7 +169,7 @@ internal class EditorVillage(
         val visible = editor.scrollingModel.visibleArea
         val point = event.mouseEvent.point
         val left = visible.x - gutterWidth
-        val top = visible.y + visible.height - VILLAGE_ROWS * pixelUser
+        val top = visible.y + visible.height + belowView() - VILLAGE_ROWS * pixelUser
         val x = floor((point.x - left) / pixelUser).toInt()
         val y = floor((point.y - top) / pixelUser).toInt()
         val house = houses.lastOrNull { it.hasChimney && it.contains(x, y) } ?: return
@@ -139,9 +180,9 @@ internal class EditorVillage(
 
     private fun paintInEditor(g: Graphics2D) {
         installGutterPainter()
-        // The picture starts under the gutter, left of the view.
+        // The picture starts under the gutter, left of the view; what is below the view the glass pane paints.
         val visible = editor.scrollingModel.visibleArea
-        paintPicture(g, visible.x - gutterWidth, visible.y + visible.height, visible.width + gutterWidth)
+        paintPicture(g, visible.x - gutterWidth, visible.y + visible.height + belowView(), visible.width + gutterWidth)
     }
 
     /** Over the gutter through the glass pane, once the editor is in a frame. */
@@ -161,29 +202,34 @@ internal class EditorVillage(
         gutter.repaint()
     }
 
-    /** [g] is in the glass pane's coordinates: the gutter's visible part there, minus popups over it. */
+    /**
+     * [g] is in the glass pane's coordinates: the gutter's visible part there and the strip under the view
+     * (a horizontal scroll bar, the corner), minus popups over them.
+     */
     private fun paintOverGutter(g: Graphics2D, glass: Component) {
         val gutter = gutter ?: return
         if (!isOn() || editor.isDisposed || !gutter.isShowing) return
+        val root = SwingUtilities.getRootPane(gutter) ?: return
+        val ground = groundIn(root) ?: return
         val visible = SwingUtilities.convertRectangle(gutter, gutter.visibleRect, glass)
         if (visible.isEmpty) return
         val clip = Area(visible)
-        SwingUtilities.getRootPane(gutter)?.let { root ->
-            // The editor's own side is cut by the island's rounded body; the glass pane is above the island,
-            // and the gutter reaches into its border under the garland, so it is cut to the body here.
-            val project = editor.project
-            val body = project?.let { FeatureGate.getInstance().guard(JingleFeature.VILLAGE, null) { FrameGeometry.editorBody(it, root) } }
-            if (body != null) {
-                val b = SwingUtilities.convertRectangle(root, body, glass)
-                val arc = FrameGeometry.islandArc().toFloat()
-                clip.intersect(Area(RoundRectangle2D.Float(b.x.toFloat(), b.y.toFloat(), b.width.toFloat(), b.height.toFloat(), arc, arc)))
-            }
-            FrameGeometry.popupsOver(root).forEach { clip.subtract(Area(SwingUtilities.convertRectangle(root, it, glass))) }
+        underView()?.let { (_, r) -> clip.add(Area(SwingUtilities.convertRectangle(root, r, glass))) }
+        // The editor's own side is cut by the island's rounded body; the glass pane is above the island,
+        // and the gutter reaches into its border under the garland, so it is cut to the body here.
+        val body = editorBody(root)
+        if (body != null) {
+            val b = SwingUtilities.convertRectangle(root, body, glass)
+            val arc = FrameGeometry.islandArc().toFloat()
+            clip.intersect(Area(RoundRectangle2D.Float(b.x.toFloat(), b.y.toFloat(), b.width.toFloat(), b.height.toFloat(), arc, arc)))
         }
+        FrameGeometry.popupsOver(root).forEach { clip.subtract(Area(SwingUtilities.convertRectangle(root, it, glass))) }
+        // The same bottom as in the editor, so the gutter's part is not a step lower or higher.
+        val bottom = SwingUtilities.convertPoint(root, 0, ground, glass).y
         val g2 = g.create() as Graphics2D
         try {
             g2.clip(clip)
-            paintPicture(g2, visible.x, visible.y + visible.height, gutterWidth + editor.scrollingModel.visibleArea.width)
+            paintPicture(g2, visible.x, bottom, gutterWidth + editor.scrollingModel.visibleArea.width)
         }
         finally {
             g2.dispose()

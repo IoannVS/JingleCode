@@ -23,14 +23,14 @@ class DriftLayerTest {
     )
 
     @Test
-    fun `the scene always sits at the bottom of the panel, edge to edge`() {
-        assertEquals(Rectangle(6, 630 - 56, 288, 56), DriftLayer.scene(layout, scale))
+    fun `the scene stands at the bottom of the island, on the line of the village and the yard, edge to edge`() {
+        assertEquals(Rectangle(6, 634 - 56, 288, 56), DriftLayer.scene(layout, scale))
     }
 
     @Test
     fun `in the Commit panel the scene stands at the bottom of the tree of changes, above the commit message`() {
         val commit = ProjectPanel(body = Rectangle(6, 46, 288, 588), arc = 20, content = Rectangle(6, 80, 288, 300))
-        assertEquals(Rectangle(6, 380 - 56, 288, 56), DriftLayer.scene(commit, scale))
+        assertEquals(Rectangle(6, 380 - 56, 288, 56), DriftLayer.scene(commit, scale, seam = false))
     }
 
     @Test

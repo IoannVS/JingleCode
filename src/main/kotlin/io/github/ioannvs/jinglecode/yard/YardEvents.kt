@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * What Santa's yards react to, as it comes from the event bus, often on a background thread: runs and builds
- * starting and ending, notifications. The yards take the events on their own clock ([drain]); all visible yards
+ * starting and ending, notifications, pushes. The yards take the events on their own clock ([drain]); all visible yards
  * react to each one, whichever window it came from.
  */
 @Service(Service.Level.PROJECT)
@@ -29,7 +29,7 @@ internal class YardEvents {
         when (event) {
             JingleEvent.RunStarted -> active.incrementAndGet()
             is JingleEvent.RunFinished, JingleEvent.RunStopped -> active.updateAndGet { maxOf(0, it - 1) }
-            JingleEvent.Notification -> Unit
+            JingleEvent.Notification, is JingleEvent.Push, JingleEvent.PushRejected -> Unit
             else -> return
         }
         queue += Received(event, System.nanoTime())

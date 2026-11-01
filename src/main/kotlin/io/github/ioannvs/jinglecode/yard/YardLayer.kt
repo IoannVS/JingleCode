@@ -7,6 +7,7 @@ import com.intellij.util.ui.UIUtil
 import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleClock
 import io.github.ioannvs.jinglecode.core.JingleFeature
+import io.github.ioannvs.jinglecode.drift.GiftPile
 import io.github.ioannvs.jinglecode.events.JingleEvent
 import io.github.ioannvs.jinglecode.overlay.FrameLayout
 import io.github.ioannvs.jinglecode.overlay.OverlayLayer
@@ -80,18 +81,42 @@ internal class YardLayer : OverlayLayer {
         val panels = panels(layout, pixelUser)
         scenes.keys.retainAll(panels.mapTo(HashSet()) { it.id })
         val visible = panels.map(::scene)
-        react(YardEvents.getInstance(project), visible)
+        react(YardEvents.getInstance(project), GiftPile.getInstance(project), visible)
         for (panel in panels) scene(panel).step(dt, logicalWidth(panel, pixelUser))
+        flyToPile(GiftPile.getInstance(project), visible)
         return panels.isNotEmpty()
+    }
+
+    /** Gifts the sleigh brings back from the snowman's pile, from the last push. */
+    private var cargo = 0
+
+    /**
+     * The sleigh between the yard and the snowman's pile, after a push: it leaves the yard to the right, then the
+     * pile's visit begins and it flies in there from the left; when the visit is over it comes back to the yard
+     * from the left, with the gifts it took. While a yard shows, the pile waits for its sleigh ([GiftPile.yardIsHere]).
+     */
+    private fun flyToPile(pile: GiftPile, yards: List<YardScene>) {
+        if (yards.isEmpty() || !JingleCodeSettings.getInstance().state.santaYardReactions) return
+        pile.yardIsHere()
+        if (yards.any(YardScene::takeDeparted)) pile.releaseFromYard()
+        if (!pile.sleighOut) yards.filter(YardScene::away).forEach { it.comeBack(cargo) }
+    }
+
+    /** A push: every yard's sleigh goes for the gifts; if none can, the pile's visit doesn't wait. */
+    private fun fetch(pile: GiftPile, yards: List<YardScene>, carried: Int) {
+        cargo = carried
+        val leaving = yards.map(YardScene::fetch).any { it }
+        if (!leaving) pile.releaseFromYard()
     }
 
     /**
      * All visible yards react to each event (the spec: whichever window it came from). A task going on loads gifts;
      * a success sends Santa off in the sleigh, a failure bursts a gift; a notification brings a letter.
      * Events that waited out a pause (the IDE in the background) only set whether a task goes on: no show for them.
+     * A push sends the sleigh to the snowman's pile, see [flyToPile].
      * Without reactions in the settings the yards just live their lives; without letters the bullfinch stays home.
      */
-    private fun react(events: YardEvents, yards: List<YardScene>) {
+    private fun react(events: YardEvents, pile: GiftPile, yards: List<YardScene>) {
         val state = JingleCodeSettings.getInstance().state
         val today = JingleClock.today()
         if (day != today) {
@@ -104,6 +129,9 @@ internal class YardLayer : OverlayLayer {
             when (val event = received.event) {
                 is JingleEvent.RunFinished -> if (state.santaYardReactions && fresh) yards.forEach { it.taskFinished(event.succeeded) }
                 JingleEvent.Notification -> if (state.santaYardLetters && fresh) yards.forEach(YardScene::letter)
+                is JingleEvent.Push -> if (state.santaYardReactions && fresh) fetch(pile, yards, event.carried) else pile.releaseFromYard()
+                // The sleigh takes the gifts back to the pile and comes home empty.
+                JingleEvent.PushRejected -> if (state.santaYardReactions && fresh) fetch(pile, yards, 0) else pile.releaseFromYard()
                 else -> Unit
             }
         }

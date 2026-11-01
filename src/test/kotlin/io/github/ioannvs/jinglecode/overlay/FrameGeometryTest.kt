@@ -25,6 +25,15 @@ class FrameGeometryTest {
     }
 
     @Test
+    fun `scenes stand on the bottom of the island, also under a scroll bar, but a pane ending higher keeps its own`() {
+        val body = Rectangle(6, 46, 900, 588)
+        assertEquals("the editor above its horizontal scroll bar", 634, FrameGeometry.ground(Rectangle(6, 80, 900, 544), body))
+        assertEquals("a pane reaching into the border", 634, FrameGeometry.ground(Rectangle(6, 80, 900, 560), body))
+        assertEquals("an editor split above another", 340, FrameGeometry.ground(Rectangle(6, 80, 900, 260), body))
+        assertEquals("no Islands UI", 624, FrameGeometry.ground(Rectangle(6, 80, 900, 544), null))
+    }
+
+    @Test
     fun `no islands, no edge`() {
         assertEquals(emptyList<Rectangle>(), FrameGeometry.topEdges(emptyList(), touch = 12))
     }

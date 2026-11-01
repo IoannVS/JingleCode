@@ -30,11 +30,41 @@ class GiftPile {
     @Volatile
     private var delivery: Started? = null
 
+    /**
+     * A visit waiting for the sleigh to come from Santa's yard: when the yard shows, the sleigh first leaves it
+     * to the right and only then flies in here from the left. [releaseFromYard] starts it; so does a timeout.
+     */
+    @Volatile
+    private var pending: Started? = null
+
+    /** When Santa's yard last said it shows and will send the sleigh, [System.nanoTime]. */
+    @Volatile
+    private var yardSeenAt = 0L
+
+    /** Gifts the pile shows: while the sleigh is on its way for them, the ones it comes for are still there. */
+    val shown: Int get() = pending?.takeIf { it.kind == DeliveryKind.DELIVER }?.let { maxOf(count, it.gifts) } ?: count
+
+    /** Whether the sleigh is out for this pile: on its way from the yard, or here. */
+    val sleighOut: Boolean get() = pending != null || delivery() != null
+
+    /** Santa's yard shows and reacts: call on every step, so a push waits for its sleigh. */
+    fun yardIsHere() {
+        yardSeenAt = System.nanoTime()
+    }
+
+    /** The yard's sleigh has left it (or can't come): the waiting visit starts now. */
+    fun releaseFromYard() {
+        val waiting = pending ?: return
+        pending = null
+        delivery = Started(waiting.kind, System.nanoTime(), waiting.gifts)
+    }
+
     /** Milliseconds since the newest gift began to fall onto the pile, or [Long.MAX_VALUE]. */
     fun dropAgeMs(): Long = ageMs(commitAt)
 
     /** The sleigh's visit for the last push, while it lasts. */
     fun delivery(): DeliveryView? {
+        pending?.let { if (ageMs(it.startedAt) > PENDING_MAX_MS) releaseFromYard() }
         val current = delivery ?: return null
         val view = DeliveryView(current.kind, ageMs(current.startedAt), current.gifts)
         return if (view.ageMs <= Delivery.durationMs(view.kind, view.gifts)) view else null
@@ -51,10 +81,14 @@ class GiftPile {
         }
     }
 
-    /** One visit at a time: a second push while the sleigh is out doesn't restart it. */
+    /**
+     * One visit at a time: a second push while the sleigh is out doesn't restart it. With Santa's yard showing the
+     * visit waits until the yard's sleigh has left ([releaseFromYard]).
+     */
     private fun start(kind: DeliveryKind, gifts: Int) {
-        if (delivery() != null) return
-        delivery = Started(kind, System.nanoTime(), gifts.coerceIn(0, MAX_GIFTS))
+        if (sleighOut) return
+        val visit = Started(kind, System.nanoTime(), gifts.coerceIn(0, MAX_GIFTS))
+        if (System.nanoTime() - yardSeenAt < YARD_FRESH_NS) pending = visit else delivery = visit
     }
 
     private class Started(val kind: DeliveryKind, val startedAt: Long, val gifts: Int)
@@ -62,6 +96,12 @@ class GiftPile {
     companion object {
         /** No Git in this IDE or project: a fixed little pile. */
         const val WITHOUT_GIT = 3
+
+        /** The yard steps about 30 times a second; a yard not heard from for this long is gone or paused. */
+        private const val YARD_FRESH_NS = 1_000_000_000L
+
+        /** A visit doesn't wait for the yard's sleigh longer than this (Santa walks to it, it rides off). */
+        private const val PENDING_MAX_MS = 12_000L
 
         private fun ageMs(at: Long): Long = if (at == 0L) Long.MAX_VALUE else (System.nanoTime() - at) / 1_000_000
 

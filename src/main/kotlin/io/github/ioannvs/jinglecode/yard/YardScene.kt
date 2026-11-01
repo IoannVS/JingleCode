@@ -45,7 +45,7 @@ import kotlin.random.Random
 internal class YardScene(seed: Int) {
 
     private enum class ChiefState { SIT, WALK_TO, RIDE, WALK_BACK }
-    private enum class SleighState { PARK, GO, BACK }
+    private enum class SleighState { PARK, GO, AWAY, BACK }
     private enum class ElfState { IDLE, TO_PILE, TO_SLEIGH }
     private enum class BirdState { IN, DROP, OUT }
     private enum class TreeMode { OK, FAIL }
@@ -91,6 +91,9 @@ internal class YardScene(seed: Int) {
     private var shovelT = 0.0
     private var treeMode: TreeMode? = null
     private var treeT = 0.0
+    private var fetching = false
+    private var departed = false
+    private var awayFor = 0.0
 
     /** The sleigh's left edge, for tests. */
     internal val sleighX: Double? get() = sleigh?.x
@@ -169,9 +172,22 @@ internal class YardScene(seed: Int) {
                 sl.x += sl.v * dt
                 if (sl.x > g.x1 + 5) {
                     sl.x = g.x0 - 70
-                    sl.state = SleighState.BACK
                     load = 0
+                    if (fetching) {
+                        // Off to the pile by the snowman: away until that visit is over ([comeBack]).
+                        fetching = false
+                        departed = true
+                        awayFor = 0.0
+                        sl.state = SleighState.AWAY
+                    }
+                    else {
+                        sl.state = SleighState.BACK
+                    }
                 }
+            }
+            SleighState.AWAY -> {
+                awayFor += dt
+                if (awayFor > AWAY_MAX) sl.state = SleighState.BACK
             }
             SleighState.BACK -> {
                 val d = g.parkX - sl.x
@@ -187,8 +203,8 @@ internal class YardScene(seed: Int) {
             }
             SleighState.PARK -> Unit
         }
-        if (sl.state != SleighState.PARK && random.nextDouble() < dt * SPARKS_PER_SECOND) {
-            sparks += Particle(sl.x + 1, g.gyAt(sl.x + 15) - 1 - random.nextDouble() * 3, 0.0, 0.0, .6, JinglePalette.FAR_SNOW)
+        if ((sl.state == SleighState.GO || sl.state == SleighState.BACK) && random.nextDouble() < dt * SPARKS_PER_SECOND) {
+            sparks += Particle(sl.x + 1, g.gyAt(sl.x + 15) - lift(g, sl) - 1 - random.nextDouble() * 3, 0.0, 0.0, .6, JinglePalette.FAR_SNOW)
         }
 
         // elves: take from the chute pile, carry to the sleigh
@@ -348,6 +364,43 @@ internal class YardScene(seed: Int) {
         running = false
     }
 
+    /**
+     * A push: the sleigh goes for the gifts by the snowman. Santa walks to it and rides off to the right, up into
+     * the sky; it stays away until [comeBack]. Returns whether it is leaving (or already riding off); `false` if it
+     * is on its way back or away already, then nobody leaves.
+     */
+    fun fetch(): Boolean {
+        val ch = chief ?: return false
+        val sl = sleigh ?: return false
+        return when {
+            sl.state == SleighState.PARK && ch.state == ChiefState.SIT -> {
+                load = 0
+                ch.state = ChiefState.WALK_TO
+                fetching = true
+                true
+            }
+            ch.state == ChiefState.WALK_TO || sl.state == SleighState.GO -> {
+                fetching = true
+                true
+            }
+            else -> false
+        }
+    }
+
+    /** Whether the sleigh has just left for the snowman's pile, since the last call. */
+    fun takeDeparted(): Boolean = departed.also { departed = false }
+
+    /** Whether the sleigh is away at the snowman's pile. */
+    val away: Boolean get() = sleigh?.state == SleighState.AWAY
+
+    /** The visit by the snowman is over: the sleigh comes back from the left with [cargo] gifts. */
+    fun comeBack(cargo: Int) {
+        val sl = sleigh ?: return
+        if (sl.state != SleighState.AWAY) return
+        load = cargo.coerceIn(0, 6)
+        sl.state = SleighState.BACK
+    }
+
     /** A notification: the bullfinch brings a letter to the sack. */
     fun letter() {
         if (bird == null) bird = Bird()
@@ -432,7 +485,7 @@ internal class YardScene(seed: Int) {
         if (ch.state == ChiefState.SIT) c.chief(ch.x, (gy - 3).toDouble(), sitting = true)
         val moving = sl.state != SleighState.PARK
         val teamGround = jsRound(g.gyAt(sl.x + 15))
-        c.drawSleigh(jsRound(sl.x), teamGround - 7, if (moving) floor(t * 10).toInt() else 0, cargo = load, santa = ch.state == ChiefState.RIDE)
+        if (sl.state != SleighState.AWAY) c.drawSleigh(jsRound(sl.x), teamGround - 7 - jsRound(lift(g, sl)), if (moving) floor(t * 10).toInt() else 0, cargo = load, santa = ch.state == ChiefState.RIDE)
         if (ch.state == ChiefState.WALK_TO || ch.state == ChiefState.WALK_BACK) {
             c.chief(ch.x, g.gyAt(ch.x + 4) - floor(t * 8).toInt() % 2, sitting = false)
         }
@@ -475,6 +528,16 @@ internal class YardScene(seed: Int) {
             val sz = size.roundToInt()
             c.rect(jsRound(s.x - size / 2), jsRound(s.y - size / 2), sz, sz, alpha(JinglePalette.RAIL_SMOKE, s.life / 1.4 * (if (s.run) .6 else .35)))
         }
+    }
+
+    /**
+     * How high the sleigh flies over the snow: it takes off a little after it sets off and lands as it comes back
+     * (it rides on the ground in the mockup; Ivan: the sleigh flies off).
+     */
+    private fun lift(g: Geometry, sl: Sleigh): Double = when (sl.state) {
+        SleighState.GO -> ((sl.x - g.parkX - 10) * .3).coerceIn(0.0, MAX_LIFT)
+        SleighState.BACK -> ((g.parkX - sl.x - 10) * .3).coerceIn(0.0, MAX_LIFT)
+        else -> 0.0
     }
 
     // ---------- the mockup's drawing functions, at half size ----------
@@ -674,6 +737,12 @@ internal class YardScene(seed: Int) {
 
         /** How fast Santa and the elves walk, logical pixels a second. */
         private const val WALK = 15.0
+
+        /** How high the sleigh flies, logical pixels. */
+        private const val MAX_LIFT = 22.0
+
+        /** The sleigh comes back by itself if nobody calls it back within this many seconds. */
+        private const val AWAY_MAX = 40.0
 
         /** The mockup throws a spark behind the moving sleigh on every other browser frame. */
         private const val SPARKS_PER_SECOND = 30.0

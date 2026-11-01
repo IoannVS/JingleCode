@@ -124,6 +124,19 @@ internal object FrameGeometry {
         return body(boundsIn(islandOf(editors, windows.anchors), root))
     }
 
+    /**
+     * Where a scene at the bottom of [pane] stands, root pane coordinates: the snowman's drift, the village
+     * and Santa's yard stand on one line, the bottom of their islands' bodies. A pane reaching down to within
+     * [TOUCH_DISTANCE] of its island's bottom (a scroll bar or a padding may be under it) stands there too;
+     * a pane ending higher, like an editor split above another one, stands on its own bottom.
+     */
+    fun ground(pane: Rectangle, body: Rectangle?): Int {
+        val bottom = pane.y + pane.height
+        if (body == null) return bottom
+        val bodyBottom = body.y + body.height
+        return if (bodyBottom - bottom <= JBUI.scale(TOUCH_DISTANCE)) bodyBottom else bottom
+    }
+
     private fun body(island: Rectangle): Rectangle {
         val border = JBUI.scale(JBUI.getInt("Island.borderWidth", 6))
         return Rectangle(island.x + border, island.y + border, island.width - 2 * border, island.height - 2 * border)

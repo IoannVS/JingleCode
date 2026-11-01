@@ -18,12 +18,12 @@ class RailwaySceneTest {
 
     @Test
     fun `the train moves by time, not by ticks`() {
-        // The first train leaves after the mockup's 0.5 s at 52 px a second, from just left of the strip.
+        // The first train leaves after the mockup's 0.5 s at 26 px a second (the mockup's 52, halved), from just left of the strip.
         val slow = trainAfter(1.5, dt = 0.05)
         val fast = trainAfter(1.5, dt = 0.01)
         assertEquals(slow, fast, 1e-6)
-        val len = RailSprites.TRAINS[0].sumOf { it.w + 2 }
-        assertEquals(8.0 - len + 52.0, fast, 1e-6)
+        val len = RailSprites.TRAINS[0].sumOf { it.w + 1 }
+        assertEquals(0.0 - len + 26.0, fast, 1e-6)
     }
 
     @Test

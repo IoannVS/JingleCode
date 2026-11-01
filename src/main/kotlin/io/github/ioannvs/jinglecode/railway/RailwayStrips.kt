@@ -29,7 +29,8 @@ import javax.swing.SwingUtilities
  *
  * The border is set on [com.intellij.openapi.wm.ToolWindow.getComponent], the public content panel of the
  * window: it lays its content out inside its insets, so the terminal, the console or the Git log end above
- * the strip and the railway never covers them. A window whose content already has a border of its own
+ * the strip's lower part. The strip is painted on the glass pane, from edge to edge of the window's island.
+ * A window whose content already has a border of its own
  * is left alone. All of this leans on how the window lays out its content, so it goes through
  * [FeatureGate.guard]: if it throws, only the railway is off.
  */
@@ -39,45 +40,49 @@ internal class RailwayStrips(private val project: Project) : Disposable {
     /** The windows we put a border on, by tool window id. */
     private val installed = HashMap<String, Installed>()
 
-    private class Installed(val component: JComponent, val border: RailwayBorder) {
-        /** Birds were in the air on the last step: their sky needs one more repaint to wipe them off. */
+    /** A bottom window with our border: its content panel and the tool window's own component, which its island holds. */
+    private class Installed(val component: JComponent, val window: JComponent, val border: RailwayBorder) {
+        /** Something moved over the text on the last step: its sky needs one more repaint to wipe it off. */
         var skyDirty = false
+
+        /** [RailwayScene.skyState] as last painted. */
+        var skyState = 0
     }
 
     /**
-     * The flying birds leave the strip and cross the window's text (Ivan's call), so they are painted
-     * on the frame's glass pane, over the window but under popups, like the frame overlay.
+     * The strips are painted on the frame's glass pane, over the window but under popups, like the frame overlay:
+     * they reach the island's rounded edges outside the content panel, and their top (the upper half of the poles,
+     * the wires) and the flying birds lie over the window's text (Ivan's call).
      */
     private var root: JRootPane? = null
 
-    private val skyPainter = object : Painter {
+    private val painter = object : Painter {
         override fun needsRepaint(): Boolean = true
-        override fun paint(component: Component, g: Graphics2D) = paintSky(component, g)
+        override fun paint(component: Component, g: Graphics2D) = paintStrips(component, g)
         override fun addListener(listener: Painter.Listener) = Unit
         override fun removeListener(listener: Painter.Listener) = Unit
     }
 
-    private fun installSky() {
+    private fun installPainter() {
         if (root != null) return
         val rootPane = WindowManager.getInstance().getFrame(project)?.rootPane ?: return
-        IdeGlassPaneUtil.find(rootPane.contentPane).addPainter(rootPane.glassPane, skyPainter, this)
+        IdeGlassPaneUtil.find(rootPane.contentPane).addPainter(rootPane.glassPane, painter, this)
         root = rootPane
     }
 
-    private fun paintSky(glass: Component, g: Graphics2D) {
+    private fun paintStrips(glass: Component, g: Graphics2D) {
         val rootPane = root ?: return
-        if (installed.isEmpty() || !JingleCodeSettings.getInstance().state.railwayPoles) return
+        if (installed.isEmpty()) return
         val gate = FeatureGate.getInstance()
         if (!gate.isActive(JingleFeature.RAILWAY)) return
         gate.guard(JingleFeature.RAILWAY, Unit) {
-            val popups = FrameGeometry.popupsOver(rootPane)
+            // Never over a popup; each strip clips itself to its own island.
+            val clip = Area(Rectangle(0, 0, glass.width, glass.height))
+            FrameGeometry.popupsOver(rootPane).forEach { clip.subtract(Area(it)) }
             for (entry in installed.values) {
                 val c = entry.component
                 if (!c.isShowing || SwingUtilities.getRootPane(c) !== rootPane) continue
-                // Only over its own window, and never over a popup.
-                val clip = Area(SwingUtilities.convertRectangle(c, Rectangle(0, 0, c.width, c.height), glass))
-                popups.forEach { clip.subtract(Area(it)) }
-                entry.border.paintSky(g, glass, clip)
+                entry.border.paint(g, glass, clip)
             }
         }
     }
@@ -100,15 +105,25 @@ internal class RailwayStrips(private val project: Project) : Disposable {
         FeatureGate.getInstance().guard(JingleFeature.RAILWAY, Unit) {
             val glass = root?.glassPane as? JComponent
             for (entry in installed.values) {
+                relayout(entry)
                 entry.border.options = options
                 entry.border.step(dt, options)
-                val flying = options.poles && entry.border.scene.hasFlyingBirds()
-                if (glass != null && (flying || entry.skyDirty)) {
-                    entry.border.skyRect(glass)?.let { glass.repaint(it) }
-                }
-                entry.skyDirty = flying
+                // The lower part every step; the part over the text only when something changes there.
+                val busy = entry.border.scene.skyBusy()
+                val state = entry.border.scene.skyState()
+                val sky = busy || entry.skyDirty || state != entry.skyState
+                if (glass != null) entry.border.repaintRect(glass, sky)?.let { glass.repaint(it) }
+                entry.skyDirty = busy
+                entry.skyState = state
             }
         }
+    }
+
+    /** Gives [entry]'s border its island as it is now. */
+    private fun relayout(entry: Installed) {
+        val rootPane = root
+        val body = rootPane?.let { FrameGeometry.toolWindowBody(project, it, entry.window) }
+        entry.border.relayout(rootPane, body, FrameGeometry.islandArc())
     }
 
     /** Puts the strips where they belong now; call on the EDT after tool windows change. */
@@ -116,41 +131,43 @@ internal class RailwayStrips(private val project: Project) : Disposable {
         if (project.isDisposed) return
         val gate = FeatureGate.getInstance()
         val ok = gate.guard(JingleFeature.RAILWAY, false) {
-            installSky()
+            installPainter()
             update(if (gate.isActive(JingleFeature.RAILWAY)) bottomWindows() else emptyMap())
             true
         }
         if (!ok) removeAll()
     }
 
-    /** Visible tool windows at the bottom of this project's frame and their content panels. */
-    private fun bottomWindows(): Map<String, JComponent> {
+    /** Visible tool windows at the bottom of this project's frame: their content panels and their own components. */
+    private fun bottomWindows(): Map<String, Pair<JComponent, JComponent>> {
         val manager = ToolWindowManager.getInstance(project)
-        val result = HashMap<String, JComponent>()
+        val result = HashMap<String, Pair<JComponent, JComponent>>()
         for (id in manager.toolWindowIds) {
             val window = manager.getToolWindow(id) ?: continue
             if (!window.isVisible || window.anchor != ToolWindowAnchor.BOTTOM) continue
             if (window.type != ToolWindowType.DOCKED && window.type != ToolWindowType.SLIDING) continue
             val component = window.contentManagerIfCreated?.component ?: continue
             if (!component.isShowing) continue
-            result[id] = component
+            result[id] = component to window.component
         }
         return result
     }
 
-    private fun update(wanted: Map<String, JComponent>) {
+    private fun update(wanted: Map<String, Pair<JComponent, JComponent>>) {
         for ((id, entry) in installed.entries.toList()) {
-            if (wanted[id] !== entry.component) {
+            if (wanted[id]?.first !== entry.component) {
                 uninstall(entry)
                 installed -= id
             }
         }
         val options = options()
-        for ((id, component) in wanted) {
-            val entry = installed[id]
-            if (entry != null) {
-                entry.border.options = options
-                entry.border.relayout()
+        for ((id, components) in wanted) {
+            val (component, window) = components
+            val existing = installed[id]
+            if (existing != null) {
+                existing.border.options = options
+                relayout(existing)
+                repaintAll(existing.border)
                 continue
             }
             if (component.border != null) continue // someone else's border: don't fight over it
@@ -158,13 +175,19 @@ internal class RailwayStrips(private val project: Project) : Disposable {
             val border = RailwayBorder(component, id.hashCode())
             border.options = options
             component.border = border
-            installed[id] = Installed(component, border)
-            border.relayout()
+            val entry = Installed(component, window, border)
+            installed[id] = entry
+            relayout(entry)
+            repaintAll(border)
         }
     }
 
+    private fun repaintAll(border: RailwayBorder) {
+        (root?.glassPane as? JComponent)?.let { glass -> border.repaintRect(glass, sky = true)?.let(glass::repaint) }
+    }
+
     private fun uninstall(entry: Installed) {
-        (root?.glassPane as? JComponent)?.let { glass -> entry.border.skyRect(glass)?.let(glass::repaint) }
+        repaintAll(entry.border)
         if (entry.component.border === entry.border) {
             entry.component.border = null
             entry.component.revalidate()

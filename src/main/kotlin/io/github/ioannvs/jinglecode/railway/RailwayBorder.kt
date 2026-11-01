@@ -3,6 +3,7 @@ package io.github.ioannvs.jinglecode.railway
 import com.intellij.ui.scale.JBUIScale
 import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleFeature
+import io.github.ioannvs.jinglecode.overlay.FrameGeometry
 import io.github.ioannvs.jinglecode.overlay.OverlayScale
 import io.github.ioannvs.jinglecode.pixel.PixelCanvas
 import java.awt.Component
@@ -11,111 +12,131 @@ import java.awt.Graphics2D
 import java.awt.Insets
 import java.awt.Rectangle
 import java.awt.Shape
+import java.awt.geom.Area
+import java.awt.geom.RoundRectangle2D
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 import javax.swing.border.Border
 import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 
 /**
- * Room for the railway at the bottom of a tool window's content: an empty bottom inset the [scene] is painted in.
+ * Room for the railway at the bottom of a tool window's content: an empty bottom inset under the lower part of the
+ * [scene], from the middle of the poles down ([RailwayScene.CUT]); the part above lies over the window's last rows.
  *
- * Its logical pixel is the mockup's CSS pixel, so the sprites (2 of them per sprite pixel, the mockup's `P`)
- * come out as big as the other decorations. The strip is as high as the mockup's, poles or not (Ivan's call).
+ * The strip itself is painted on the glass pane ([paint]), like Santa's yard: from edge to edge of the window's
+ * island, in its rounded bottom corners, standing on the bottom of the island's body ([place]). Its pixel is the
+ * overlay's, the yard's and the drift's: one pixel and one style along the line.
  * A window lower than [MIN_WINDOW] gets no room and no strip.
  */
 internal class RailwayBorder(private val component: JComponent, seed: Int) : Border {
 
     val scene = RailwayScene(seed)
 
+    /** The island's body around the window and how round its corners are, [component] coordinates. */
+    private class Place(val body: Rectangle, val arc: Int)
+
+    private var place: Place? = null
+
     private var lastInset = -1
 
     override fun isBorderOpaque(): Boolean = false
 
-    override fun getBorderInsets(c: Component): Insets = Insets(0, 0, inset(c), 0)
+    override fun getBorderInsets(c: Component): Insets = Insets(0, 0, inset(), 0)
 
-    /** Bottom inset for [c] in user pixels, 0 if it is too low for a strip. */
-    private fun inset(c: Component): Int {
-        val pixel = pixelUser(c)
-        if (c.height < MIN_WINDOW * pixel) return 0
-        return ceil(RailwayScene.STRIP_HEIGHT * pixel).toInt()
+    /** The island's body in [component] coordinates, or the component itself without the Islands UI. */
+    private fun body(): Rectangle = place?.body ?: Rectangle(0, 0, component.width, component.height)
+
+    /** Where the strip stands, [component] coordinates: the bottom of the island's body if the content reaches it. */
+    private fun ground(): Int = FrameGeometry.ground(Rectangle(0, 0, component.width, component.height), place?.body)
+
+    /** Bottom inset in user pixels, 0 if the window is too low for a strip. */
+    private fun inset(): Int {
+        val pixel = pixelUser()
+        if (component.height < MIN_WINDOW * pixel) return 0
+        val room = ceil((RailwayScene.STRIP_HEIGHT - RailwayScene.CUT) * pixel).toInt()
+        return max(1, room - (ground() - component.height))
     }
 
-    /** User pixels per logical pixel, as [PixelCanvas] rounds it on [c]'s screen. */
-    private fun pixelUser(c: Component): Double {
-        val sysScale = JBUIScale.sysScale(c)
+    /** The strip, [component] coordinates, or `null` without one. */
+    private fun strip(): Rectangle? {
+        if (inset() <= 0 || !component.isShowing) return null
+        val body = body()
+        val height = ceil(RailwayScene.STRIP_HEIGHT * pixelUser()).toInt()
+        val bottom = ground()
+        return Rectangle(body.x, bottom - height, body.width, height)
+    }
+
+    /** User pixels per logical pixel, as [PixelCanvas] rounds it on [component]'s screen. */
+    private fun pixelUser(): Double {
+        val sysScale = JBUIScale.sysScale(component)
         return PixelCanvas.pixelSize(sysScale, magnify = magnify()) / sysScale.toDouble()
     }
 
-    /** The overlay's sprite pixel (the garland size setting against the UI font) is the mockup's `P`. */
-    private fun magnify(): Float = OverlayScale.current().magnify / P
+    /** The overlay's pixel (the garland size setting against the UI font), as the yard's. */
+    private fun magnify(): Float = OverlayScale.current().magnify
 
-    /** Lays the content out again if the room it leaves has changed (size, scale, settings). */
-    fun relayout() {
-        val inset = inset(component)
+    /** One column more than fits, so the snow reaches the right wall; the clip cuts the rest. */
+    private fun logicalWidth(): Int = floor(body().width / pixelUser()).toInt() + 1
+
+    /**
+     * Takes the island's [body] (root pane coordinates of [root], `null` without the Islands UI) and its [arc],
+     * and lays the content out again if the room it leaves has changed (size, scale, settings).
+     */
+    fun relayout(root: Component?, body: Rectangle?, arc: Int) {
+        place = if (root != null && body != null) Place(SwingUtilities.convertRectangle(root, body, component), arc) else null
+        val inset = inset()
         if (inset != lastInset) {
             lastInset = inset
             component.revalidate()
         }
-        repaintStrip()
     }
 
-    /** Moves the scene [dt] seconds on and repaints the strip, nothing else of the window. */
+    /** Moves the scene [dt] seconds on. */
     fun step(dt: Double, options: RailwayOptions) {
-        val inset = inset(component)
-        if (inset <= 0 || !component.isShowing) return
+        if (strip() == null) return
         scene.step(dt, logicalWidth(), options)
-        repaintStrip()
-    }
-
-    private fun logicalWidth(): Int = (component.width / pixelUser(component)).toInt()
-
-    private fun repaintStrip() {
-        val inset = inset(component)
-        if (inset > 0) component.repaint(0, component.height - inset, component.width, inset)
     }
 
     /** Set by [RailwayStrips] before painting: what to show. */
     var options: RailwayOptions? = null
 
-    override fun paintBorder(c: Component, g: Graphics, x: Int, y: Int, width: Int, height: Int) {
-        val inset = inset(c)
-        val options = options ?: return
-        if (inset <= 0) return
-        val g2 = g.create()
-        try {
-            // Nothing leaves the strip: smoke that rises high melts at its top edge.
-            g2.clipRect(x, y + height - inset, width, inset)
-            PixelCanvas.paint(g2, x, y + height - inset, magnify = magnify()) {
-                FeatureGate.getInstance().guard(JingleFeature.RAILWAY, Unit) { scene.paint(this, toLogical(width), options) }
-            }
-        } finally {
-            g2.dispose()
-        }
-    }
+    override fun paintBorder(c: Component, g: Graphics, x: Int, y: Int, width: Int, height: Int) = Unit
 
     /**
-     * Where the flying birds may be, in [glass] coordinates: the strip and [RailwayScene.SKY] above it,
-     * within the window; `null` without a strip.
+     * What [paint] covers, in [glass] coordinates: the strip and, if [sky], [RailwayScene.SKY] above it for the
+     * birds; without [sky], only the strip's lower part, under the window's text. `null` without a strip.
      */
-    fun skyRect(glass: Component): Rectangle? {
-        val inset = inset(component)
-        if (inset <= 0 || !component.isShowing) return null
-        val sky = ceil((RailwayScene.SKY + 2 * P * 6) * pixelUser(component)).toInt()
-        val top = max(0, component.height - inset - sky)
-        return SwingUtilities.convertRectangle(component, Rectangle(0, top, component.width, component.height - top), glass)
+    fun repaintRect(glass: Component, sky: Boolean): Rectangle? {
+        val strip = strip() ?: return null
+        val pixel = pixelUser()
+        val top = if (sky) {
+            max(0, strip.y - ceil((RailwayScene.SKY + 2 * RailSprites.FINCH.h) * pixel).toInt())
+        } else {
+            strip.y + floor(RailwayScene.CUT * pixel).toInt()
+        }
+        val r = Rectangle(strip.x, top, strip.width, strip.y + strip.height - top)
+        return SwingUtilities.convertRectangle(component, r, glass)
     }
 
-    /** Paints the birds in the air over the window, on [glass] (the frame's glass pane), clipped to [clip]. */
-    fun paintSky(g: Graphics2D, glass: Component, clip: Shape) {
-        val inset = inset(component)
-        if (inset <= 0 || !component.isShowing || !scene.hasFlyingBirds()) return
-        val origin = SwingUtilities.convertPoint(component, 0, component.height - inset, glass)
+    /** Paints the strip and the birds in the air on [glass] (the frame's glass pane), clipped to [clip] and the island. */
+    fun paint(g: Graphics2D, glass: Component, clip: Shape) {
+        val options = options ?: return
+        val strip = strip() ?: return
+        val body = body()
+        val arc = (place?.arc ?: 0).toFloat()
         val g2 = g.create() as Graphics2D
         try {
-            g2.clip(clip)
+            val island = SwingUtilities.convertRectangle(component, body, glass)
+            val area = Area(clip)
+            area.intersect(Area(RoundRectangle2D.Float(island.x.toFloat(), island.y.toFloat(), island.width.toFloat(), island.height.toFloat(), arc, arc)))
+            g2.clip(area)
+            val origin = SwingUtilities.convertPoint(component, strip.x, strip.y, glass)
             PixelCanvas.paint(g2, origin.x, origin.y, magnify = magnify()) {
-                scene.paintSky(this, toLogical(component.width), toLogical(component.height - inset))
+                FeatureGate.getInstance().guard(JingleFeature.RAILWAY, Unit) {
+                    scene.paint(this, logicalWidth(), options, skyHeight = toLogical(strip.y))
+                }
             }
         } finally {
             g2.dispose()
@@ -128,6 +149,6 @@ internal class RailwayBorder(private val component: JComponent, seed: Int) : Bor
 
     companion object {
         /** Lower windows get no railway (logical pixels, the whole window content). */
-        const val MIN_WINDOW = 120
+        const val MIN_WINDOW = 60
     }
 }

@@ -7,11 +7,9 @@ import java.awt.Color
 
 /*
  * The railway mockup's sprites (`docs/mockup/jingle-code-railway.html`, block "BOTTOM: railway strip"),
- * row for row. One sprite pixel is [P] logical pixels, the mockup's `P`.
+ * row for row. One sprite pixel is one logical pixel, the pixel of the yard and the snowman's drift: the mockup
+ * draws them at `P = 2` of its CSS pixels, so its coordinates are halved here.
  */
-
-/** The mockup's `P`: logical pixels per sprite pixel. */
-internal const val P = 2
 
 /** The mockup's `C`: what each letter of a sprite paints. */
 private val C: Map<Char, Color> = mapOf(
@@ -44,11 +42,11 @@ private val C: Map<Char, Color> = mapOf(
 internal class RailSprite(private val rows: List<String>) {
     private val cols = rows.maxOf { it.length }
 
-    /** Width in logical pixels (`wOf`). */
-    val w: Int = cols * P
+    /** Width in logical pixels (`wOf`, halved). */
+    val w: Int = cols
 
-    /** Height in logical pixels (`hOf`). */
-    val h: Int = rows.size * P
+    /** Height in logical pixels (`hOf`, halved). */
+    val h: Int = rows.size
 
     /** The mockup's `spr(rows, x, y, flip)`: top left at ([x], [y]), mirrored if [flip]. */
     fun draw(canvas: PixelCanvas, x: Double, y: Double, flip: Boolean = false) {
@@ -59,7 +57,7 @@ internal class RailSprite(private val rows: List<String>) {
                 if (ch == '.') continue
                 val color = C[ch] ?: continue
                 val ii = if (flip) cols - 1 - i else i
-                canvas.rect(left + ii * P, top + j * P, P, P, color)
+                canvas.px(left + ii, top + j, color)
             }
         }
     }
@@ -110,8 +108,8 @@ internal object RailSprites {
         listOf(STEAM, GIFTS, GIFTS),
     )
 
-    /** The mockup's `WALKERS`: who walks the path and how fast, logical pixels a second. */
+    /** The mockup's `WALKERS`: who walks the path and how fast, logical pixels a second (the mockup's, halved). */
     val WALKERS: List<Pair<RailSprite, Double>> = listOf(
-        SLEIGH to 22.0, SKIER to 26.0, KID to 18.0, DOGS to 34.0, FOX to 40.0, HARE to 46.0,
+        SLEIGH to 11.0, SKIER to 13.0, KID to 9.0, DOGS to 17.0, FOX to 20.0, HARE to 23.0,
     )
 }

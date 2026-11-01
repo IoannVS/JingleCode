@@ -55,6 +55,10 @@ class PixelCanvas private constructor(
         }
     }
 
+    /** Runs [block] with the logical origin moved by ([dx], [dy]) logical pixels. */
+    fun translated(dx: Int, dy: Int, block: PixelCanvas.() -> Unit) =
+        PixelCanvas(g, pixelSize, deviceScale, originX + dx * pixelSize, originY + dy * pixelSize).block()
+
     /**
      * Soft light, the mockup's `createRadialGradient(cx, cy, 0, cx, cy, r)` from [color] at [alpha] in the
      * middle to nothing at [r], filled over the rectangle ([x], [y], [w], [h]). Only for lights the mockup

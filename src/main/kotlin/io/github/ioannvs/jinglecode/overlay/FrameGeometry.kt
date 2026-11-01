@@ -125,6 +125,15 @@ internal object FrameGeometry {
     }
 
     /**
+     * The rounded body of the island holding [window] (a tool window's [com.intellij.openapi.wm.ToolWindow.getComponent]),
+     * root pane coordinates, or `null` without the Islands UI.
+     */
+    fun toolWindowBody(project: Project, root: JRootPane, window: JComponent): Rectangle? {
+        if (!isIslandsUi() || !window.isShowing || SwingUtilities.getRootPane(window) !== root) return null
+        return body(boundsIn(islandOf(window, windows(project, root).anchors), root))
+    }
+
+    /**
      * Where a scene at the bottom of [pane] stands, root pane coordinates: the snowman's drift, the village
      * and Santa's yard stand on one line, the bottom of their islands' bodies. A pane reaching down to within
      * [TOUCH_DISTANCE] of its island's bottom (a scroll bar or a padding may be under it) stands there too;

@@ -1,0 +1,13 @@
+<!-- Loaded only when Git4Idea is there: Git events for the decorations. -->
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="io.github.ioannvs.jinglecode.git.GitCommitStartupActivity"/>
+        <applicationService serviceInterface="io.github.ioannvs.jinglecode.events.CommitSource"
+                            serviceImplementation="io.github.ioannvs.jinglecode.git.GitCommitSource"/>
+    </extensions>
+
+    <projectListeners>
+        <listener class="io.github.ioannvs.jinglecode.git.GitCommitListener"
+                  topic="git4idea.repo.GitRepositoryChangeListener"/>
+    </projectListeners>
+</idea-plugin>

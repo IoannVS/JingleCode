@@ -1,36 +1,95 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
-    <id>io.github.ioannvs.jinglecode.JingleCode</id>
+    <id>io.github.ioannvs.jinglecode</id>
+    <name>Jingle Code</name>
+    <vendor url="https://github.com/IoannVS">IoannVS</vendor>
 
-    <!-- Public plugin name should be written in Title Case.
-     Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>JingleCode</name>
-
-    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
-
-    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+        <p><b>A cozy pixel-art winter for your IDE.</b></p>
+
+        <p>Garland lights between the panels, a snowy village behind the editor,
+        toy trains under the terminal and Santa's yard on the side.
+        All of it lives on the edges of the IDE and never touches your code.</p>
+
+        <p>Every piece can be switched off in <b>Settings | Appearance | Jingle Code</b>.</p>
+
+        <hr/>
+
+        <p><b>Уютная пиксельная зима в вашей IDE.</b></p>
+
+        <p>Гирлянда между панелями, заснеженная деревня за редактором,
+        игрушечные поезда под терминалом и двор Санты сбоку.
+        Всё живёт по краям IDE и не трогает код.</p>
+
+        <p>Любую часть можно выключить в <b>Settings | Appearance | Jingle Code</b>.</p>
         ]]></description>
 
-    <!-- Product and plugin compatibility requirements.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <!-- Git events (gifts for commits); without Git the plugin works, the gifts just stay put. -->
+    <depends optional="true" config-file="jingle-code-git.xml">Git4Idea</depends>
+    <!-- The Build action (builds without a run configuration); run configurations are heard in every IDE. -->
+    <depends optional="true" config-file="jingle-code-lang.xml">com.intellij.modules.lang</depends>
 
-    <resource-bundle>messages.MyMessageBundle</resource-bundle>
+    <resource-bundle>messages.JingleCodeBundle</resource-bundle>
 
-    <!-- Extensions defined by the plugin.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <!-- If the plugin is published on JetBrains Marketplace, errors reported by users are available on the plugin page.
-             See https://plugins.jetbrains.com/docs/marketplace/error-handler.html#developers-side for details. -->
         <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
-        <toolWindow id="MyToolWindow" factoryClass="io.github.ioannvs.jinglecode.MyToolWindowFactory"
-                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>
+
+        <applicationConfigurable
+                parentId="appearance"
+                id="io.github.ioannvs.jinglecode.settings"
+                instance="io.github.ioannvs.jinglecode.settings.JingleCodeConfigurable"
+                bundle="messages.JingleCodeBundle"
+                key="settings.display.name"/>
+        <postStartupActivity implementation="io.github.ioannvs.jinglecode.overlay.FrameOverlayStartupActivity"/>
+        <postStartupActivity implementation="io.github.ioannvs.jinglecode.popups.PopupSnowStartupActivity"/>
+        <postStartupActivity implementation="io.github.ioannvs.jinglecode.railway.RailwayStartupActivity"/>
+        <postStartupActivity implementation="io.github.ioannvs.jinglecode.hohoho.HoHoHoStartupActivity"/>
+        <editorFactoryListener implementation="io.github.ioannvs.jinglecode.snow.EditorSnowListener"/>
+        <editorFactoryListener implementation="io.github.ioannvs.jinglecode.village.EditorVillageListener"/>
+        <iw.actionProvider implementation="io.github.ioannvs.jinglecode.snow.EditorSnowWidgetActionProvider"/>
+        <statusBarWidgetFactory id="JingleCode.Fireplace"
+                                implementation="io.github.ioannvs.jinglecode.fireplace.FireplaceWidgetFactory"
+                                order="last"/>
     </extensions>
 
+    <projectListeners>
+        <listener class="io.github.ioannvs.jinglecode.drift.GiftPileListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.garland.RunLightsListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.icicles.IcicleFallsListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.fireworks.FireworksListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.yard.YardEventsListener"
+                  topic="io.github.ioannvs.jinglecode.events.JingleEventListener"/>
+        <listener class="io.github.ioannvs.jinglecode.runs.RunWatcher"
+                  topic="com.intellij.execution.ExecutionListener"/>
+        <listener class="io.github.ioannvs.jinglecode.snow.CommitTitleButton"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+        <listener class="io.github.ioannvs.jinglecode.railway.RailwayToolWindowListener"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+        <listener class="io.github.ioannvs.jinglecode.yard.YardTitleButtons"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+        <listener class="io.github.ioannvs.jinglecode.railway.RailwayTitleButtons"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+    </projectListeners>
+
+    <actions>
+        <action id="JingleCode.ToggleEditorSnow"
+                class="io.github.ioannvs.jinglecode.snow.ToggleEditorSnowAction"
+                icon="/icons/snowflake.svg"/>
+        <action id="JingleCode.TogglePanelSnow"
+                class="io.github.ioannvs.jinglecode.snow.TogglePanelSnowAction"
+                icon="/icons/snow_snowman.svg">
+            <add-to-group group-id="ProjectViewToolbar" anchor="last"/>
+        </action>
+        <action id="JingleCode.ToggleYardDecor"
+                class="io.github.ioannvs.jinglecode.yard.ToggleYardDecorAction"
+                icon="/icons/snow_santa.svg"/>
+        <action id="JingleCode.ToggleRailwayDecor"
+                class="io.github.ioannvs.jinglecode.railway.ToggleRailwayDecorAction"
+                icon="/icons/snow_locomotive.svg"/>
+    </actions>
 </idea-plugin>

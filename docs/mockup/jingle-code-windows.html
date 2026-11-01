@@ -1,0 +1,530 @@
+<title>Окна Jingle Code</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: one column of seven sections, each a small recreation of a common JetBrains window (dark Islands-like UI) with pixel decor drawn on canvases that hug real edges. */
+:root {
+  --bg: #11141b; --panel: #1a1e27; --island: #1e1f22; --island2: #2b2d30; --line: #393b40;
+  --fg: #e9e4da; --ui: #dfe1e5; --muted: #9097a5; --dim: #6f737a;
+  --ember: #ff9a3c; --good: #7fc79a; --accent: #3574f0;
+  --display: "Press Start 2P", "Courier New", monospace;
+  --body: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+html { background: var(--bg); }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--body); margin: 0;
+  padding: 28px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+header { display: flex; flex-direction: column; gap: 12px; }
+h1 { font: 400 clamp(18px, 3.2vw, 26px)/1.4 var(--display); margin: 0; color: var(--ember); }
+h2 { font: 400 13px/1.6 var(--display); margin: 0; }
+p { margin: 0; max-width: 70ch; }
+.lead { color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 14px; }
+.head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.tag { font: 600 11px var(--body); letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--good); color: var(--good); }
+.tag.risk { border-color: #e0b35a; color: #e0b35a; }
+ul { margin: 0; padding-left: 18px; color: var(--muted); max-width: 75ch; display: flex; flex-direction: column; gap: 3px; }
+li b { color: var(--fg); font-weight: 600; }
+canvas.px { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+button { font: 600 13px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); padding: 7px 12px; border-radius: 6px; cursor: pointer; }
+button:hover { border-color: var(--ember); }
+button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+
+/* окна IDE */
+.tw { background: var(--island); border-radius: 10px; border: 1px solid #2a2c30; overflow: hidden; flex: 1 1 300px; min-width: 0; color: var(--ui); font-size: 13px; }
+.twh { position: relative; display: flex; align-items: center; gap: 14px; height: 34px; padding: 0 10px; border-bottom: 1px solid #2a2c30; }
+.twh .title { font-weight: 600; }
+.twh .tab { color: var(--muted); }
+.twh .tab.on { color: var(--ui); box-shadow: inset 0 -2px 0 var(--accent); height: 100%; display: flex; align-items: center; }
+.twh .spacer { flex: 1; position: relative; align-self: stretch; }
+.twh .spacer canvas { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 24px; }
+.twh .acts { color: var(--dim); letter-spacing: 6px; }
+.twb { padding: 10px 12px; min-height: 70px; color: var(--muted); font-family: var(--mono); font-size: 12.5px; line-height: 1.6; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 10px 20px; font-family: var(--body); text-align: center; }
+.empty .t { color: var(--muted); font-size: 13px; }
+
+.console { position: relative; height: 210px; overflow: hidden; padding: 0; }
+.console .out { padding: 8px 12px; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; color: #bcbec4; white-space: pre; }
+.console .drift { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; transition: transform .6s steps(6); }
+.console .drift canvas { width: 100%; height: 48px; }
+.console.full .drift { transform: translateY(100%); }
+.prompt { color: var(--good); }
+
+.ide { display: flex; background: #2b2d30; border-radius: 12px; padding: 6px; gap: 6px; }
+.stripe { display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
+.stripe .ic { width: 36px; height: 36px; border-radius: 6px; display: grid; place-items: center; }
+.stripe .ic.on { background: #3a3d42; }
+.stripe canvas { width: 36px; height: 36px; }
+.ide .area { flex: 1; background: var(--island); border-radius: 10px; min-height: 260px; padding: 12px 14px; font: 12.5px/1.6 var(--mono); color: #bcbec4; min-width: 0; overflow: hidden; }
+.kw { color: #cf8e6d; } .fn { color: #56a8f5; } .str { color: #6aab73; }
+
+.stage { position: relative; background: var(--island); border-radius: 12px; padding: 50px 16px 24px; overflow: hidden; min-height: 380px; }
+.stage .code { font: 12.5px/1.6 var(--mono); color: #4d5057; white-space: pre; }
+.popup { position: absolute; left: 50%; top: 34px; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); background: #2b2d30; border: 1px solid #43454a; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.popup .cap { position: absolute; left: 6px; right: 6px; top: -11px; height: 12px; }
+.popup .cap canvas { width: 100%; height: 12px; }
+.popup .tabs { display: flex; gap: 14px; padding: 9px 12px 0; font-size: 13px; color: var(--muted); }
+.popup .tabs .on { color: var(--ui); box-shadow: inset 0 -2px 0 var(--accent); padding-bottom: 6px; }
+.field { margin: 8px 12px; padding: 7px 10px; border: 1px solid #4e5157; border-radius: 6px; color: var(--dim); font-size: 13px; background: #1e1f22; }
+.field.focus { border-color: var(--accent); }
+.popup .res { padding: 4px 12px 12px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.notif { position: absolute; right: 18px; bottom: 18px; width: min(320px, calc(100% - 36px)); background: #2b2d30; border: 1px solid #43454a; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--ui); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.notif .holly { position: absolute; right: -8px; top: -10px; width: 39px; height: 30px; }
+.notif .cap2 { position: absolute; left: 10px; right: 40px; top: -8px; height: 9px; }
+.notif .cap2 canvas { width: 100%; height: 9px; }
+.notif small { color: var(--muted); display: block; margin-top: 4px; }
+
+.commit { background: var(--island); border-radius: 10px; border: 1px solid #2a2c30; padding: 10px; flex: 1 1 320px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ui); }
+.commit .msg { min-height: 80px; border: 1px solid #4e5157; border-radius: 6px; padding: 8px 10px; color: var(--dim); background: #1e1f22; }
+.commit .btns { display: flex; gap: 8px; }
+.commit .btns span { background: var(--accent); color: white; padding: 5px 12px; border-radius: 5px; }
+.commit .btns span.sec { background: transparent; border: 1px solid #4e5157; color: var(--ui); }
+
+.welcome { display: flex; background: #2b2d30; border-radius: 12px; overflow: hidden; min-height: 330px; flex-wrap: wrap; }
+.welcome .side { width: 240px; display: flex; flex-direction: column; position: relative; padding: 14px 10px 0; gap: 4px; font-size: 13px; color: var(--ui); }
+.welcome .side .who { font-weight: 600; padding: 4px 8px 12px; }
+.welcome .side .it { padding: 6px 8px; border-radius: 6px; color: var(--muted); }
+.welcome .side .it.on { background: #3a3d42; color: var(--ui); }
+.welcome .side .vill { margin-top: auto; }
+.welcome .side canvas { width: 240px; height: 120px; }
+.welcome .main { flex: 1 1 300px; background: var(--island); padding: 16px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.welcome .proj { display: flex; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 6px; }
+.welcome .proj .ico { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; font-weight: 600; color: white; font-size: 11px; }
+.welcome .proj small { color: var(--dim); display: block; }
+
+.ide2 { display: flex; background: #2b2d30; border-radius: 12px; padding: 6px; gap: 6px; height: 380px; }
+.ide2 .stripe { display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; width: 40px; }
+.ide2 .stripe .ic { width: 36px; height: 36px; border-radius: 6px; display: grid; place-items: center; }
+.ide2 .stripe .gap { flex: 1; position: relative; }
+.ide2 .stripe .gap canvas { position: absolute; left: 0; right: 0; width: 39px; }
+.ide2 .center { flex: 1; display: flex; flex-direction: column; background: var(--island); border-radius: 10px; overflow: hidden; min-width: 0; }
+.tabs2 { display: flex; align-items: stretch; height: 36px; border-bottom: 1px solid #2a2c30; font-size: 13px; color: var(--muted); }
+.tabs2 .t { display: flex; align-items: center; gap: 6px; padding: 0 12px; white-space: nowrap; }
+.tabs2 .t.on { color: var(--ui); box-shadow: inset 0 -2px 0 var(--accent); }
+.tabs2 .t i { font-style: normal; color: var(--dim); }
+.tabs2 .sp { flex: 1; position: relative; min-width: 40px; }
+.tabs2 .sp canvas { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 24px; }
+.code2 { padding: 12px 14px; font: 12.5px/1.6 var(--mono); color: #bcbec4; white-space: pre; overflow: hidden; }
+.diff { display: flex; background: var(--island); border-radius: 12px; overflow: hidden; border: 1px solid #2a2c30; }
+.diff .pane { flex: 1; min-width: 0; font: 12.5px/22px var(--mono); color: #bcbec4; white-space: pre; overflow: hidden; padding: 8px 0; }
+.diff .pane div { padding: 0 10px; height: 22px; }
+.diff .mod { background: #2c3a52; } .diff .add { background: #2b4430; } .diff .del { background: #4a2d2d; }
+.diff .div { width: 39px; flex: none; padding: 8px 0; background: #26282b; }
+.diff .div canvas { width: 39px; height: 220px; }
+.menu { position: absolute; left: 40%; top: 60px; width: 230px; background: #2b2d30; border: 1px solid #43454a; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.5); padding: 5px; font-size: 13px; color: var(--ui); }
+.menu .cap { position: absolute; left: 4px; right: 4px; top: -11px; height: 12px; }
+.menu .cap canvas { width: 100%; height: 12px; }
+.menu div.i { padding: 5px 10px; border-radius: 5px; display: flex; justify-content: space-between; }
+.menu div.i span { color: var(--dim); }
+.menu div.i.on { background: #2e436e; }
+.menu hr { border: 0; border-top: 1px solid #43454a; margin: 4px 6px; }
+@media (max-width: 640px) { .menu { left: 16px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Окна Jingle Code</h1>
+    <p class="lead">Всё, что сейчас за бортом: окна, общие для всех IDE JetBrains. Правила те же, что и для остального декора: поверх кода и текста не рисуем, декор держится за края и живёт только в пустых местах. Окна нарисованы упрощённо, пиксельный декор в масштабе ×3.</p>
+    <div class="row"><button id="pause" type="button">Пауза</button></div>
+  </header>
+
+  <section>
+    <div class="head"><h2>1. Шапки инструментальных окон</h2><span class="tag">берём</span></div>
+    <div class="row">
+      <div class="tw"><div class="twh"><span class="title">Terminal</span><span class="tab on">Local</span><span class="tab">Local (2)</span><span class="spacer"><canvas class="px" data-d="headSnow" data-fit="1" data-w="120" data-h="8" data-seed="1"></canvas></span><span class="acts">⋮ –</span></div>
+        <div class="twb"><span class="prompt">ivan@gigabyte</span> ~/JingleCode $ ./gradlew runIde<br>Starting a Gradle Daemon…</div></div>
+      <div class="tw"><div class="twh"><span class="title">Run</span><span class="tab on">JingleCode [runIde]</span><span class="spacer"><canvas class="px" data-d="headSnow" data-fit="1" data-w="120" data-h="8" data-seed="2" data-bird="1"></canvas></span><span class="acts">⋮ –</span></div>
+        <div class="twb">&gt; Task :runIde<br>Build successful in 14s</div></div>
+    </div>
+    <ul>
+      <li><b>Одна реализация на все окна</b>: шапка у инструментальных окон общая, поэтому снег появляется в Terminal, Run, Debug, Problems, Git и любых окнах других плагинов.</li>
+      <li><b>Только пустое место</b> между вкладками и кнопками справа. Узкое окно, где места нет, остаётся без снега.</li>
+      <li><b>Снегирь</b> изредка садится на сугроб, прыгает и улетает. В правом окне он прилетает чаще, чтобы было видно.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>2. Пустые окна</h2><span class="tag">берём</span></div>
+    <div class="row">
+      <div class="tw"><div class="twh"><span class="title">Problems</span><span class="tab on">File</span><span class="tab">Project Errors</span></div>
+        <div class="empty"><canvas class="px" data-d="emptyProblems" data-w="48" data-h="26" style="width:144px;height:78px"></canvas><span class="t">Проблем нет. Снеговик спит.</span></div></div>
+      <div class="tw"><div class="twh"><span class="title">Bookmarks</span></div>
+        <div class="empty"><canvas class="px" data-d="emptyBookmarks" data-w="48" data-h="26" style="width:144px;height:78px"></canvas><span class="t">Закладок нет. Белка прячет орех на потом.</span></div></div>
+    </div>
+    <div class="row">
+      <div class="tw"><div class="twh"><span class="title">TODO</span><span class="tab on">Project</span><span class="tab">Current File</span></div>
+        <div class="empty"><canvas class="px" data-d="emptyTodo" data-w="48" data-h="26" style="width:144px;height:78px"></canvas><span class="t">Дел нет. Эльф пьёт какао.</span></div></div>
+      <div class="tw"><div class="twh"><span class="title">Find</span><span class="tab on">“letItSnow”</span></div>
+        <div class="empty"><canvas class="px" data-d="emptyFind" data-w="48" data-h="26" style="width:144px;height:78px"></canvas><span class="t">Ничего не найдено. Сорока ищет в сугробе.</span></div></div>
+    </div>
+    <ul>
+      <li><b>Вместо серой надписи</b> «Nothing to show» маленькая сценка и та же мысль с зимней шуткой. Через пустой текст списков и деревьев, это публичный механизм.</li>
+      <li><b>Сценка исчезает</b>, как только в окне появляется содержимое.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>3. Сугроб в Terminal и Run</h2></div>
+    <div class="row">
+      <div class="tw"><div class="twh"><span class="title">Terminal</span><span class="tab on">Local</span><span class="spacer"></span></div>
+        <div class="console" id="con"><div class="out" id="out"></div><div class="drift"><canvas class="px" data-d="consoleDrift" data-fit="1" data-w="200" data-h="16"></canvas></div></div></div>
+    </div>
+    <div class="row"><button id="more" type="button">Добавить вывод</button><button id="clear" type="button">Очистить</button></div>
+    <ul>
+      <li><b>Пока внизу пусто</b>, там лежит сугроб от края до края, как в панели Project: фонарик, ёлочка, следы.</li>
+      <li><b>Когда вывод доходит до сугроба</b>, сугроб уезжает вниз и не мешает читать. После очистки возвращается.</li>
+      <li>То же для консолей Run, Debug и Services.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>4. Значки на боковых полосках</h2><span class="tag risk">риск средний</span></div>
+    <div class="ide">
+      <div class="stripe">
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="folder" data-w="12" data-h="12"></canvas></span>
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="git" data-w="12" data-h="12"></canvas></span>
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="struct" data-w="12" data-h="12"></canvas></span>
+        <span class="ic on"><canvas class="px" data-d="icon" data-icon="run" data-w="12" data-h="12"></canvas></span>
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="bug" data-w="12" data-h="12"></canvas></span>
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="term" data-w="12" data-h="12"></canvas></span>
+      </div>
+      <div class="area"><span class="kw">fun</span> <span class="fn">main</span>() {<br>&nbsp;&nbsp;&nbsp;&nbsp;println(<span class="str">"Jingle Code"</span>)<br>}</div>
+    </div>
+    <ul>
+      <li><b>Шапка снега</b> на значках окон, на значке активного окна снег искрится.</li>
+      <li><b>Риск</b>: значки подменяются через механизм подмены иконок, он публичный лишь наполовину. Значки других плагинов не трогаем. Отдельный переключатель.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>5. Всплывающие окна и уведомления</h2><span class="tag">берём</span><span class="tag risk">риск средний</span></div>
+    <div class="stage">
+      <div class="code">fun deliver(gift: Gift) {
+    val sleigh = Sleigh(reindeer = 8)
+    sleigh.load(gift)
+    sleigh.fly(to = gift.address)
+}
+
+
+</div>
+      <div class="popup">
+        <div class="cap"><canvas class="px" data-d="popupCap" data-fit="1" data-w="180" data-h="4"></canvas></div>
+        <div class="tabs"><span class="on">All</span><span>Classes</span><span>Files</span><span>Symbols</span><span>Actions</span></div>
+        <div class="field focus">Ищем подарки…</div>
+        <div class="res"><span>Sleigh.kt</span><span>Gift</span><span>deliver(gift: Gift)</span></div>
+      </div>
+      <div class="notif"><div class="cap2"><canvas class="px" data-d="popupCap" data-fit="1" data-w="90" data-h="3"></canvas></div><canvas class="px holly" data-d="holly" data-w="13" data-h="10"></canvas>
+        <b>Gradle sync finished</b><small>Проект синхронизирован за 6 с</small></div>
+    </div>
+    <ul>
+      <li><b>Search Everywhere, Find, Go to</b>: тонкая снежная кромка лежит на верхнем крае окна, снаружи, внутрь не заходит.</li>
+      <li><b>Уведомления</b>: кромка снега и веточка остролиста с ягодами в углу.</li>
+      <li><b>Риск</b>: всплывающие окна ловим через события окон, на разных версиях IDE возможны сюрпризы. Отдельный переключатель.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>6. Подсказки в пустых полях</h2></div>
+    <div class="row">
+      <div class="commit"><b>Commit</b><div class="msg">Напиши письмо Деду Морозу…</div><div class="btns"><span>Commit</span><span class="sec">Commit and Push…</span></div></div>
+      <div class="commit"><b>Search Everywhere</b><div class="field focus" style="margin:0">Ищем подарки…</div><b>Find in Files</b><div class="field" style="margin:0">Что ищем под ёлкой?</div></div>
+    </div>
+    <ul>
+      <li><b>Только пустое поле</b>: подсказка исчезает с первой буквой, как обычный placeholder.</li>
+      <li><b>Набор фраз</b> по-русски и по-английски, выбирается случайно. Работы мало, по риску зависит от поля: коммит проще, Search Everywhere сложнее.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>7. Экран приветствия</h2><span class="tag">берём</span><span class="tag risk">проверить API</span></div>
+    <div class="welcome">
+      <div class="side">
+        <div class="who">IntelliJ IDEA</div>
+        <div class="it on">Projects</div><div class="it">Customize</div><div class="it">Plugins</div><div class="it">Learn</div>
+        <div class="vill"><canvas class="px" data-d="welcomeVillage" data-w="80" data-h="40"></canvas></div>
+      </div>
+      <div class="main">
+        <div class="field" style="margin:0 0 6px">Search projects</div>
+        <div class="proj"><span class="ico" style="background:#c0392b">JC</span><span>JingleCode<small>~\IdeaProjects\JingleCode</small></span></div>
+        <div class="proj"><span class="ico" style="background:#2f6f73">KD</span><span>kafka-demo<small>~\IdeaProjects\kafka-demo</small></span></div>
+        <div class="proj"><span class="ico" style="background:#7a3b6e">RH</span><span>RieltHubBackend<small>~\IdeaProjects\RieltHubBackend</small></span></div>
+      </div>
+    </div>
+    <ul>
+      <li><b>Под меню слева</b> всегда пусто: там маленькая деревня, прижатая к нижнему краю, дым из трубы, снегопад.</li>
+      <li><b>Проверить</b>, есть ли публичный способ рисовать на экране приветствия. Если нет, переключатель с пометкой «экспериментальное».</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>8. Пустое место на боковых полосках</h2><span class="tag">советую</span></div>
+    <div class="ide2">
+      <div class="stripe">
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="folder" data-nocap="1" data-w="12" data-h="12" style="width:36px;height:36px"></canvas></span>
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="git" data-nocap="1" data-w="12" data-h="12" style="width:36px;height:36px"></canvas></span>
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="struct" data-nocap="1" data-w="12" data-h="12" style="width:36px;height:36px"></canvas></span>
+        <span class="gap"><canvas class="px" data-d="stripeSnowman" data-w="13" data-h="34" style="bottom:0;height:102px"></canvas></span>
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="term" data-nocap="1" data-w="12" data-h="12" style="width:36px;height:36px"></canvas></span>
+      </div>
+      <div class="center"><div class="code2"><span class="kw">class</span> <span class="fn">Sleigh</span>(<span class="kw">val</span> reindeer: Int) {
+    <span class="kw">fun</span> <span class="fn">fly</span>(to: Address) = println(<span class="str">"Ho-ho-ho → $to"</span>)
+}</div></div>
+      <div class="stripe">
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="bell" data-nocap="1" data-w="12" data-h="12" style="width:36px;height:36px"></canvas></span>
+        <span class="ic"><canvas class="px" data-d="icon" data-icon="db" data-nocap="1" data-w="12" data-h="12" style="width:36px;height:36px"></canvas></span>
+        <span class="gap"><canvas class="px" data-d="stripeElf" data-w="13" data-h="96" style="top:0;height:288px"></canvas></span>
+      </div>
+    </div>
+    <ul>
+      <li><b>Слева внизу</b>, под значками, сугроб со снеговиком. Снеговик иногда машет метлой, на него садится снегирь.</li>
+      <li><b>Справа</b> время от времени сверху на верёвочке спускается эльф, болтает ногами, машет и забирается обратно.</li>
+      <li><b>Если значков много</b> и места нет, декор не показывается. Если окно свёрнуто в полоску, тоже.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>9. Полоса вкладок редактора</h2></div>
+    <div class="ide2" style="height:auto">
+      <div class="center">
+        <div class="tabs2"><span class="t on">Sleigh.kt <i>×</i></span><span class="t">Gift.kt <i>×</i></span><span class="t">build.gradle.kts <i>×</i></span><span class="sp"><canvas class="px" data-d="headSnow" data-fit="1" data-w="120" data-h="8" data-seed="4" data-bird="1"></canvas></span></div>
+        <div class="code2"><span class="kw">data class</span> <span class="fn">Gift</span>(<span class="kw">val</span> name: String, <span class="kw">val</span> address: Address)</div>
+      </div>
+    </div>
+    <ul>
+      <li><b>Тот же снег, что в шапках окон</b>: справа от последней вкладки, только в пустом месте. Когда вкладок много и места нет, снега нет.</li>
+      <li><b>Общий код</b> с шапками окон, отдельная работа почти не нужна.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>10. Diff</h2></div>
+    <div class="scroll" style="overflow-x:auto"><div class="diff" style="min-width:640px">
+      <div class="pane"><div class="">fun deliver(gift: Gift) {</div><div class="mod">    val sleigh = Sleigh(reindeer = 8)</div><div class="">    sleigh.load(gift)</div><div class="">    sleigh.fly(to = gift.address)</div><div class="">}</div><div class="">&nbsp;</div><div class="">fun wrap(gift: Gift) =</div><div class="mod">    gift.copy(paper = Paper.RED)</div><div class="">&nbsp;</div></div>
+      <div class="div"><canvas class="px" data-d="diffGarland" data-w="13" data-h="73"></canvas></div>
+      <div class="pane"><div class="">fun deliver(gift: Gift) {</div><div class="mod">    val sleigh = Sleigh(reindeer = 9)</div><div class="">    sleigh.load(gift)</div><div class="add">    sleigh.checkList()</div><div class="">    sleigh.fly(to = gift.address)</div><div class="">}</div><div class="">&nbsp;</div><div class="">fun wrap(gift: Gift) =</div><div class="mod">    gift.copy(paper = Paper.GOLD)</div></div>
+    </div></div>
+    <ul>
+      <li><b>Разделитель</b> между половинами: связки изменений остаются как есть, по разделителю провисает гирлянда, огни переливаются.</li>
+      <li><b>Внутри половин</b> ничего не рисуем, код и подсветка изменений не трогаются.</li>
+      <li><b>Риск средний</b>: разделитель Diff рисуется внутренним компонентом. Отдельный переключатель.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>11. Контекстные меню</h2><span class="tag risk">риск средний</span></div>
+    <div class="stage" style="min-height:300px">
+      <div class="code">class Sleigh(val reindeer: Int) {
+    fun fly(to: Address) {
+        println("Ho-ho-ho → $to")
+    }
+}</div>
+      <div class="menu">
+        <div class="cap"><canvas class="px" data-d="popupCap" data-fit="1" data-w="70" data-h="4"></canvas></div>
+        <div class="i">Show Context Actions <span>Alt+Enter</span></div>
+        <div class="i">Paste <span>Ctrl+V</span></div>
+        <hr>
+        <div class="i on">Refactor <span>›</span></div>
+        <div class="i">Generate… <span>Alt+Insert</span></div>
+        <hr>
+        <div class="i">Run 'Sleigh' <span>Ctrl+Shift+F10</span></div>
+        <div class="i">Debug 'Sleigh'</div>
+      </div>
+    </div>
+    <ul>
+      <li><b>Снежная кромка</b> сверху, снаружи меню, как у Search Everywhere. Пункты меню не трогаем.</li>
+      <li><b>Почти даром</b>, если сделаем всплывающие окна: тот же способ перехвата. Отдельный переключатель, потому что меню открывают часто.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const px = (c, x, y, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), 1, 1); };
+const rect = (c, x, y, w, h, col) => { if (w <= 0 || h <= 0) return; c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+const hash = (a, b) => { const s = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return s - Math.floor(s); };
+const P = { snow: '#eef3fa', hi: '#ffffff', sh: '#c3d2e6', red: '#d8433a', dark: '#2b2b33', pine: ['#2e7d4f', '#3f8f5a'], gold: '#ffd75e', brown: '#6b3e22', skin: '#f3d2b3', lit: '#ffcf5e', smoke: '#8d96a8' };
+let frame = 0, paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function drift(c, w, h, base, amp, seed) {
+  for (let x = 0; x < w; x++) {
+    const t = Math.round(h - base - Math.sin(x / 9 + seed) * amp - Math.sin(x / 4 + seed * 2) * 0.6);
+    rect(c, x, t, 1, h - t, P.snow); px(c, x, t, P.hi);
+    if (Math.round(h - base - Math.sin((x + 1) / 9 + seed) * amp) > t) px(c, x, t + 1, P.sh);
+  }
+}
+const groundY = (h, base, amp, seed, x) => Math.round(h - base - Math.sin(x / 9 + seed) * amp - Math.sin(x / 4 + seed * 2) * 0.6);
+function bullfinch(c, x, y, fly) { px(c, x, y, P.red); px(c, x + 1, y, P.red); px(c, x + 1, y - 1, P.dark); px(c, x + 2, y - 1, '#e0a030'); if (fly) { px(c, x, y - 1 - (fly % 2), '#4a5568'); px(c, x - 1, y - (fly % 2), '#4a5568'); } else px(c, x - 1, y, '#4a5568'); }
+function flakes(c, w, h, n, seed) { for (let i = 0; i < n; i++) { const x = Math.floor(hash(i, seed) * w), sp = 0.2 + hash(i, seed + 1) * 0.3, y = Math.floor((frame * sp + hash(i, seed + 2) * h) % h); px(c, (x + Math.round(Math.sin((frame + i * 7) / 6))) % w, y, i % 3 ? '#cfe0ff' : P.hi); } }
+function pine(c, x, base, h) { for (let i = 0; i < h; i++) { const hw = Math.floor(i / 2.4); rect(c, x - hw, base - h + i, hw * 2 + 1, 1, i % 3 === 2 ? P.pine[1] : P.pine[0]); if (i % 3 === 0 && i > 0) px(c, x - hw, base - h + i, P.snow); } px(c, x, base, P.brown); }
+function snowman(c, x, gy, sleep) {
+  rect(c, x, gy - 6, 7, 6, P.hi); rect(c, x - 1, gy - 5, 9, 4, P.hi); rect(c, x + 1, gy - 11, 5, 5, P.hi);
+  rect(c, x + 2, gy - 12, 3, 1, P.hi); rect(c, x, gy - 7, 7, 1, '#c0392b'); px(c, x + 6, gy - 6, '#c0392b');
+  if (sleep) { rect(c, x + 2, gy - 9, 1, 1, P.dark); rect(c, x + 4, gy - 9, 1, 1, P.dark); } else { px(c, x + 2, gy - 9, P.dark); px(c, x + 4, gy - 9, P.dark); }
+  px(c, x + 5, gy - 8, '#ff9f2e'); px(c, x + 6, gy - 8, '#ff9f2e');
+  rect(c, x + 1, gy - 13, 5, 1, '#c0392b'); rect(c, x + 2, gy - 15, 3, 2, '#c0392b'); px(c, x + 5, gy - 15, '#c0392b'); px(c, x + 6, gy - 14, P.hi);
+}
+function tinyHouse(c, x, gy, w, h, roof, lit) {
+  rect(c, x, gy - h, w, h, '#8a5a3a'); for (let y = gy - h + 1; y < gy; y += 2) rect(c, x, y, w, 1, '#74482d');
+  for (let i = 0; i < Math.ceil(w / 2) + 2; i++) rect(c, x - 2 + i, gy - h - 1 - i, w + 4 - i * 2, 1, roof);
+  for (let i = 0; i < Math.ceil(w / 2) + 2; i++) { px(c, x - 2 + i, gy - h - 2 - i, P.snow); px(c, x + w + 1 - i, gy - h - 2 - i, P.snow); }
+  rect(c, x + 2, gy - h + 2, 3, 3, lit ? P.lit : '#1b2433'); if (w > 9) rect(c, x + w - 5, gy - h + 2, 3, 3, lit ? P.lit : '#1b2433');
+  rect(c, x + Math.floor(w / 2) - 1, gy - 4, 3, 4, '#4a2c1c');
+}
+function smoke(c, x, y, n) { for (let i = 0; i < n; i++) { const t = (frame * 0.3 + i * 2.2) % (n * 2.2); if (t < 1) continue; px(c, x + Math.round(Math.sin(t * 0.9) * 1.2), y - Math.round(t * 1.3), P.smoke); } }
+
+const D = {
+  headSnow(c, w, h, el) {
+    const seed = +el.dataset.seed || 1;
+    for (let x = 0; x < w; x++) {
+      const edge = Math.min(x, w - 1 - x), fade = Math.min(1, edge / 10);
+      const hh = Math.round((2.8 + Math.sin(x / 7 + seed) * 1.2 + Math.sin(x / 3 + seed) * 0.5) * fade);
+      if (hh > 0) { rect(c, x, h - hh, 1, hh, P.snow); px(c, x, h - hh, P.hi); }
+    }
+    const period = el.dataset.bird ? 90 : 260, t = (frame + seed * 40) % period, bx = Math.round(w * 0.55);
+    const by = h - 4;
+    if (t < 12) bullfinch(c, bx - (12 - t) * 3, by - (12 - t), t);
+    else if (t < 60) { const hop = Math.floor(t / 8) % 3 === 0 ? 1 : 0; bullfinch(c, bx + Math.floor((t - 12) / 16), by - hop, 0); }
+    else if (t < 72) { const q = t - 60; bullfinch(c, bx + 3 + q * 3, by - q, t); }
+  },
+  emptyProblems(c, w, h) {
+    drift(c, w, h, 4, 1.2, 1); snowman(c, 20, groundY(h, 4, 1.2, 1, 23) + 1, true);
+    const t = frame % 24; ['z', 'z', 'Z'].forEach((_, i) => { const q = (t + i * 8) % 24; if (q < 20) { const x = 29 + Math.floor(q / 4) + i, y = 10 - Math.floor(q / 3); rect(c, x, y, 2, 1, '#cfe0ff'); px(c, x + 1, y + 1, '#cfe0ff'); rect(c, x, y + 2, 2, 1, '#cfe0ff'); } });
+    pine(c, 8, groundY(h, 4, 1.2, 1, 8), 11); flakes(c, w, h - 4, 6, 3);
+  },
+  emptyBookmarks(c, w, h) {
+    drift(c, w, h, 4, 1.5, 2);
+    const gy = groundY(h, 4, 1.5, 2, 22), t = frame % 50, dig = t < 30;
+    const col = '#b5652b';
+    rect(c, 20, gy - 5, 4, 4, col); rect(c, 21, gy - 7, 3, 2, col); px(c, 21, gy - 8, col); px(c, 23, gy - 8, col); px(c, 23, gy - 6, P.dark);
+    rect(c, 16, gy - 8, 3, 6, '#c97a3a'); rect(c, 15, gy - 9, 3, 2, '#c97a3a'); px(c, 17, gy - 10, '#c97a3a');
+    if (dig) { px(c, 24 + (t % 4 < 2 ? 1 : 0), gy - 2, '#7a4a1e'); if (t % 6 < 3) { px(c, 27, gy - 4 - (t % 3), P.hi); px(c, 28, gy - 3, P.hi); } }
+    else { rect(c, 25, gy - 1, 3, 1, P.hi); px(c, 26, gy - 2, P.hi); }
+    rect(c, 26, gy - (dig ? 3 : 1), 2, 2, '#8a5a2a');
+    pine(c, 38, groundY(h, 4, 1.5, 2, 38), 14); flakes(c, w, h - 4, 6, 5);
+  },
+  emptyTodo(c, w, h) {
+    drift(c, w, h, 4, 1, 3);
+    const gy = groundY(h, 4, 1, 3, 20);
+    rect(c, 14, gy - 7, 10, 7, '#c0392b'); rect(c, 18, gy - 7, 2, 7, P.gold); rect(c, 14, gy - 4, 10, 1, P.gold); px(c, 17, gy - 8, P.gold); px(c, 20, gy - 8, P.gold);
+    const ex = 17, ey = gy - 8;
+    rect(c, ex, ey - 4, 4, 4, '#2e7d4f'); px(c, ex + 1, ey - 5, P.skin); px(c, ex + 2, ey - 5, P.skin);
+    rect(c, ex, ey - 6, 4, 1, '#2e7d4f'); px(c, ex + 1, ey - 7, '#2e7d4f'); px(c, ex + 2, ey - 8, '#2e7d4f'); px(c, ex + 3, ey - 8, P.hi);
+    const sw = frame % 8 < 4; px(c, ex + (sw ? -1 : 0), ey + 1, '#c0392b'); px(c, ex + 4 + (sw ? 0 : 1), ey + 1, '#c0392b');
+    rect(c, ex + 4, ey - 3, 2, 2, P.hi); px(c, ex + 6, ey - 3, P.hi); const st = frame % 10; px(c, ex + 5, ey - 5 - Math.floor(st / 4), '#dfe6ef');
+    pine(c, 34, groundY(h, 4, 1, 3, 34), 15); for (let i = 0; i < 4; i++) px(c, 34 - 2 + i, groundY(h, 4, 1, 3, 34) - 10 + i * 3, ['#ff5a5a', '#5ab8ff', P.gold, '#7fe08a'][(i + Math.floor(frame / 4)) % 4]);
+    flakes(c, w, h - 4, 5, 7);
+  },
+  emptyFind(c, w, h) {
+    drift(c, w, h, 4, 2, 4);
+    const gy = groundY(h, 4, 2, 4, 22), t = frame % 40, dig = t % 10 < 5;
+    rect(c, 20, gy - 5, 5, 3, '#1b1b1f'); rect(c, 21, gy - 4, 3, 1, P.hi);
+    const hx = dig ? 25 : 24, hy = dig ? gy - 3 : gy - 7; rect(c, hx, hy, 2, 2, '#1b1b1f'); px(c, hx + 2, hy + 1, '#5a5a62');
+    rect(c, 15, gy - 6, 5, 1, '#1d3a6b'); rect(c, 13, gy - 7, 3, 1, '#2a5a9a'); px(c, 21, gy - 1, '#5a5a62'); px(c, 23, gy - 1, '#5a5a62');
+    if (dig) { px(c, 28, gy - 4, P.hi); px(c, 29, gy - 6, P.hi); px(c, 27, gy - 7, P.hi); }
+    if (t > 30) { px(c, 31, gy - 9, P.gold); px(c, 32, gy - 9, '#fff2b8'); }
+    flakes(c, w, h - 4, 6, 9);
+  },
+  consoleDrift(c, w, h) {
+    drift(c, w, h, 6, 2, 5);
+    for (let x = 30; x < 120; x += 5) px(c, x, groundY(h, 6, 2, 5, x) + 2 + (x % 10 ? 0 : 1), P.sh);
+    const lx = 150, ly = groundY(h, 6, 2, 5, lx); rect(c, lx, ly - 9, 1, 9, '#2b2b2b'); rect(c, lx - 1, ly - 11, 3, 2, P.gold); if (frame % 10 < 7) { px(c, lx - 2, ly - 10, '#a57a2c'); px(c, lx + 2, ly - 10, '#a57a2c'); }
+    pine(c, 176, groundY(h, 6, 2, 5, 176) + 1, 12); pine(c, 186, groundY(h, 6, 2, 5, 186) + 1, 8);
+    for (let i = 0; i < 3; i++) px(c, 176 - 2 + i * 2, groundY(h, 6, 2, 5, 176) - 4 - i * 2, ['#ff5a5a', P.gold, '#5ab8ff'][(i + Math.floor(frame / 4)) % 3]);
+    rect(c, 14, groundY(h, 6, 2, 5, 16) - 3, 5, 3, '#c0392b'); rect(c, 16, groundY(h, 6, 2, 5, 16) - 3, 1, 3, P.gold);
+    flakes(c, w, h - 6, 10, 11);
+  },
+  icon(c, w, h, el) {
+    const k = el.dataset.icon, g = '#ced0d6', on = el.parentElement.classList.contains('on');
+    if (k === 'folder') { rect(c, 1, 4, 10, 7, g); rect(c, 1, 3, 4, 1, g); rect(c, 2, 6, 8, 4, '#2b2d30'); }
+    if (k === 'git') { rect(c, 3, 3, 1, 8, g); px(c, 2, 3, g); px(c, 4, 3, g); rect(c, 8, 5, 1, 2, g); px(c, 7, 7, g); px(c, 6, 8, g); px(c, 5, 9, g); px(c, 4, 10, g); px(c, 7, 4, g); px(c, 9, 4, g); }
+    if (k === 'struct') { rect(c, 2, 3, 3, 2, g); rect(c, 6, 6, 4, 1, g); rect(c, 6, 9, 4, 1, g); rect(c, 3, 5, 1, 5, g); px(c, 4, 6, g); px(c, 4, 9, g); px(c, 5, 6, g); px(c, 5, 9, g); }
+    if (k === 'run') { for (let i = 0; i < 4; i++) rect(c, 4 + i, 3 + i, 1, 8 - i * 2, '#5fb865'); }
+    if (k === 'bug') { rect(c, 4, 4, 4, 6, '#e06c5a'); rect(c, 5, 3, 2, 1, '#e06c5a'); px(c, 3, 5, g); px(c, 8, 5, g); px(c, 3, 8, g); px(c, 8, 8, g); rect(c, 4, 7, 4, 1, '#2b2d30'); }
+    if (k === 'term') { rect(c, 1, 3, 10, 8, g); rect(c, 2, 4, 8, 6, '#2b2d30'); px(c, 3, 5, g); px(c, 4, 6, g); px(c, 3, 7, g); rect(c, 5, 8, 3, 1, g); }
+    if (k === 'bell') { rect(c, 4, 3, 4, 6, g); rect(c, 3, 8, 6, 1, g); px(c, 5, 2, g); px(c, 6, 2, g); rect(c, 5, 10, 2, 1, g); }
+    if (k === 'db') { rect(c, 3, 3, 6, 8, g); rect(c, 4, 5, 4, 1, '#2b2d30'); rect(c, 4, 8, 4, 1, '#2b2d30'); }
+    if (el.dataset.nocap) return;
+    const capY = 3;
+    for (let x = 1; x < 11; x++) { const hgt = 1 + (hash(x, k.length) > 0.6 ? 1 : 0); rect(c, x, capY - hgt, 1, hgt, P.snow); }
+    px(c, 2, capY - 2, P.hi);
+    if (on && frame % 12 < 6) px(c, 3 + (Math.floor(frame / 12) % 6), capY - 2, P.hi);
+  },
+  popupCap(c, w, h) {
+    for (let x = 0; x < w; x++) { const edge = Math.min(x, w - 1 - x), fade = Math.min(1, edge / 6); const hh = Math.max(0, Math.round((h - 1 + Math.sin(x / 8) * 0.8 + Math.sin(x / 3) * 0.4) * fade)); if (hh) { rect(c, x, h - hh, 1, hh, P.snow); px(c, x, h - hh, P.hi); } }
+    if (frame % 30 < 3) px(c, Math.floor(hash(Math.floor(frame / 30), 2) * w), h - 2, P.hi);
+  },
+  holly(c, w, h) {
+    const lf = '#2e7d4f', lf2 = '#3f8f5a';
+    rect(c, 1, 4, 5, 2, lf); px(c, 0, 3, lf); px(c, 3, 3, lf); px(c, 6, 4, lf); px(c, 2, 6, lf2); px(c, 5, 6, lf);
+    rect(c, 7, 2, 5, 2, lf2); px(c, 6, 1, lf2); px(c, 9, 1, lf2); px(c, 12, 2, lf2); px(c, 8, 4, lf); px(c, 11, 4, lf2);
+    rect(c, 5, 5, 2, 2, '#d8433a'); px(c, 7, 6, '#c0392b'); px(c, 6, 7, '#c0392b'); px(c, 5, 5, frame % 20 < 10 ? '#ff9a9a' : '#d8433a');
+  },
+
+  stripeSnowman(c, w, h) {
+    for (let x = 0; x < w; x++) { const t = Math.round(h - 4 - Math.sin(x / 3) * 0.8); rect(c, x, t, 1, h - t, P.snow); px(c, x, t, P.hi); }
+    const gy = h - 4;
+    rect(c, 3, gy - 5, 7, 5, P.hi); rect(c, 2, gy - 4, 9, 3, P.hi); rect(c, 4, gy - 10, 5, 5, P.hi);
+    px(c, 5, gy - 8, P.dark); px(c, 7, gy - 8, P.dark); px(c, 8, gy - 7, '#ff9f2e'); rect(c, 3, gy - 6, 7, 1, '#c0392b');
+    rect(c, 4, gy - 11, 5, 1, P.dark); rect(c, 5, gy - 13, 3, 2, P.dark);
+    const sw = frame % 40 < 8 && frame % 4 < 2; px(c, 10, gy - 6 - (sw ? 2 : 0), P.brown); px(c, 11, gy - 7 - (sw ? 3 : 0), P.brown); px(c, 12, gy - 8 - (sw ? 3 : 1), '#b8954a');
+    const t = frame % 160; if (t > 60 && t < 120) { bullfinch(c, 6, gy - 14 - (t % 16 < 2 ? 1 : 0), 0); } else if (t >= 120 && t < 132) { const q = t - 120; bullfinch(c, 6 + q, gy - 14 - q * 2, q); } else if (t > 48 && t <= 60) { const q = 60 - t; bullfinch(c, 6 - q, gy - 14 - q * 2, q); }
+    for (let i = 0; i < 4; i++) px(c, Math.floor(hash(i, 4) * w), Math.floor((frame * 0.3 + hash(i, 5) * h) % (h - 8)), '#cfe0ff');
+  },
+  stripeElf(c, w, h) {
+    const t = frame % 200; let y;
+    if (t < 40) y = t * 1.6; else if (t < 120) y = 64; else if (t < 170) y = 64 - (t - 120) * 1.4; else return;
+    y = Math.round(Math.max(0, y)); const ex = 5;
+    for (let q = 0; q < y; q++) px(c, ex + 1, q, '#c9b48a');
+    rect(c, ex, y + 3, 3, 4, '#2e7d4f'); px(c, ex + 1, y + 2, P.skin); rect(c, ex, y + 1, 3, 1, '#c0392b'); px(c, ex + 1, y, '#c0392b'); px(c, ex + 2, y - 1, P.hi);
+    px(c, ex - 1, y + 3, '#2e7d4f'); px(c, ex + 3, y + 3, '#2e7d4f');
+    const sw = t % 8 < 4; px(c, ex + (sw ? 0 : -1), y + 7, '#c0392b'); px(c, ex + 2 + (sw ? 1 : 0), y + 7, '#c0392b');
+    if (t >= 60 && t < 100 && t % 6 < 3) { px(c, ex + 4, y + 2, '#2e7d4f'); px(c, ex + 4, y + 1, P.skin); }
+    if (t >= 40 && t < 120) { px(c, ex + 1, y + 9 + (t % 10 < 5 ? 0 : 1), P.gold); }
+  },
+  diffGarland(c, w, h) {
+    // связки изменений: строки 22px, отступ 8px; в логических пикселях строка = 22/3
+    const row = 22 / 3, off = 0;
+    const bands = [[1, 2, 1, 2, '#2c3a52'], [3, 3, 3, 4, '#2b4430'], [7, 8, 8, 9, '#2c3a52']];
+    bands.forEach(([l0, l1, r0, r1, col]) => { for (let x = 0; x < w; x++) { const p = x / (w - 1), s = p * p * (3 - 2 * p); const y0 = Math.round((l0 + (r0 - l0) * s) * row), y1 = Math.round((l1 + (r1 - l1) * s) * row); rect(c, x, off + y0, 1, Math.max(1, y1 - y0), col); } });
+    // гирлянда провисает между крючками по разделителю
+    const hooks = [2, 26, 50, 72];
+    for (let k = 0; k < hooks.length - 1; k++) {
+      const a = hooks[k], b = hooks[k + 1];
+      for (let y = a; y <= b; y++) { const p = (y - a) / (b - a), x = Math.round(2 + Math.sin(p * Math.PI) * 7); px(c, x, y, '#2e5a3a'); if ((y - a) % 5 === 2) { const i = y + Math.floor(frame / 3); px(c, x + 1, y, P.bulbs ? '#fff' : '#fff'); rect(c, x + 1, y, 2, 2, ['#ff5a5a', '#ffd75e', '#5ab8ff', '#7fe08a'][i % 4]); } }
+      rect(c, 1, a - 1, 2, 2, '#9aa4b2');
+    }
+    for (let i = 0; i < 5; i++) px(c, Math.floor(hash(i, 8) * w), Math.floor((frame * 0.35 + hash(i, 9) * h) % h), '#cfe0ff');
+  },
+  welcomeVillage(c, w, h) {
+    flakes(c, w, h, 14, 13);
+    drift(c, w, h, 5, 2, 6);
+    const g = x => groundY(h, 5, 2, 6, x) + 1;
+    pine(c, 8, g(8), 14); pine(c, 15, g(15), 10);
+    tinyHouse(c, 24, g(29), 11, 7, '#a8322a', true); rect(c, 31, g(29) - 17, 2, 4, '#7d756d'); smoke(c, 32, g(29) - 18, 5);
+    tinyHouse(c, 44, g(48), 9, 6, '#2f6f73', frame % 40 < 30);
+    snowman(c, 58, g(61), false);
+    pine(c, 72, g(72), 16);
+    for (let i = 0; i < 4; i++) px(c, 70 + i, g(72) - 12 + i * 3, ['#ff5a5a', '#5ab8ff', P.gold, '#7fe08a'][(i + Math.floor(frame / 4)) % 4]);
+  }
+};
+
+const canvases = [...document.querySelectorAll('canvas[data-d]')].map(el => { el.width = +el.dataset.w; el.height = +el.dataset.h; return el; });
+function fit() { canvases.forEach(el => { if (el.dataset.fit) { const w = Math.max(10, Math.round(el.getBoundingClientRect().width / 3)); if (el.width !== w) el.width = w; } }); }
+addEventListener('resize', () => { fit(); render(); });
+fit();
+function render() { canvases.forEach(el => { const c = el.getContext('2d'); c.clearRect(0, 0, el.width, el.height); D[el.dataset.d](c, el.width, el.height, el); }); }
+setInterval(() => { if (!paused) { frame++; render(); } }, 140);
+render();
+const pb = document.getElementById('pause'); pb.textContent = paused ? 'Запустить' : 'Пауза';
+pb.addEventListener('click', () => { paused = !paused; pb.textContent = paused ? 'Запустить' : 'Пауза'; });
+
+// терминал
+const out = document.getElementById('out'), con = document.getElementById('con');
+const LINES = ['<span class="prompt">ivan@gigabyte</span> ~/JingleCode $ ./gradlew build', '> Task :compileKotlin', '> Task :processResources', '> Task :classes', '> Task :instrumentCode', '> Task :test', '> Task :verifyPlugin', '> Task :buildPlugin', '', 'BUILD SUCCESSFUL in 41s', '18 actionable tasks: 18 executed', '<span class="prompt">ivan@gigabyte</span> ~/JingleCode $ git status', 'On branch main', 'nothing to commit, working tree clean'];
+let li = 0;
+function setOut(n) { out.innerHTML = LINES.slice(0, n).join('\n'); const full = out.offsetHeight > con.clientHeight - 48; con.classList.toggle('full', full); }
+setOut(2); li = 2;
+document.getElementById('more').addEventListener('click', () => { li = Math.min(LINES.length, li + 4); setOut(li); });
+document.getElementById('clear').addEventListener('click', () => { li = 1; setOut(li); });
+</script>

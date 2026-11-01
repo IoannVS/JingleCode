@@ -1,0 +1,1019 @@
+<title>Пиксельный камин в IDEA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Sans:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: one live IDE window with every built-in winter element, event buttons under it, then the accepted empty-editor fireplace. Single dark, cozy-night look by choice. */
+:root {
+  --bg: #11141b;
+  --panel: #1a1e27;
+  --ide: #1e1f22;
+  --ide-2: #2b2d30;
+  --line: #2c313c;
+  --fg: #e9e4da;
+  --muted: #9097a5;
+  --ember: #ff9a3c;
+  --good: #7fc79a;
+  --display: "Press Start 2P", "Courier New", monospace;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html { background: var(--bg); }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+header { display: flex; flex-direction: column; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(18px, 3.4vw, 28px); line-height: 1.4; margin: 0; text-wrap: balance; color: var(--ember); }
+h2 { font-family: var(--display); font-weight: 400; font-size: 14px; line-height: 1.6; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 65ch; }
+.lead { color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.tag { font: 600 11px var(--body); letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.tag.ok { color: var(--good); border-color: var(--good); }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; max-width: 100%; }
+
+.controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+button {
+  font: 600 13px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+  padding: 8px 13px; border-radius: 6px; cursor: pointer;
+}
+button:hover { border-color: var(--ember); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+button.primary { border-color: var(--ember); color: var(--ember); }
+.day { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.day output { color: var(--fg); font-variant-numeric: tabular-nums; min-width: 92px; }
+input[type=range] { accent-color: var(--ember); width: 160px; }
+
+/* IDE mockup */
+.scroll { overflow-x: auto; }
+.ide { background: var(--ide); border: 1px solid var(--line); border-radius: 10px; font: 12.5px/1.6 var(--mono); color: #bcbec4; overflow: hidden; min-width: 700px; }
+.toolbar { position: relative; display: flex; align-items: center; gap: 14px; background: var(--ide-2); border-bottom: 1px solid #393b40; padding: 0 12px; height: 44px; font-size: 12px; color: #dfe1e5; }
+.toolbar .proj { display: flex; gap: 14px; white-space: nowrap; }
+.toolbar .proj b { font-weight: 400; background: #3d4a6b; color: #fff; border-radius: 4px; padding: 1px 5px; }
+#sky { flex: 1; height: 40px; min-width: 0; }
+.toolbar .run { display: flex; gap: 12px; align-items: center; white-space: nowrap; color: #9fa2a8; }
+.toolbar .run .play { color: #5fb865; }
+#buildBox:not([hidden]) { display: flex; align-items: center; gap: 10px; }
+.body3 { position: relative; display: grid; grid-template-columns: 210px minmax(0,1fr); gap: 10px; padding: 10px; background: #131416; min-height: 360px; }
+.tree { position: relative; overflow: hidden; background: #1e1f22; border-radius: 8px; padding: 10px 12px 64px; color: #a9abb0; font-size: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+.tree pre { margin: 0; font: inherit; white-space: pre; }
+.editor { position: relative; background: #1e1f22; border-radius: 8px; overflow: hidden; }
+#tbSnow { position: absolute; left: 0; top: 0; width: 100%; height: 12px; pointer-events: none; }
+#tabSnow { position: absolute; left: 0; top: 0; width: 100%; height: 10px; pointer-events: none; z-index: 2; }
+.groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px 22px; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group h3 { margin: 0; font: 600 11px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.group .row { display: flex; gap: 8px; flex-wrap: wrap; }
+button[aria-pressed="true"] { background: #3a2a1a; border-color: var(--ember); color: var(--ember); }
+.ide.off #gaps, .ide.off #hat, .ide.off #cap, .ide.off .candy, .ide.off #village, .ide.off #tree, .ide.off #strip { visibility: hidden; }
+.ide { position: relative; }
+.balloon { position: absolute; right: 12px; bottom: 40px; background: #2b2d30; border: 1px solid #43454a; border-radius: 8px; padding: 10px 12px; max-width: 300px; font: 12.5px/1.5 var(--body); color: #dfe1e5; box-shadow: 0 10px 30px rgba(0,0,0,.5); z-index: 5; }
+.balloon b { display: block; margin-bottom: 2px; }
+#tsnow { cursor: pointer; }
+#edSnow { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+.snowmode { display: flex; flex-direction: column; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.snowmode .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.snowmode h3 { margin: 0; font: 600 11px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.snowmode p { color: var(--muted); font-size: 14px; }
+.toast { min-height: 1.5em; color: var(--ember); font-size: 14px; }
+#gaps { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+.tabs { overflow: visible; display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid #393b40; font-size: 12px; position: relative; z-index: 1; }
+.tab { position: relative; padding: 6px 12px 5px; color: #9fa2a8; }
+.tab.active { color: #dfe1e5; border-bottom: 2px solid #3574f0; }
+#cap { position: absolute; left: 0; top: -4px; width: 100%; height: 10px; }
+.candy { position: absolute; right: 4px; top: 56px; width: 8px; height: 96px; border-radius: 4px; background: repeating-linear-gradient(135deg, #e04a3f 0 6px, #f4efe6 6px 12px); z-index: 2; }
+.badge { position: relative; display: inline-block; }
+#hat { position: absolute; left: -7px; top: -12px; width: 24px; height: 16px; }
+.editor .code { padding: 14px 18px; white-space: pre; position: relative; z-index: 1; }
+#village { z-index: 1; position: absolute; left: 0; bottom: 0; width: 100%; height: 140px; }
+.kw { color: #cf8e6d; } .fn { color: #56a8f5; } .st { color: #6aab73; } .cm { color: #7a7e85; }
+.status { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: var(--ide-2); border-top: 1px solid #393b40; padding: 2px 12px; font-size: 11.5px; color: #9fa2a8; height: 30px; }
+.status .left, .status .right { display: flex; gap: 14px; align-items: center; white-space: nowrap; }
+
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px 26px; }
+.legend div { display: flex; flex-direction: column; gap: 4px; }
+.legend b { font-weight: 600; }
+.legend span { color: var(--muted); font-size: 14px; }
+
+.events { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.events ul { margin: 0; padding-left: 18px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; max-width: 70ch; }
+.events li b { color: var(--fg); font-weight: 600; }
+
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 34px 16px; min-height: 320px; }
+.hints { display: grid; grid-template-columns: auto auto; gap: 4px 22px; font-size: 12px; color: #7a7e85; }
+.hints span:nth-child(odd) { text-align: right; }
+.hints span:nth-child(even) { color: #56a8f5; opacity: .8; }
+.ide.small { min-width: 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Пиксельный камин в IDEA</h1>
+    <p class="lead">Зима, встроенная в обычное окно IDE: ничего не открывается по клику и ничего не рисуется поверх кода. Сани Санты появляются только на события. Нажми кнопки под окном, чтобы их увидеть, а ползунком промотай декабрь.</p>
+  </header>
+
+  <section>
+    <div class="scroll">
+      <div class="ide">
+        <div class="toolbar">
+          <span class="proj"><span><span class="badge"><b>W</b><canvas id="hat" width="12" height="8"></canvas></span> Winter ▾</span><span id="branchLabel">⑂ main ▾</span></span>
+          <canvas id="tbSnow"></canvas>
+          <canvas id="sky" height="20"></canvas>
+          <canvas id="tree" width="14" height="18" style="width:28px;height:36px" title="Ёлка в тулбаре"></canvas>
+          <span class="run"><span>runIde ▾</span><span class="play">▶</span><span>🐞</span></span>
+        </div>
+        <div class="body3">
+          <canvas id="gaps"></canvas>
+          <div class="tree"><pre>▾ Winter
+  ▾ src/main/kotlin
+    ▾ garland
+        GapFinder.kt
+        GarlandComponent.kt
+        GarlandMode.kt
+    ▸ fireplace
+    ▸ settings
+  build.gradle.kts</pre><canvas id="tsnow" width="80" height="28" style="position:absolute;left:0;bottom:0;width:100%;height:56px"></canvas></div>
+          <div class="editor">
+            <div class="tabs"><canvas id="tabSnow"></canvas><span class="tab active" id="activeTab"><canvas id="cap"></canvas>GarlandComponent.kt</span><span class="tab">GapFinder.kt</span><span class="tab">WinterSettings.kt</span></div>
+            <div class="candy"></div>
+            <canvas id="village" width="160" height="70"></canvas>
+            <canvas id="edSnow"></canvas>
+<div class="code"><span class="kw">class</span> <span class="fn">GarlandComponent</span>(<span class="kw">private val</span> project: Project) : JComponent() {
+
+    <span class="kw">override fun</span> <span class="fn">paintComponent</span>(g: Graphics) {
+        <span class="kw">val</span> gaps = GapFinder.<span class="fn">find</span>(project)
+        <span class="cm">// гирлянда рисуется только в щелях между панелями</span>
+        gaps.<span class="fn">forEach</span> { <span class="fn">paintWire</span>(g, it) }
+    }
+
+    <span class="kw">private fun</span> <span class="fn">paintWire</span>(g: Graphics, gap: Rectangle) {
+        <span class="kw">val</span> sag = gap.width * <span class="st">0.04</span>
+        <span class="cm">// …</span>
+    }
+}</div>
+          </div>
+        </div>
+        <div class="balloon" id="irony" hidden><b>Ирония судьбы</b>Проект «Winter» уже открыт из другой папки. Это точно ваша 3-я улица Строителей, дом 25?</div>
+        <div class="status">
+          <span class="left" id="statusLeft"><span id="crumbs">Winter › garland › GarlandComponent.kt</span><span id="buildBox" hidden><span id="buildText">Сборка 'Winter'…</span><canvas id="prog" width="120" height="11" style="width:240px;height:22px"></canvas></span></span>
+          <span class="right">
+            <canvas id="strip" width="44" height="12" style="width:88px;height:24px" title="Сценка в строке состояния"></canvas>
+            <span>42:13</span><span>LF</span><span>UTF-8</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="snowmode">
+      <h3>Снег в редакторе</h3>
+      <div class="row" role="group" aria-label="Режим снега в редакторе">
+        <button type="button" class="sm" data-mode="0" aria-pressed="false">Нет</button>
+        <button type="button" class="sm" data-mode="1" aria-pressed="true">1. В пустом месте</button>
+        <button type="button" class="sm" data-mode="2" aria-pressed="false">2. Поверх, пауза при печати</button>
+        <button type="button" class="sm" data-mode="3" aria-pressed="false">3. За текстом</button>
+        <button type="button" id="typeSim">Начать печатать</button>
+      </div>
+      <p id="smNote"></p>
+    </div>
+    <p class="toast" id="toast" aria-live="polite">Нажимай события ниже и смотри на окно IDE.</p>
+    <div class="groups">
+      <div class="group"><h3>Git</h3><div class="row">
+        <button class="primary" id="commit" type="button">Коммит</button>
+        <button class="primary" id="push" type="button">git push</button>
+        <button class="primary" id="conflict" type="button">Конфликт при merge</button>
+        <button class="primary" id="pull" type="button">Pull</button>
+        <button class="primary" id="branch" type="button">Ветка: main</button>
+      </div></div>
+      <div class="group"><h3>Работа с кодом</h3><div class="row">
+        <button class="primary" id="typing" type="button">Печатать быстро</button>
+        <button class="primary" id="del" type="button">Удалить много строк</button>
+        <button class="primary" id="reformat" type="button">Reformat code</button>
+        <button class="primary" id="bp" type="button" aria-pressed="false">Breakpoint</button>
+      </div></div>
+      <div class="group"><h3>Сборка и тесты</h3><div class="row">
+        <button class="primary" id="build" type="button">Сборка прошла</button>
+        <button class="primary" id="buildFail" type="button">Сборка упала</button>
+        <button class="primary" id="green" type="button">Тесты зелёные</button>
+        <button class="primary" id="red" type="button">Тесты красные</button>
+      </div></div>
+      <div class="group"><h3>Время и ты</h3><div class="row">
+        <button class="primary" id="morning" type="button">Утро</button>
+        <button class="primary" id="evening" type="button" aria-pressed="false">Вечер</button>
+        <button class="primary" id="idle" type="button">Отойти на 15 минут</button>
+        <button class="primary" id="cocoa" type="button" aria-pressed="false">2 часа без перерыва</button>
+        <button class="primary" id="realSnow" type="button" aria-pressed="false">Снег за окном</button>
+      </div></div>
+      <div class="group"><h3>Календарь</h3><div class="row">
+        <button class="primary" id="dec6" type="button" aria-pressed="false">6 декабря</button>
+        <button class="primary" id="ny" type="button">31 декабря, 00:00</button>
+        <button class="primary" id="jan7" type="button">7 января</button>
+        <button class="primary" id="oldny" type="button">Старый Новый год</button>
+        <button class="primary" id="melt" type="button">Конец сезона</button>
+      </div></div>
+      <div class="group"><h3>Пасхалки</h3><div class="row">
+        <button class="primary" id="grinch" type="button" aria-pressed="false">class Grinch</button>
+        <button class="primary" id="hohoho" type="button">// ho ho ho</button>
+        <button class="primary" id="lis" type="button">letItSnow</button>
+        <button class="primary" id="loopBtn" type="button" aria-pressed="false">while (true)</button>
+        <button class="primary" id="konami" type="button" aria-pressed="false">Konami code</button>
+        <button class="primary" id="clicks" type="button">10 кликов по снеговику</button>
+        <button class="primary" id="cat" type="button" aria-pressed="false">Пустой редактор 5 минут</button>
+        <button class="primary" id="night" type="button">Коммит в 2 ночи</button>
+        <button class="primary" id="mandarin" type="button" aria-pressed="false">Коммит 31-го в 23:00</button>
+        <button class="primary" id="yeti" type="button">Йети</button>
+        <button class="primary" id="ironyBtn" type="button">Два проекта Winter</button>
+      </div></div>
+    </div>
+    <div class="controls">
+      <label class="day" for="dayInput">Дата <input id="dayInput" type="range" min="1" max="31" value="18"> <output id="dayOut">18 декабря</output></label>
+      <button id="pause" type="button">Пауза</button>
+    </div>
+
+    <div class="legend">
+      <div><b>Фон редактора</b><span>Деревня в углу, через встроенный механизм фоновой картинки. Каждый день сугробы выше и окон горит больше. Статична, не отвлекает.</span></div>
+      <div><b>Сценка в строке состояния</b><span>Камин, снеговик и снег шириной 44 пикселя. Горит всегда, без кликов.</span></div>
+      <div><b>Ёлка в тулбаре</b><span>Рядом с Run. Игрушек прибавляется каждый день, звезда загорается 24-го.</span></div>
+      <div><b>Сани в progress bar</b><span>Во время сборки упряжка тянет полоску и оставляет за собой гирлянду.</span></div>
+      <div><b>Гирлянда в щелях</b><span>Уже есть в коде (GapFinder). Бегущие огоньки между панелями и над строкой состояния.</span></div>
+      <div><b>Сосульки под тулбаром</b><span>Свисают в щель между тулбаром и панелями, кончики иногда поблёскивают.</span></div>
+      <div><b>Шапка Санты на значке проекта</b><span>Значок проекта в тулбаре можно подменить, это штатная возможность нового UI.</span></div>
+      <div><b>Сугроб в панели Project</b><span>Снеговик и подарок в пустом месте под деревом файлов, снежинки падают.</span></div>
+      <div><b>Снег на активной вкладке</b><span>Шапка снега на вкладке открытого файла. Рисовать на вкладках можно только через внутренний API, риск поломки выше.</span></div>
+      <div><b>Скроллбар-леденец</b><span>Красно-белая полосатая ручка прокрутки. Тоже через внутренний API, риск выше.</span></div>
+    </div>
+  </section>
+
+  <section class="events">
+    <h2>Что делает каждое событие</h2>
+    <ul>
+      <li><b>Коммит</b>: под ёлкой в панели Project падает новый подарок. В полночь кучка обнуляется.</li>
+      <li><b>git push</b>: упряжка Санты пролетает через свободную часть тулбара.</li>
+      <li><b>Конфликт при merge</b>: метель в щелях между панелями, гирлянда тревожно мигает.</li>
+      <li><b>Сборка прошла</b>: сани тянут progress bar, потом по гирлянде бежит золотая волна.</li>
+      <li><b>Сборка упала</b>: сосулька срывается, падает по щели и разбивается внизу, огни на миг краснеют.</li>
+      <li><b>Тесты зелёные</b>: снеговик машет руками, в тулбаре салют. Уголёк из носка исчезает.</li>
+      <li><b>Тесты красные</b>: в носок у камина в строке состояния падает уголёк и лежит, пока тесты не позеленеют.</li>
+      <li><b>Утро</b>: камин в строке состояния разгорается из углей.</li>
+      <li><b>Вечер</b>: в деревне зажигаются окна, выходят луна и звёзды.</li>
+      <li><b>Отошёл на 15 минут</b>: тулбар и вкладки заметает. Клик или клавиша, и снег осыпается.</li>
+      <li><b>31 декабря, 00:00</b>: салют по всему тулбару, все огни горят разом, на ёлке звезда.</li>
+      <li><b>Pull</b>: в почтовый ящик у сугроба падают письма, по одному на входящий коммит.</li>
+      <li><b>Ветка</b>: у каждой ветки своя погода. На main ясно, на feature идёт снег, на hotfix метель.</li>
+      <li><b>Быстро печатаешь</b>: камин в строке состояния горит ярче и искрит. Работает и от настоящих нажатий клавиш на этой странице.</li>
+      <li><b>Удалил много строк</b>: по гирлянде над строкой состояния проезжает снегоуборщик.</li>
+      <li><b>Reformat code</b>: снежинки в панели Project выстраиваются ровными рядами.</li>
+      <li><b>Breakpoint</b>: снизу из щели выглядывает пингвин и прячется, когда продолжаешь выполнение.</li>
+      <li><b>2 часа без перерыва</b>: у снеговика в руке появляется кружка какао с паром.</li>
+      <li><b>Снег за окном</b>: если в твоём городе идёт снег, он идёт и в щелях, и в панели Project.</li>
+      <li><b>6 декабря</b>: в носке у камина лежит подарок от Николая.</li>
+      <li><b>7 января</b>: огни гирлянды становятся золотыми колокольчиками, на ёлке звезда.</li>
+      <li><b>Старый Новый год</b>: маленький повтор салюта.</li>
+      <li><b>Конец сезона</b>: снеговик тает, и украшения убираются сами. Кнопка возвращает зиму обратно.</li>
+    </ul>
+    <h2>Пасхалки</h2>
+    <ul>
+      <li><b>class Grinch</b>: из щели выглядывает Гринч и утаскивает лампочку из гирлянды. Нажми ещё раз, как будто удалил класс, и лампочка вернётся.</li>
+      <li><b>// ho ho ho</b>: Санта пролетает через тулбар и смеётся.</li>
+      <li><b>letItSnow</b>: десять секунд густого снегопада во всех щелях.</li>
+      <li><b>while (true)</b>: пингвин катается на коньках по щели, пока цикл не уберёшь.</li>
+      <li><b>Konami code</b> (↑↑↓↓←→←→BA, можно набрать на клавиатуре прямо здесь): в пустом редакторе внизу страницы мини-игра, ловишь подарки санями стрелками. Без нажатий сани ловят сами.</li>
+      <li><b>10 кликов по снеговику</b> в панели Project (можно кликать прямо по нему): прибегает заяц и утаскивает морковку.</li>
+      <li><b>Пустой редактор 5 минут</b>: у камина сворачивается кот.</li>
+      <li><b>Коммит в 2 ночи</b>: Санта летит, а нос Рудольфа светит вперёд.</li>
+      <li><b>Коммит 31-го в 23:00</b>: в носке мандарин. Работать в Новый год? Держи.</li>
+      <li><b>Йети</b>: раз в сезон, в случайный день, проходит по щели над строкой состояния.</li>
+      <li><b>Два проекта Winter</b> из разных папок: уведомление про «Иронию судьбы».</li>
+    </ul>
+    <p class="lead">Пролёты саней и салюты стоит ограничить, например не чаще раза в 10 минут, чтобы не надоели.</p>
+  </section>
+
+  <section>
+    <div class="head"><h2>Камин в пустом редакторе</h2><span class="tag ok">принят</span></div>
+    <div class="scroll">
+      <div class="ide small">
+        <div class="empty">
+          <canvas id="c64" width="64" height="64" style="width:192px;height:192px"></canvas>
+          <div class="hints">
+            <span>Search Everywhere</span><span>Double ⇧</span>
+            <span>Go to File</span><span>⇧⌘O</span>
+            <span>Recent Files</span><span>⌘E</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const FIRE = ['#fff7d1', '#ffd75e', '#ff9f2e', '#f2581f', '#a8261a'];
+const BULBS = ['#ff5a5a', '#ffd75e', '#5ab8ff', '#7fe08a'];
+const FRAMES = 6, FRAME_MS = 140;
+const hash = (a, b) => { const s = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return s - Math.floor(s); };
+const px = (ctx, x, y, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); };
+const rect = (ctx, x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
+
+function drawFire(ctx, x0, yb, w, hMax, f, seed) {
+  const raw = [];
+  for (let x = 0; x < w; x++) {
+    const e = 1 - Math.pow(Math.abs((x + 0.5) / w * 2 - 1), 1.6);
+    raw.push(hMax * e * (0.6 + 0.4 * hash(x * 7 + seed, f)));
+  }
+  for (let x = 0; x < w; x++) {
+    const h = Math.round(((raw[x - 1] ?? raw[x]) + 2 * raw[x] + (raw[x + 1] ?? raw[x])) / 4);
+    const c = Math.abs((x + 0.5) / w * 2 - 1);
+    for (let y = 0; y < h; y++) {
+      const r = y / h + c * 0.35;
+      px(ctx, x0 + x, yb - 1 - y, r < 0.3 ? FIRE[0] : r < 0.5 ? FIRE[1] : r < 0.72 ? FIRE[2] : r < 0.92 ? FIRE[3] : FIRE[4]);
+    }
+    const t = hash(x + seed * 3, f + 11);
+    if (h > 3 && t > 0.8) px(ctx, x0 + x, yb - 2 - h - Math.floor(t * 3), t > 0.9 ? FIRE[4] : FIRE[3]);
+  }
+}
+
+function drawBricks(ctx, x, y, w, h) {
+  rect(ctx, x, y, w, h, '#5c2c25');
+  for (let r = 0; r * 4 < h; r++) {
+    rect(ctx, x, y + r * 4, w, 1, '#42201b');
+    for (let vx = (r % 2) * 4; vx < w; vx += 8) rect(ctx, x + vx, y + r * 4, 1, 4, '#42201b');
+  }
+}
+
+function drawStocking(ctx, x, y, flip) {
+  rect(ctx, x, y, 4, 2, '#e9e4dc');
+  rect(ctx, x, y + 2, 4, 5, '#b8322a');
+  rect(ctx, flip ? x - 2 : x, y + 7, 6, 2, '#b8322a');
+  px(ctx, x + 1, y + 4, '#d94c3d');
+}
+
+const GLOW = ['#26100a', '#2f140b', '#38180c', '#2f140b', '#38180c', '#26100a'];
+function drawFireplace(ctx, f) {
+  drawBricks(ctx, 0, 0, 64, 60);
+  rect(ctx, 10, 13, 44, 47, '#7d756d');
+  rect(ctx, 10, 13, 44, 1, '#958c83');
+  rect(ctx, 16, 20, 32, 40, '#120a08');
+  for (const [x, y] of [[16,20],[17,20],[16,21],[46,20],[47,20],[47,21]]) px(ctx, x, y, '#7d756d');
+  rect(ctx, 17, 42, 30, 18, GLOW[f]);
+  rect(ctx, 4, 8, 56, 4, '#7b4f31');
+  rect(ctx, 4, 8, 56, 1, '#9c6a45');
+  rect(ctx, 6, 12, 52, 1, '#2a1410');
+  for (let x = 6; x < 58; x++) px(ctx, x, 7, '#2e7d4f');
+  for (let x = 7, i = 0; x < 58; x += 4, i++) px(ctx, x, 6, BULBS[(i + Math.floor(f / 2)) % 4]);
+  drawStocking(ctx, 12, 12, false);
+  drawStocking(ctx, 48, 12, true);
+  rect(ctx, 19, 52, 26, 3, '#6b3e22');
+  rect(ctx, 21, 55, 22, 2, '#4a2a17');
+  px(ctx, 19, 52, '#c99a66'); px(ctx, 44, 53, '#c99a66');
+  for (let x = 18; x < 46; x++) if (hash(x, f + 3) > 0.55) px(ctx, x, 57, hash(x, f) > 0.5 ? '#ff6a1a' : '#c2410c');
+  drawFire(ctx, 20, 52, 24, 24, f, 4);
+  for (let i = 0; i < 3; i++) if (hash(i, f + 7) > 0.4) px(ctx, 22 + Math.floor(hash(i + 2, f) * 20), 24 + Math.floor(hash(i + 5, f) * 6), FIRE[1]);
+  rect(ctx, 6, 60, 52, 4, '#55504b');
+  rect(ctx, 6, 60, 52, 1, '#6d6761');
+  if (cat) {
+    const CAT = ['.O.O.....', 'OOOO...O.', 'OkOOSOOO.', 'OOOSOOSOO', '.OOOOOOOO'];
+    drawSprite(ctx, CAT, { O: '#e08a3c', S: '#b8652a', k: '#3a2418' }, 48, 55);
+    if (Math.floor(NOW / 700) % 3 === 0) px(ctx, 56, 55, '#e08a3c');
+  }
+}
+
+/* --- упряжка: сани + два оленя, смотрят вправо, ~34×10 --- */
+function drawReindeer(ctx, x, y, leg, lead, blink) {
+  rect(ctx, x + 1, y + 3, 6, 2, '#8a5a3a');
+  rect(ctx, x + 6, y + 1, 2, 3, '#8a5a3a');
+  rect(ctx, x + 7, y + 1, 2, 2, '#9c6a45');
+  px(ctx, x + 6, y, '#c9a27a'); px(ctx, x + 8, y, '#c9a27a'); px(ctx, x + 5, y - 1 + 1, '#c9a27a');
+  px(ctx, x + 9, y + 2, lead ? (blink ? '#ff3b3b' : '#b02020') : '#3a2418');
+  px(ctx, x, y + 3, '#e9e4dc');
+  if (leg) { px(ctx, x, y + 6, '#6b4228'); px(ctx, x + 1, y + 5, '#6b4228'); px(ctx, x + 6, y + 5, '#6b4228'); px(ctx, x + 7, y + 6, '#6b4228'); }
+  else { rect(ctx, x + 1, y + 5, 1, 2, '#6b4228'); rect(ctx, x + 6, y + 5, 1, 2, '#6b4228'); }
+}
+function drawSleigh(ctx, x, y, f) {
+  rect(ctx, x, y - 2, 3, 3, '#8a6a3a');
+  rect(ctx, x + 3, y - 1, 3, 3, '#c0392b');
+  px(ctx, x + 5, y - 1, '#f2c7a5');
+  px(ctx, x + 3, y - 2, '#c0392b'); px(ctx, x + 4, y - 2, '#c0392b'); px(ctx, x + 2, y - 3, '#ffffff');
+  px(ctx, x + 5, y, '#ffffff');
+  rect(ctx, x, y + 2, 9, 3, '#c0392b');
+  rect(ctx, x, y + 2, 9, 1, '#d8b04a');
+  rect(ctx, x, y + 6, 11, 1, '#d8b04a');
+  px(ctx, x + 11, y + 5, '#d8b04a');
+  px(ctx, x + 2, y + 5, '#d8b04a'); px(ctx, x + 7, y + 5, '#d8b04a');
+  rect(ctx, x + 10, y + 4, 3, 1, '#d8b04a');
+  rect(ctx, x + 21, y + 3, 2, 1, '#d8b04a');
+  const leg = Math.floor(f / 1) % 2;
+  drawReindeer(ctx, x + 13, y - 1, leg, false, false);
+  drawReindeer(ctx, x + 23, y - 1, 1 - leg, true, f % 2 === 0);
+}
+function drawBurst(ctx, cx, cy, a, seed) {
+  if (a < 0 || a > 1400) return;
+  if (a < 300) { const y = Math.round(cy + (1 - a / 300) * 10); px(ctx, cx, y, '#fff7d1'); px(ctx, cx, y + 1, '#ff9f2e'); return; }
+  const r = Math.min(8, (a - 300) / 70);
+  for (let k = 0; k < 12; k++) {
+    if (a > 1050 && hash(k, Math.floor(a / 60)) > 0.5) continue;
+    const ang = k / 12 * Math.PI * 2;
+    px(ctx, cx + Math.round(Math.cos(ang) * r), cy + Math.round(Math.sin(ang) * r + r * r * 0.04), [BULBS[(k + seed) % 4], '#fff7d1', '#ffd75e'][k % 3]);
+  }
+}
+function drawTrail(ctx, x, y, f) {
+  for (let k = 1; k <= 14; k++) {
+    if (hash(k, f) < 0.45) continue;
+    px(ctx, x - k * 2, y + 6 + Math.round((hash(k + 3, f) - 0.5) * 3), FIRE[Math.min(2, Math.floor(k / 5))]);
+  }
+}
+
+/* --- холсты --- */
+const $ = id => document.getElementById(id);
+const sky = $('sky'), skyCtx = sky.getContext('2d');
+const treeCtx = $('tree').getContext('2d');
+const vilCtx = $('village').getContext('2d');
+const stripCtx = $('strip').getContext('2d');
+const progCtx = $('prog').getContext('2d');
+const c64 = $('c64').getContext('2d');
+
+function sizeSky() { sky.width = Math.max(40, Math.floor(sky.clientWidth / 2)); }
+new ResizeObserver(sizeSky).observe(sky); sizeSky();
+
+let day = 18, evening = false, gifts = 2, coal = false, idle = false, idleStart = 0;
+const fx = {};
+let letters = 0, branchIdx = 0, heat = 0, typingUntil = 0, bpOn = false, bpAt = 0, cocoa = false, realSnow = false, dec6 = false, seasonOver = false, lastNow = 0;
+let grinch = false, skating = false, game = null, snowClicks = 0, cat = false, mandarin = false, nightFlight = false;
+const PENG = ['.KKK.', 'KWKWK', 'KKOKK', 'KWWWK', 'KWWWK', '.WWW.', '.O.O.'];
+const PENG_C = { K: '#3a4152', W: '#f4f6fa', O: '#ff9f2e' };
+function drawSprite(ctx, rows, colors, x, y) { rows.forEach((row, ry) => [...row].forEach((ch, rx) => { if (ch !== '.') px(ctx, x + rx, y + ry, colors[ch]); })); }
+const FONT = { H: ['101', '101', '111', '101', '101'], O: ['111', '101', '101', '101', '111'] };
+function drawText(ctx, str, x, y, c) { [...str].forEach((ch, i) => { if (FONT[ch]) FONT[ch].forEach((row, ry) => [...row].forEach((b, rx) => { if (b === '1') px(ctx, x + i * 4 + rx, y + ry, c); })); }); }
+const BRANCHES = [['main', 0], ['feature/sleigh', 1], ['hotfix/icicles', 2]];
+let NOW = 0;
+const age = k => fx[k] == null ? Infinity : NOW - fx[k];
+const fire = k => { fx[k] = performance.now(); };
+
+function drawTree(ctx, f) {
+  ctx.clearRect(0, 0, 14, 18);
+  for (let r = 0; r < 13; r++) { const hw = Math.floor(r / 2.2); rect(ctx, 7 - hw, 2 + r, hw * 2 + 1, 1, r % 4 < 2 ? '#2e7d4f' : '#276b43'); }
+  rect(ctx, 6, 15, 3, 3, '#6b3e22');
+  const spots = [[7,5],[5,8],[9,7],[6,11],[10,11],[4,13],[8,9],[11,14],[3,14],[7,13],[9,12],[5,12]];
+  const n = Math.min(spots.length, Math.ceil(day / 31 * spots.length));
+  for (let i = 0; i < n; i++) px(ctx, spots[i][0], spots[i][1], BULBS[(i + Math.floor(f / 2)) % 4]);
+  if (day >= 24 || age('ny') < 6000 || age('jan7') < 5000) { px(ctx, 7, 1, f % 2 ? '#fff7d1' : '#ffd75e'); px(ctx, 7, 0, '#ffd75e'); px(ctx, 6, 1, '#ffd75e'); px(ctx, 8, 1, '#ffd75e'); }
+}
+
+function drawVillage(ctx) {
+  const W = ctx.canvas.width, H = ctx.canvas.height, ox = W - 164;
+  ctx.clearRect(0, 0, W, H);
+  const depth = 6 + Math.round(day / 31 * 4);
+  const groundTop = x => {
+    const hill = x > ox - 30 ? Math.min(1, (x - ox + 30) / 40) : 0;
+    const hs = hill * hill * (3 - 2 * hill);
+    return H - depth - Math.round(Math.sin(x / 9) * 1.2 + Math.sin(x / 23) * 1.5) - Math.round(hs * 6);
+  };
+  const stars = evening ? 26 : 6;
+  for (let i = 0; i < stars; i++) px(ctx, ox - 30 + Math.floor(hash(i, 1) * 190), Math.floor(hash(i, 2) * 22), hash(i, 3) > 0.5 ? '#ffe9a8' : '#cfe0ff');
+  if (evening) { const mx = ox + 136; rect(ctx, mx, 4, 7, 7, '#ffe9a8'); rect(ctx, mx + 1, 3, 5, 9, '#ffe9a8'); rect(ctx, mx + 3, 3, 4, 5, '#1e1f22'); rect(ctx, mx + 4, 5, 3, 4, '#1e1f22'); }
+  const roofs = ['#a8322a', '#2f6f73', '#7a3b6e'];
+  const houses = [[ox + 14, 34, 26, 22], [ox + 58, 40, 22, 18], [ox + 100, 30, 30, 26]];
+  const snow = 1 + Math.round(day / 31 * 3);
+  // ёлки: редкие слева, гуще у домиков
+  const trees = [];
+  for (let x = 20; x < ox - 20; x += 46) if (hash(x, 77) > 0.45) trees.push([x, 0.55]);
+  trees.push([ox + 4, 1], [ox + 48, 1], [ox + 90, 0.8], [ox + 138, 1], [ox + 156, 0.9]);
+  trees.forEach(([tx, sc]) => {
+    const th = Math.round(18 * sc), base = groundTop(tx) + 2;
+    for (let r = 0; r < th; r++) { const hw = Math.floor(r / 2.5); rect(ctx, tx - hw, base - th + r, hw * 2 + 1, 1, r % 5 < 2 ? '#3f8f5a' : '#2e7d4f'); }
+    for (let r = 0; r < th; r += 5) { const hw = Math.floor(r / 2.5); rect(ctx, tx - hw, base - th + r, hw + 1, 1, '#eef3fa'); }
+  });
+  houses.forEach(([x, y, w, h], hi) => {
+    const yb = groundTop(x + w / 2) + 2; y = yb - h;
+    rect(ctx, x, y, w, h, '#8a5a3a');
+    for (let yy = y + 3; yy < y + h; yy += 3) rect(ctx, x, yy, w, 1, '#74482d');
+    rect(ctx, x + w - 7, y - 14, 4, 8, '#7d756d');
+    for (let r = 0; r < 10; r++) rect(ctx, x - 2 + r, y - r, w + 4 - r * 2, 1, roofs[hi]);
+    for (let r = 0; r < 10; r++) { const rw = w + 4 - r * 2, s2 = Math.min(snow, rw); rect(ctx, x - 2 + r, y - r - 1, s2, 1, '#eef3fa'); rect(ctx, x + w + 2 - r - s2, y - r - 1, s2, 1, '#eef3fa'); }
+    rect(ctx, x + 9, y - 10, Math.max(2, w - 18), snow, '#eef3fa');
+    rect(ctx, x - 2, y, w + 4, 1, '#2e7d4f');
+    for (let bx = x - 1, i = 0; bx < x + w + 2; bx += 3, i++) px(ctx, bx, y + 1, BULBS[(i + hi) % 4]);
+    const wins = [[x + 4, y + 5], [x + w - 9, y + 5], [x + 4, y + 13], [x + w - 9, y + 13]];
+    wins.forEach(([wx, wy], wi) => {
+      if (wy + 6 > y + h) return;
+      const lit = hash(hi * 4 + wi, 9) * 31 < (evening ? day + 14 : day / 2);
+      rect(ctx, wx - 1, wy - 1, 7, 7, '#5a3a24');
+      rect(ctx, wx, wy, 5, 5, lit ? '#ffcf5e' : '#1b2433');
+      if (lit) rect(ctx, wx + 1, wy + 1, 2, 2, '#fff2b8');
+      rect(ctx, wx + 2, wy, 1, 5, '#5a3a24'); rect(ctx, wx, wy + 2, 5, 1, '#5a3a24');
+    });
+    const dx = Math.round(x + w / 2 - 2);
+    rect(ctx, dx, y + h - 8, 5, 8, '#4a2c1c');
+    rect(ctx, dx + 1, y + h - 7, 3, 3, '#2e7d4f'); px(ctx, dx + 2, y + h - 6, '#4a2c1c'); px(ctx, dx + 2, y + h - 4, '#c0392b');
+  });
+  for (let x = 0; x < W; x++) {
+    const t = groundTop(x);
+    rect(ctx, x, t, 1, H - t, '#eef3fa');
+    px(ctx, x, t, '#ffffff');
+    if (hash(x, 81) > 0.7) px(ctx, x, t + 2 + Math.floor(hash(x, 82) * (H - t - 3)), '#dde6f1');
+  }
+}
+
+let stripSnow = 0;
+function drawStrip(ctx, f, t) {
+  ctx.clearRect(0, 0, 44, 12);
+  rect(ctx, 0, 1, 12, 11, '#7d756d');
+  rect(ctx, 0, 0, 18, 1, '#7b4f31');
+  rect(ctx, 2, 3, 8, 9, heat > 0.6 ? '#3a160b' : heat > 0.3 ? '#25100a' : '#120a08');
+  rect(ctx, 3, 10, 6, 1, '#6b3e22');
+  const k = Math.min(1, age('morning') / 3500);
+  if (k < 0.2) { for (let x = 3; x < 9; x++) if (hash(x, f) > 0.4) px(ctx, x, 9, hash(x, f + 1) > 0.5 ? '#ff6a1a' : '#a8261a'); }
+  else drawFire(ctx, heat > 0.5 ? 2 : 3, 10, heat > 0.5 ? 8 : 6, Math.max(2, Math.round((6 + heat * 1.5) * k)), f, 2);
+  if (heat > 0.6) for (let i = 0; i < 2; i++) if (hash(i, f + 13) > 0.3) px(ctx, 3 + Math.floor(hash(i, f) * 6), 3 + Math.floor(hash(i + 4, f) * 2), FIRE[1]);
+  // носок
+  rect(ctx, 13, 1, 3, 1, '#e9e4dc'); rect(ctx, 13, 2, 3, 3, '#b8322a'); rect(ctx, 13, 5, 4, 2, '#b8322a');
+  const ra = age('red');
+  if (mandarin) { rect(ctx, 13, 0, 3, 2, '#ff8c1a'); px(ctx, 14, -1 + 1, '#ffb35c'); px(ctx, 15, 0, '#3f8f5a'); }
+  if (dec6) { rect(ctx, 14, -1 + 1, 3, 2, '#d8b04a'); px(ctx, 15, 0, '#c0392b'); px(ctx, 15, 1, '#c0392b'); }
+  if (coal) {
+    const yy = ra < 450 ? Math.round(-3 + (ra / 450) * 3) : 0;
+    rect(ctx, 13, yy, 2, 1, '#2b2b2b'); px(ctx, 14, yy, f % 2 ? '#ff6a1a' : '#2b2b2b');
+  }
+  rect(ctx, 18, 11, 26, 1, '#e9eef5');
+  rect(ctx, 32, 6, 5, 5, '#e9eef5'); px(ctx, 32, 6, 'rgba(0,0,0,0)');
+  rect(ctx, 33, 3, 3, 3, '#e9eef5');
+  rect(ctx, 32, 2, 5, 1, '#1e1f22'); rect(ctx, 33, 0, 3, 2, '#1e1f22');
+  px(ctx, 36, 4, '#ff9f2e'); px(ctx, 33, 4, '#1e1f22'); px(ctx, 35, 4, '#1e1f22');
+  px(ctx, 34, 7, '#1e1f22'); px(ctx, 34, 9, '#1e1f22');
+  px(ctx, 31, 7, '#6b4228'); px(ctx, 30, 6, '#6b4228'); px(ctx, 37, 7, '#6b4228'); px(ctx, 38, 6, '#6b4228');
+  for (let i = 0; i < 6; i++) {
+    const sx = 19 + Math.floor(hash(i, 4) * 24);
+    const sy = Math.floor(hash(i, 5) * 11 + t * (0.3 + hash(i, 6) * 0.25)) % 11;
+    px(ctx, sx, sy, '#dfe8f2');
+  }
+}
+
+/* --- события --- */
+let flight = null, build = null, paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+$('push').addEventListener('click', () => { flight = { start: performance.now(), dur: 3600 }; });
+$('build').addEventListener('click', () => {
+  build = { start: performance.now(), dur: 6500 };
+  $('crumbs').hidden = true; $('buildBox').hidden = false; $('buildText').textContent = "Сборка 'Winter'…";
+});
+const toast = msg => { $('toast').textContent = msg; };
+$('commit').addEventListener('click', () => { gifts = gifts >= GIFTS.length ? 1 : gifts + 1; fire('commit'); toast('Коммит: подарков под ёлкой ' + gifts + '. В полночь кучка обнуляется.'); });
+$('conflict').addEventListener('click', () => { fire('conflict'); toast('Конфликт: метель в щелях, гирлянда мигает красным.'); });
+$('buildFail').addEventListener('click', () => { fire('buildFail'); toast('Сборка упала: сосулька срывается и разбивается внизу.'); });
+$('green').addEventListener('click', () => { coal = false; fire('green'); toast('Тесты зелёные: снеговик радуется, салют в тулбаре, уголёк убран.'); });
+$('red').addEventListener('click', () => { coal = true; fire('red'); toast('Тесты красные: в носке у камина лежит уголёк, пока тесты не позеленеют.'); });
+$('morning').addEventListener('click', () => { fire('morning'); toast('Утро: камин в строке состояния разгорается из углей.'); });
+$('evening').addEventListener('click', e => { evening = !evening; e.currentTarget.setAttribute('aria-pressed', String(evening)); drawVillage(vilCtx); toast(evening ? 'Вечер: в деревне зажглись окна, вышла луна.' : 'День: окон горит меньше.'); });
+$('ny').addEventListener('click', () => { fire('ny'); toast('С Новым годом! Салют по всему тулбару, все огни горят.'); });
+$('idle').addEventListener('click', e => {
+  e.stopPropagation(); idle = true; idleStart = performance.now();
+  toast('Пока тебя нет, тулбар и вкладки заметает. Нажми любую клавишу или кликни, чтобы стряхнуть снег.');
+});
+const press = (id, v) => $(id).setAttribute('aria-pressed', String(v));
+$('pull').addEventListener('click', () => { letters += 3; fire('pull'); toast('Pull: пришло 3 коммита, в ящике у сугроба ' + letters + ' писем.'); });
+$('branch').addEventListener('click', () => {
+  branchIdx = (branchIdx + 1) % BRANCHES.length; const [name, w] = BRANCHES[branchIdx];
+  $('branch').textContent = 'Ветка: ' + name; $('branchLabel').textContent = '⑂ ' + name + ' ▾';
+  toast(['На main ясно.', 'На feature-ветке идёт снег.', 'На hotfix метель.'][w]);
+});
+$('typing').addEventListener('click', () => { typingUntil = performance.now() + 3000; toast('Быстрая печать: камин в строке состояния разгорается и искрит, потом затихает.'); });
+$('del').addEventListener('click', () => { fire('del'); toast('Удалено много строк: снегоуборщик расчищает гирлянду внизу.'); });
+$('reformat').addEventListener('click', () => { fire('reformat'); toast('Reformat: снежинки в панели Project встают ровными рядами.'); });
+$('bp').addEventListener('click', () => { bpOn = !bpOn; bpAt = performance.now(); press('bp', bpOn); toast(bpOn ? 'Breakpoint: внизу щели выглядывает пингвин. Нажми ещё раз, чтобы продолжить выполнение.' : 'Выполнение продолжено, пингвин спрятался.'); });
+$('cocoa').addEventListener('click', () => { cocoa = !cocoa; press('cocoa', cocoa); toast(cocoa ? 'Два часа без перерыва: у снеговика кружка какао. Намёк, что пора встать.' : 'Перерыв сделан.'); });
+$('realSnow').addEventListener('click', () => { realSnow = !realSnow; press('realSnow', realSnow); toast(realSnow ? 'За окном снег: он идёт и в IDE.' : 'Снег за окном кончился.'); });
+$('dec6').addEventListener('click', () => { dec6 = !dec6; press('dec6', dec6); toast(dec6 ? '6 декабря: в носке у камина подарок от Николая.' : 'Подарок забрали.'); });
+$('jan7').addEventListener('click', () => { fire('jan7'); toast('7 января: огни стали золотыми колокольчиками, на ёлке звезда.'); });
+$('oldny').addEventListener('click', () => { fire('oldny'); toast('Старый Новый год: маленький повтор салюта.'); });
+$('melt').addEventListener('click', () => {
+  if (seasonOver || age('melt') < 3400) { seasonOver = false; delete fx.melt; document.querySelector('.ide').classList.remove('off'); $('melt').textContent = 'Конец сезона'; toast('Зима вернулась.'); return; }
+  fire('melt'); $('melt').textContent = 'Вернуть зиму'; toast('Конец сезона: снеговик тает, украшения убираются сами.');
+});
+addEventListener('keydown', () => { heat = Math.min(1, heat + 0.08); });
+$('grinch').addEventListener('click', () => { grinch = !grinch; press('grinch', grinch); if (grinch) fire('grinch'); toast(grinch ? 'class Grinch: Гринч утащил лампочку из гирлянды между панелями.' : 'Класс удалён, лампочка вернулась на место.'); });
+$('hohoho').addEventListener('click', () => { flight = { start: performance.now(), dur: 4200, ho: true }; toast('// ho ho ho: Санта пролетает и смеётся.'); });
+$('lis').addEventListener('click', () => { fire('lis'); toast('letItSnow: десять секунд густого снегопада.'); });
+$('loopBtn').addEventListener('click', () => { skating = !skating; press('loopBtn', skating); toast(skating ? 'while (true): пингвин катается по щели, пока цикл не уберёшь.' : 'Цикл убран, пингвин ушёл.'); });
+const toggleGame = () => {
+  if (game) { toast('Игра окончена: поймано подарков ' + game.score + '.'); game = null; press('konami', false); return; }
+  game = { x: 26, dir: 0, items: [], score: 0, spawn: 0, last: performance.now(), lastKey: 0 }; press('konami', true);
+  $('c64').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  toast('Konami code: лови подарки стрелками ← →. Без нажатий сани ловят сами.');
+};
+$('konami').addEventListener('click', toggleGame);
+const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+let kpos = 0;
+addEventListener('keydown', e => {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  kpos = k === KONAMI[kpos] ? kpos + 1 : (k === KONAMI[0] ? 1 : 0);
+  if (kpos === KONAMI.length) { kpos = 0; if (!game) toggleGame(); }
+  if (game && (k === 'ArrowLeft' || k === 'ArrowRight')) { game.dir = k === 'ArrowLeft' ? -1 : 1; game.lastKey = performance.now(); e.preventDefault(); }
+});
+addEventListener('keyup', e => { if (game && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) game.dir = 0; });
+const clickSnowman = () => { snowClicks++; if (snowClicks >= 10) { snowClicks = 0; fire('hare'); toast('Десятый клик: прибежал заяц и утащил морковку.'); } else toast('Клик по снеговику: ' + snowClicks + ' из 10.'); };
+$('tsnow').addEventListener('click', clickSnowman);
+$('clicks').addEventListener('click', () => { snowClicks = 9; clickSnowman(); });
+$('cat').addEventListener('click', () => { cat = !cat; press('cat', cat); if (cat) $('c64').scrollIntoView({ behavior: 'smooth', block: 'center' }); toast(cat ? 'Пять минут без вкладок: у камина в пустом редакторе свернулся кот.' : 'Кот ушёл.'); });
+$('night').addEventListener('click', () => { flight = { start: performance.now(), dur: 4200, night: true }; gifts = gifts >= GIFTS.length ? 1 : gifts + 1; fire('commit'); toast('Коммит в 2 ночи: нос Рудольфа освещает путь.'); });
+$('mandarin').addEventListener('click', () => { mandarin = !mandarin; press('mandarin', mandarin); toast(mandarin ? 'Коммит 31-го в 23:00: в носке мандарин. Работать в Новый год? Держи.' : 'Мандарин съеден.'); });
+$('yeti').addEventListener('click', () => { fire('yeti'); toast('Раз в сезон: по щели над строкой состояния проходит йети.'); });
+let ironyTimer = 0;
+$('ironyBtn').addEventListener('click', () => { $('irony').hidden = false; clearTimeout(ironyTimer); ironyTimer = setTimeout(() => { $('irony').hidden = true; }, 6000); toast('Два проекта с одинаковым именем: IDE шутит про «Иронию судьбы».'); });
+const shake = () => { if (!idle) return; idle = false; fire('shake'); toast('Снег осыпался, можно работать.'); };
+addEventListener('keydown', shake);
+addEventListener('pointerdown', e => { if (e.target.id !== 'idle') shake(); });
+$('build').addEventListener('click', () => toast('Сборка: сани тянут progress bar, в конце по гирлянде бежит золотая волна.'));
+$('push').addEventListener('click', () => toast('Push: подарки доставлены, Санта пролетает через тулбар.'));
+$('dayInput').addEventListener('input', e => {
+  day = +e.target.value; $('dayOut').textContent = day + ' декабря'; drawVillage(vilCtx);
+});
+const pauseBtn = $('pause');
+pauseBtn.textContent = paused ? 'Зажечь' : 'Пауза';
+pauseBtn.addEventListener('click', () => { paused = !paused; pauseBtn.textContent = paused ? 'Зажечь' : 'Пауза'; });
+
+function drawGame(ctx, now) {
+  const g = game, dt = Math.min(0.05, (now - g.last) / 1000); g.last = now;
+  if (now - g.spawn > 650) { g.spawn = now; g.items.push({ x: 4 + Math.floor(Math.random() * 54), y: -6, c: BULBS[Math.floor(Math.random() * 4)] }); }
+  if (now - g.lastKey > 1500 && g.items.length) {
+    const t = g.items.reduce((a, b) => (b.y > a.y ? b : a));
+    g.x += Math.sign(t.x - (g.x + 3)) * Math.min(Math.abs(t.x - (g.x + 3)), 40 * dt);
+  }
+  g.x = Math.max(0, Math.min(52, g.x + g.dir * 50 * dt));
+  rect(ctx, 0, 0, 64, 64, '#141a26');
+  for (let i = 0; i < 16; i++) px(ctx, Math.floor(hash(i, 71) * 64), Math.floor(hash(i, 72) * 40), '#cfe0ff');
+  rect(ctx, 0, 58, 64, 6, '#eef3fa');
+  for (const it of g.items) it.y += 22 * dt;
+  g.items = g.items.filter(it => {
+    if (it.y >= 50 && it.y <= 56 && it.x + 4 >= g.x && it.x <= g.x + 12) { g.score++; return false; }
+    return it.y < 64;
+  });
+  for (const it of g.items) { rect(ctx, it.x, Math.round(it.y), 4, 4, it.c); rect(ctx, it.x + 1, Math.round(it.y), 1, 4, '#ffd75e'); }
+  const sx = Math.round(g.x);
+  rect(ctx, sx, 53, 10, 3, '#c0392b'); rect(ctx, sx, 53, 10, 1, '#d8b04a'); rect(ctx, sx, 57, 12, 1, '#d8b04a'); px(ctx, sx + 12, 56, '#d8b04a');
+  rect(ctx, sx + 3, 50, 3, 3, '#c0392b'); px(ctx, sx + 5, 50, '#f2c7a5'); px(ctx, sx + 2, 49, '#ffffff');
+  for (let i = 0; i < g.score && i < 30; i++) px(ctx, 2 + (i % 15) * 4, 2 + Math.floor(i / 15) * 3, '#ffd75e');
+}
+let ambient = 0, lastTick = 0;
+function loop(now) {
+  const dt = lastNow ? (now - lastNow) / 1000 : 0; lastNow = now;
+  NOW = now;
+  if (now < typingUntil) heat = Math.min(1, heat + dt * 1.2); else heat = Math.max(0, heat - dt * 0.35);
+  const ma = age('melt');
+  if (!seasonOver && ma > 3400 && ma < 1e9) { seasonOver = true; document.querySelector('.ide').classList.add('off'); }
+  if (!paused && now - lastTick >= FRAME_MS) { ambient++; lastTick = now; }
+  const f = ambient % FRAMES, gallop = Math.floor(now / 120);
+
+  drawTree(treeCtx, f);
+  drawStrip(stripCtx, f, ambient);
+  if (game) drawGame(c64, now); else drawFireplace(c64, f);
+  drawGaps(f, ambient);
+  drawTreeSnow(f, ambient);
+
+  skyCtx.clearRect(0, 0, sky.width, sky.height);
+  const ga = age('green');
+  if (ga < 2000) { drawBurst(skyCtx, Math.floor(sky.width * 0.62), 8, ga, 0); drawBurst(skyCtx, Math.floor(sky.width * 0.78), 7, ga - 450, 2); }
+  const na2 = age('ny');
+  if (na2 < 6000) for (let i = 0; i < 9; i++) drawBurst(skyCtx, Math.floor(sky.width * (0.06 + i * 0.11)), 6 + (i % 3) * 2, (na2 - i * 380) % 2200, i);
+  const oa = age('oldny');
+  if (oa < 2000) { drawBurst(skyCtx, Math.floor(sky.width * 0.5), 8, oa, 1); drawBurst(skyCtx, Math.floor(sky.width * 0.4), 9, oa - 500, 3); }
+  drawIdleSnow();
+  drawEditorSnow(now);
+  if (flight) {
+    const p = (now - flight.start) / flight.dur;
+    if (p >= 1) flight = null;
+    else {
+      const x = Math.round(-40 + p * (sky.width + 80));
+      const y = 9 - Math.round(Math.sin(p * Math.PI) * 5);
+      drawTrail(skyCtx, x, y, gallop);
+      drawSleigh(skyCtx, x, y, gallop);
+      if (flight.ho) drawText(skyCtx, 'HO HO HO', x - 34, 1, Math.floor(now / 200) % 2 ? '#fff7d1' : '#ffd75e');
+      if (flight.night) for (let k = 1; k <= 8; k++) if (hash(k, gallop) > 0.25) px(skyCtx, x + 33 + k, y + 1 + Math.round((hash(k + 2, gallop) - 0.5) * (k / 3)), k < 4 ? '#ff3b3b' : '#a8261a');
+    }
+  }
+
+  if (build) {
+    const W = 120, p = (now - build.start) / build.dur;
+    progCtx.clearRect(0, 0, W, 11);
+    rect(progCtx, 0, 8, W, 2, '#43454a');
+    if (p < 1) {
+      const sx = Math.round(-34 + p * (W + 34));
+      const end = Math.max(0, sx + 3);
+      rect(progCtx, 0, 8, end, 1, '#2e7d4f');
+      for (let x = 2, i = 0; x < end; x += 5, i++) px(progCtx, x, 9, BULBS[i % 4]);
+      drawSleigh(progCtx, sx, 3, gallop);
+    } else if (p < 1.35) {
+      rect(progCtx, 0, 8, W, 1, '#2e7d4f');
+      for (let x = 2, i = 0; x < W; x += 5, i++) px(progCtx, x, 9, BULBS[(i + gallop) % 4]);
+      if ($('buildText').textContent !== 'Сборка завершена') fire('buildok');
+      $('buildText').textContent = 'Сборка завершена';
+    } else {
+      build = null; $('crumbs').hidden = false; $('buildBox').hidden = true;
+    }
+  }
+  requestAnimationFrame(loop);
+}
+const body3 = document.querySelector('.body3'), gapsC = $('gaps'), gapsCtx = gapsC.getContext('2d');
+const tsnowCtx = $('tsnow').getContext('2d');
+new ResizeObserver(() => { const c = $('tsnow'); c.width = Math.max(84, Math.floor(c.clientWidth / 2)); }).observe($('tsnow'));
+function sizeGaps() { gapsC.width = Math.floor(body3.clientWidth / 2); gapsC.height = Math.floor(body3.clientHeight / 2); }
+new ResizeObserver(sizeGaps).observe(body3); sizeGaps();
+
+function bulb(ctx, x, y, c) { rect(ctx, x, y, 2, 2, c); px(ctx, x, y, '#ffffffaa'); }
+
+function drawGaps(f, t) {
+  const ctx = gapsCtx, W = gapsC.width, H = gapsC.height;
+  ctx.clearRect(0, 0, W, H);
+  const b = body3.getBoundingClientRect(), tr = document.querySelector('.tree').getBoundingClientRect(), er = document.querySelector('.editor').getBoundingClientRect();
+  // сосульки из-под тулбара
+  const gx0 = Math.round((tr.right - b.left) / 2), gx1 = Math.round((er.left - b.left) / 2), cx = Math.floor((gx0 + gx1) / 2);
+  const fa = age('buildFail');
+  for (let x = 1; x < W; x += 2) {
+    if (x === cx || x === cx - 1) { if (fa > 4000) rect(ctx, cx, 0, 1, 4, '#bcd6f0'), px(ctx, cx, 0, '#eef3fa'), px(ctx, cx, 3, '#8fb8e8'); continue; }
+    if (hash(x, 7) < 0.35) continue;
+    const len = 1 + Math.floor(hash(x, 8) * 4);
+    for (let y = 0; y < len; y++) px(ctx, x, y, y === 0 ? '#eef3fa' : y === len - 1 ? '#8fb8e8' : '#bcd6f0');
+    if (hash(x, Math.floor(t / 3)) > 0.97) px(ctx, x, len - 1, '#ffffff');
+  }
+  // гирлянда в вертикальной щели
+  const top = 6, bottom = H - 6;
+  let grinchY = 0;
+  const ca = age('conflict'), wa = age('buildok'), na = age('ny');
+  const redFlash = fa > 900 && fa < 1600;
+  const bulbColor = (i, on, pos) => {
+    if (na < 6000) return BULBS[(i + Math.floor(t)) % 4];
+    if (age('jan7') < 5000) return (i + Math.floor(t / 2)) % 3 ? '#ffd75e' : '#fff2a8';
+    if (redFlash) return '#ff3b3b';
+    if (ca < 2600) return (Math.floor(t) + i) % 2 ? '#ff3b3b' : '#3a3f47';
+    if (wa < 1600 && Math.abs(pos - wa / 1300) < 0.08) return '#fff2a8';
+    return on ? BULBS[i % 4] : '#3a3f47';
+  };
+  for (let y = top; y < bottom; y++) px(ctx, cx + Math.round(Math.sin(y / 6) * 1.2), y, '#2e7d4f');
+  for (let y = top + 3, i = 0; y < bottom - 2; y += 7, i++) {
+    const wx = cx + Math.round(Math.sin(y / 6) * 1.2) + (i % 2 ? 0 : -1);
+    const on = (i + Math.floor(t / 2)) % 4 !== 0;
+    if (!(grinch && i === 2)) bulb(ctx, wx, y, bulbColor(i, on, y / H)); else grinchY = y;
+  }
+  if (fa < 900) {
+    const yy = Math.round(Math.pow(fa / 900, 2) * (H - 8));
+    rect(ctx, cx, yy, 1, 4, '#bcd6f0'); px(ctx, cx, yy, '#eef3fa'); px(ctx, cx, yy + 3, '#8fb8e8');
+  } else if (fa < 1500) {
+    const p = (fa - 900) / 600;
+    for (let s2 = 0; s2 < 8; s2++) {
+      const dir = s2 % 2 ? 1 : -1, sp = 2 + hash(s2, 31) * 10;
+      px(ctx, cx + Math.round(dir * sp * p), H - 5 - Math.round(Math.sin(p * Math.PI) * (1 + hash(s2, 32) * 3)), s2 % 3 ? '#bcd6f0' : '#ffffff');
+    }
+  }
+  if (ca < 2600) {
+    const p = ca / 2600;
+    for (let i = 0; i < 60; i++) {
+      const lane = i % 3;
+      if (lane === 0) px(ctx, cx - 2 + Math.floor(hash(i, 41) * 5), Math.floor((hash(i, 42) * H + ca / 6) % H), '#ffffff');
+      else if (lane === 1) px(ctx, Math.floor((hash(i, 43) * W + ca / 5) % W), 1 + Math.floor(hash(i, 44) * 4), '#eef3fa');
+      else px(ctx, Math.floor((hash(i, 45) * W + ca / 4) % W), H - 1 - Math.floor(hash(i, 46) * 4), '#ffffff');
+    }
+  }
+  // погода в щелях: ветка или настоящий снег
+  const wx = age('lis') < 10000 ? 2 : Math.max(BRANCHES[branchIdx][1], realSnow ? 1 : 0);
+  if (wx > 0) {
+    const n = wx === 2 ? 70 : 24, sp = wx === 2 ? 4 : 14, side = wx === 2 ? 5 : 0;
+    for (let i = 0; i < n; i++) {
+      const lane = i % 3;
+      if (lane === 0) px(ctx, cx - 2 + Math.floor((hash(i, 61) * 5 + (side ? NOW / 300 : 0)) % 5), Math.floor((hash(i, 62) * H + NOW / sp) % H), '#eef3fa');
+      else if (lane === 1) px(ctx, Math.floor((hash(i, 63) * W + NOW / (sp * (side ? 1 : 3))) % W), 1 + Math.floor((hash(i, 64) * 4 + NOW / (sp * 20)) % 4), '#eef3fa');
+      else px(ctx, Math.floor((hash(i, 65) * W + NOW / (sp * (side ? 1 : 3))) % W), H - 1 - Math.floor((hash(i, 66) * 4 + NOW / (sp * 20)) % 4), '#ffffff');
+    }
+  }
+  if (grinch) {
+    const gy = grinchY - 3, ga2 = Math.min(1, age('grinch') / 500);
+    const G = ['.RRR.', 'RRRRW', 'GGGG.', 'GYGYG', 'GGGGG', 'G.K.G', '.GGG.', '.G.G.'];
+    drawSprite(ctx, G, { R: '#d23a2f', W: '#f4efe6', G: '#6aa84f', Y: '#f2e14b', K: '#1b1b1f' }, cx - 2 - Math.round((1 - ga2) * 6), gy);
+    bulb(ctx, cx + 3, gy + 4, BULBS[2]);
+  }
+  if (skating) {
+    const sy = Math.round(top + 4 + (Math.sin(NOW / 700) * 0.5 + 0.5) * (H - 24));
+    drawSprite(ctx, PENG, PENG_C, cx - 2, sy);
+    px(ctx, cx - 2, sy + 7, '#bcd6f0'); px(ctx, cx + 2, sy + 7, '#bcd6f0');
+  }
+  // пингвин на breakpoint
+  const bpa = NOW - bpAt;
+  const peek = bpOn ? Math.min(1, bpa / 400) : Math.max(0, 1 - bpa / 300);
+  if (peek > 0) {
+    const py = Math.round(H - 5 - peek * 8);
+    const P = ['.KKK.', 'KWKWK', 'KKOKK', 'KWWWK', 'KWWWK', '.WWW.', '.O.O.'];
+    const C = { K: '#3a4152', W: '#f4f6fa', O: '#ff9f2e' };
+    P.forEach((row, ry) => [...row].forEach((ch, rx) => { if (ch !== '.' && py + ry < H - 4) px(ctx, cx - 2 + rx, py + ry, C[ch]); }));
+    if (bpOn && Math.floor(NOW / 900) % 4 === 0) px(ctx, cx, py + 1, '#3a4152');
+  }
+  // гирлянда над строкой состояния
+  const span = 36, base = H - 5;
+  for (let x = 0; x < W; x++) {
+    const p = (x % span) / span;
+    px(ctx, x, base + Math.round(2 * (1 - Math.pow(p * 2 - 1, 2))), '#2e7d4f');
+  }
+  for (let x = 4, i = 0; x < W - 2; x += 7, i++) {
+    const p = (x % span) / span, y = base + Math.round(2 * (1 - Math.pow(p * 2 - 1, 2))) + 1;
+    const on = (i + Math.floor(t / 2)) % 4 !== 0;
+    bulb(ctx, x, y, bulbColor(i + 1, on, x / W));
+  }
+  const ya = age('yeti');
+  if (ya < 7000) {
+    const x = Math.round(-8 + (ya / 7000) * (W + 16)), y = H - 9, st = Math.floor(NOW / 220) % 2;
+    const Y = ['.WWW.', 'WFFFW', 'WKFKW', 'WFFFW', 'WWWWW', 'WWWWW', 'WWWWW', st ? 'W...W' : '.W.W.'];
+    drawSprite(ctx, Y, { W: '#e8eef6', F: '#7fa6d6', K: '#1b1b1f' }, x, y);
+    px(ctx, x - 1, y + 4 + st, '#e8eef6'); px(ctx, x + 5, y + 5 - st, '#e8eef6');
+  }
+  // снегоуборщик
+  const da = age('del');
+  if (da < 3200) {
+    const x = Math.round(-14 + (da / 3200) * (W + 28)), y = H - 6;
+    rect(ctx, x + 2, y + 2, 8, 2, '#f2c230'); rect(ctx, x + 4, y, 4, 2, '#f2c230');
+    px(ctx, x + 6, y + 1, '#9fd2ff'); px(ctx, x + 5, y - 1, Math.floor(NOW / 200) % 2 ? '#ff9f2e' : '#a8261a');
+    px(ctx, x + 3, y + 4, '#1b1b1f'); px(ctx, x + 8, y + 4, '#1b1b1f');
+    rect(ctx, x + 10, y + 1, 2, 4, '#9aa3ad');
+    for (let k = 0; k < 6; k++) if (hash(k, Math.floor(NOW / 80)) > 0.35) px(ctx, x + 12 + Math.floor(hash(k + 9, Math.floor(NOW / 80)) * 4), y - Math.floor(hash(k + 3, Math.floor(NOW / 80)) * 3), '#ffffff');
+  }
+}
+
+const GIFTS = [
+  [10, 15, 9, 8, '#c0392b', '#d8b04a'], [21, 18, 6, 5, '#2f6f73', '#eef3fa'], [2, 17, 7, 6, '#7a3b6e', '#ffd75e'],
+  [28, 16, 8, 7, '#d8b04a', '#c0392b'], [13, 9, 6, 6, '#2e7d4f', '#ff5a5a'], [37, 19, 5, 4, '#5ab8ff', '#ffffff'],
+  [4, 11, 5, 6, '#ff9f2e', '#2e7d4f'], [23, 12, 6, 6, '#c0392b', '#ffffff'], [30, 10, 5, 6, '#7fe08a', '#7a3b6e']
+];
+function drawTreeSnow(f, t) {
+  const ctx = tsnowCtx, TW = ctx.canvas.width;
+  ctx.clearRect(0, 0, TW, 28);
+  const wx = age('lis') < 10000 ? 2 : Math.max(BRANCHES[branchIdx][1], realSnow ? 1 : 0);
+  const nFlakes = wx === 2 ? 30 : wx === 1 ? 16 : 7;
+  const rf = age('reformat');
+  for (let i = 0; i < nFlakes; i++) {
+    let fx2 = Math.floor(hash(i, 21) * TW), fy = Math.floor(hash(i, 22) * 22 + t * (0.25 + hash(i, 23) * 0.2) * (wx === 2 ? 2 : 1)) % 22;
+    if (wx === 2) fx2 = Math.floor(fx2 + t * 0.8) % TW;
+    if (rf < 1800) {
+      const gxT = 4 + (i % 7) * 11, gyT = 3 + Math.floor(i / 7) * 5;
+      const m = rf < 400 ? rf / 400 : rf > 1400 ? (1800 - rf) / 400 : 1;
+      fx2 = Math.round(fx2 + (gxT - fx2) * m); fy = Math.round(fy + (gyT - fy) * m);
+    }
+    px(ctx, fx2, fy, '#dfe8f2');
+  }
+  for (let x = 0; x < TW; x++) {
+    const wall = Math.max(0, 6 - x) + Math.max(0, x - (TW - 7));
+    const h = 5 + Math.round(Math.sin(x / 7) * 1.5 + Math.sin(x / 17) * 1.5) + Math.round(wall * 0.9);
+    rect(ctx, x, 28 - h, 1, h, '#eef3fa');
+    px(ctx, x, 28 - h, '#ffffff');
+  }
+  ctx.save(); ctx.translate(Math.max(4, Math.floor((TW - 84) / 2)), 0);
+  // подарки за коммиты
+  for (let g = 0; g < gifts; g++) {
+    const [gx, gy, gw, gh, col, rib] = GIFTS[g];
+    const drop = g === gifts - 1 ? age('commit') : Infinity;
+    const off = drop < 500 ? -Math.round((1 - Math.pow(drop / 500, 2)) * 22) : 0;
+    rect(ctx, gx, gy + off, gw, gh, col);
+    rect(ctx, gx + Math.floor(gw / 2), gy + off, 1, gh, rib); rect(ctx, gx, gy + off + 2, gw, 1, rib);
+    px(ctx, gx + Math.floor(gw / 2) - 1, gy + off - 1, rib); px(ctx, gx + Math.floor(gw / 2) + 1, gy + off - 1, rib);
+  }
+  // почтовый ящик
+  rect(ctx, 73, 13, 2, 11, '#6b4228');
+  rect(ctx, 69, 8, 9, 6, '#2f5fa8'); rect(ctx, 69, 8, 9, 1, '#eef3fa');
+  rect(ctx, 70, 10, 5, 1, '#1b2433');
+  if (letters > 0) { rect(ctx, 78, 5, 1, 5, '#6b4228'); rect(ctx, 78, 5, 2, 2, '#e04a3f'); rect(ctx, 71, 9, 3, 1, '#f4efe6'); }
+  const pa = age('pull');
+  for (let l = 0; l < 3; l++) {
+    const la = pa - l * 220;
+    if (la < 0 || la > 520) continue;
+    const ly = Math.round(-4 + (la / 520) * 13);
+    rect(ctx, 71, ly, 4, 3, '#f4efe6'); px(ctx, 72, ly + 1, '#c0392b');
+  }
+  // снеговик
+  const sx = 52;
+  const ha0 = age('hare');
+  if (ha0 > 9000 && ha0 < 1e9) delete fx.hare;
+  const ma = age('melt');
+  const melt = seasonOver ? 1 : ma < 3200 ? ma / 3200 : 0;
+  ctx.save();
+  if (melt > 0) { ctx.beginPath(); ctx.rect(0, 0, 80, 23); ctx.clip(); ctx.translate(0, Math.round(melt * 16)); }
+  rect(ctx, sx, 14, 9, 8, '#f6f8fb'); rect(ctx, sx + 1, 13, 7, 10, '#f6f8fb');
+  rect(ctx, sx + 2, 7, 5, 6, '#f6f8fb'); rect(ctx, sx + 1, 8, 7, 4, '#f6f8fb');
+  rect(ctx, sx + 1, 12, 7, 1, '#c0392b'); rect(ctx, sx + 6, 13, 2, 3, '#c0392b');
+  rect(ctx, sx + 1, 6, 7, 1, '#1b1b1f'); rect(ctx, sx + 2, 2, 5, 4, '#1b1b1f');
+  px(ctx, sx + 3, 9, '#1b1b1f'); px(ctx, sx + 5, 9, '#1b1b1f'); const ha = age('hare');
+  if (ha > 1100) { /* морковки нет */ } else { px(ctx, sx + 6, 10, '#ff9f2e'); px(ctx, sx + 7, 10, '#ff9f2e'); }
+  px(ctx, sx + 4, 16, '#1b1b1f'); px(ctx, sx + 4, 18, '#1b1b1f');
+  const cheer = age('green') < 2200;
+  const wave = cheer ? (Math.floor(NOW / 130) % 2 ? -3 : -1) : (f % 3 === 0 ? -1 : 0);
+  px(ctx, sx - 1, 15, '#6b4228'); px(ctx, sx - 2, 14 + wave, '#6b4228'); px(ctx, sx - 3, 13 + wave * (cheer ? 2 : 1), '#6b4228');
+  const wave2 = cheer ? (Math.floor(NOW / 130) % 2 ? -1 : -3) : 0;
+  px(ctx, sx + 9, 15, '#6b4228'); px(ctx, sx + 10, 14 + wave2, '#6b4228'); px(ctx, sx + 11, 13 + wave2 * (cheer ? 2 : 1), '#6b4228');
+  if (cocoa && melt === 0) {
+    rect(ctx, sx + 11, 10, 3, 3, '#c0392b'); px(ctx, sx + 14, 11, '#c0392b'); rect(ctx, sx + 11, 10, 3, 1, '#6b3e22');
+    const st = Math.floor(NOW / 250) % 3;
+    px(ctx, sx + 12, 8 - st, '#dfe8f2'); if (st !== 1) px(ctx, sx + 13, 7 - st, '#dfe8f2');
+  }
+  ctx.restore();
+  const hh = age('hare');
+  if (hh < 3000) {
+    const hx = hh < 1100 ? Math.round(82 - (hh / 1100) * 20) : Math.round(62 + ((hh - 1100) / 1900) * 30);
+    const hop = Math.floor(NOW / 150) % 2;
+    const HR = ['..W.W', '..W.W', '.WWWW', 'WWWKW', '.WWWW', 'W..W.'];
+    drawSprite(ctx, hh < 1100 ? HR.map(r => [...r].reverse().join('')) : HR, { W: '#d9d4cc', K: '#1b1b1f' }, hx, 17 - hop);
+    if (hh > 1100) { px(ctx, hx + 5, 20 - hop, '#ff9f2e'); px(ctx, hx + 6, 20 - hop, '#ff9f2e'); }
+  }
+  if (melt > 0) {
+    rect(ctx, Math.round(sx + 4 - melt * 8), 22, Math.round(2 + melt * 16), 1, '#8fb8e8');
+    if (melt > 0.7) { rect(ctx, sx + 1, 21, 5, 1, '#1b1b1f'); px(ctx, sx + 8, 21, '#ff9f2e'); }
+  }
+  ctx.restore();
+}
+
+(function drawStatic() {
+  const h = $('hat').getContext('2d');
+  rect(h, 0, 6, 11, 2, '#f4efe6');
+  rect(h, 1, 4, 9, 2, '#d23a2f'); rect(h, 3, 2, 6, 2, '#d23a2f'); rect(h, 6, 1, 3, 1, '#d23a2f');
+  rect(h, 9, 2, 2, 2, '#d23a2f'); rect(h, 10, 3, 2, 2, '#f4efe6');
+  const tab = $('activeTab'), cap = $('cap');
+  cap.width = Math.max(10, Math.floor(tab.clientWidth / 2)); cap.height = 5;
+  const c = cap.getContext('2d');
+  for (let x = 0; x < cap.width; x++) {
+    const hh = 1 + (hash(x, 3) > 0.55 ? 1 : 0) + (x % 13 < 5 ? 1 : 0);
+    rect(c, x, 0, 1, hh, '#eef3fa');
+    if (hash(x, 4) > 0.86) px(c, x, hh, '#bcd6f0');
+  }
+})();
+
+const tbSnow = $('tbSnow'), tabSnow = $('tabSnow');
+function sizeIdle() {
+  for (const c of [tbSnow, tabSnow]) { c.width = Math.max(10, Math.floor(c.clientWidth / 2)); c.height = Math.floor(c.clientHeight / 2); }
+}
+new ResizeObserver(sizeIdle).observe(document.querySelector('.ide')); sizeIdle();
+function drawIdleSnow() {
+  const sa = age('shake');
+  const amt = idle ? Math.min(1, (NOW - idleStart) / 1800) : sa < 600 ? 1 - sa / 600 : 0;
+  for (const c of [tbSnow, tabSnow]) {
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    if (amt <= 0) continue;
+    for (let x = 0; x < c.width; x++) {
+      const h = Math.round(amt * (2 + Math.sin(x / 5) * 1 + hash(x, 51) * 1.5));
+      if (h > 0) { rect(ctx, x, 0, 1, h, '#eef3fa'); px(ctx, x, h - 1, '#c3d2e6'); }
+      if (sa < 600 && !idle && hash(x, 52) > 0.8) px(ctx, x, Math.min(c.height - 1, Math.round(h + sa / 120)), '#ffffff');
+    }
+  }
+}
+/* --- снег в редакторе --- */
+const edSnow = $('edSnow'), edCtx = edSnow.getContext('2d'), codeEl = document.querySelector('.editor .code'), editorEl = document.querySelector('.editor');
+const SM_NOTES = [
+  'Снег только в щелях и в панели Project, как было раньше.',
+  'Снежинки летят справа от кода и в пустых строках. На текст не попадают: долетев до строки, ложатся на неё сверху маленьким сугробом. Геометрию строк плагин берёт из публичного API редактора.',
+  'Снег идёт поверх всего редактора. Нажми любую клавишу или «Начать печатать», и снег пропадёт, а через пару секунд затишья пойдёт снова.',
+  'Снежинки рисуются тусклым слоем под текстом, буквы всегда сверху. Анимированный слой под текстом требует внутреннего API, риск поломки выше.'
+];
+let snowMode = 1, typingPause = 0, lines = [], drifts = [], flakes = [], edLast = 0;
+function measureLines() {
+  edSnow.width = Math.floor(editorEl.clientWidth / 2); edSnow.height = Math.floor(editorEl.clientHeight / 2);
+  const cs = getComputedStyle(codeEl), m = document.createElement('canvas').getContext('2d');
+  m.font = cs.fontSize + ' ' + cs.fontFamily;
+  const lh = parseFloat(cs.lineHeight), top = codeEl.offsetTop + parseFloat(cs.paddingTop), left = codeEl.offsetLeft + parseFloat(cs.paddingLeft);
+  lines = codeEl.textContent.split('\n').map((t, i) => {
+    const lead = t.length - t.trimStart().length, body = t.trimEnd();
+    if (!body.trim()) return null;
+    return { x0: Math.floor((left + m.measureText(t.slice(0, lead)).width) / 2), x1: Math.ceil((left + m.measureText(body).width) / 2), y0: Math.floor((top + i * lh + lh * 0.2) / 2), y1: Math.ceil((top + (i + 1) * lh - lh * 0.2) / 2) };
+  });
+  drifts = lines.map(l => l ? new Array(l.x1 - l.x0 + 1).fill(0) : null);
+}
+function newFlake(anywhere) { return { x: Math.random() * edSnow.width, y: anywhere ? Math.random() * edSnow.height : -2 - Math.random() * 20, vy: 7 + Math.random() * 9, ph: Math.random() * 6 }; }
+function resetFlakes() { flakes = Array.from({ length: 110 }, () => newFlake(true)); measureLines(); }
+const villageEl = $('village');
+function sizeVillage() { villageEl.width = Math.max(170, Math.floor(editorEl.clientWidth / 2)); villageEl.height = 70; drawVillage(vilCtx); }
+new ResizeObserver(() => { resetFlakes(); sizeVillage(); }).observe(editorEl); resetFlakes(); sizeVillage();
+function setMode(m) {
+  snowMode = m; document.querySelectorAll('.sm').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.mode === m)));
+  edSnow.style.zIndex = m === 3 ? '0' : '2'; $('smNote').textContent = SM_NOTES[m]; $('typeSim').hidden = m !== 2;
+  resetFlakes();
+}
+document.querySelectorAll('.sm').forEach(b => b.addEventListener('click', () => setMode(+b.dataset.mode)));
+$('typeSim').addEventListener('click', () => { typingPause = performance.now() + 2500; });
+addEventListener('keydown', () => { typingPause = performance.now() + 2500; });
+setMode(1);
+function drawEditorSnow(now) {
+  const dt = edLast ? Math.min(0.05, (now - edLast) / 1000) : 0; edLast = now;
+  const W = edSnow.width, H = edSnow.height, ctx = edCtx;
+  ctx.clearRect(0, 0, W, H);
+  if (snowMode === 0) return;
+  if (snowMode === 2 && now < typingPause) { for (const f of flakes) { f.y = -2 - Math.random() * H; } return; }
+  const col = snowMode === 3 ? '#4a5263' : '#eef3fa';
+  const tabsBottom = Math.ceil(document.querySelector('.tabs').offsetHeight / 2) + 1;
+  for (const f of flakes) {
+    f.y += f.vy * dt; f.x += Math.sin(now / 900 + f.ph) * 4 * dt;
+    if (f.y > H) Object.assign(f, newFlake(false));
+    const x = Math.round(f.x), y = Math.round(f.y);
+    if (snowMode === 1) {
+      const li = lines.findIndex(l => l && x >= l.x0 && x <= l.x1 && y >= l.y0 - (drifts[lines.indexOf(l)][x - l.x0] || 0) && y <= l.y1);
+      if (li >= 0) { const l = lines[li], d = drifts[li], c = x - l.x0; if (d[c] < 3) { d[c]++; if (d[c - 1] != null && d[c - 1] < d[c] - 1) d[c - 1]++; if (d[c + 1] != null && d[c + 1] < d[c] - 1) d[c + 1]++; } Object.assign(f, newFlake(false)); continue; }
+    }
+    if (y > tabsBottom) px(ctx, x, y, col);
+  }
+  if (snowMode === 1) lines.forEach((l, i) => { if (!l) return; drifts[i].forEach((h, c) => { if (h > 0) { rect(ctx, l.x0 + c, l.y0 - h, 1, h, '#eef3fa'); } }); });
+}
+drawVillage(vilCtx);
+requestAnimationFrame(loop);
+</script>

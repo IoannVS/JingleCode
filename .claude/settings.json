@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.intellijPlatform/**)",
+      "Read(./.gradle/**)",
+      "Read(./.kotlin/**)",
+      "Read(./build/**)",
+      "Read(./.idea/**)",
+      "Read(./gradle/wrapper/gradle-wrapper.jar)",
+      "Read(./**/*.jar)",
+      "Read(./**/*.class)",
+      "Read(./**/*.log)"
+    ]
+  }
+}

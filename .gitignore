@@ -2,3 +2,6 @@
 .idea
 .intellijPlatform
 build
+
+*.iml
+.kotlin/

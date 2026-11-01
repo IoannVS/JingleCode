@@ -1,0 +1,7 @@
+<!-- Loaded only in IDEs with the Build action (com.intellij.modules.lang): builds without a run configuration. -->
+<idea-plugin>
+    <projectListeners>
+        <listener class="io.github.ioannvs.jinglecode.runs.ProjectTaskWatcher"
+                  topic="com.intellij.task.ProjectTaskListener"/>
+    </projectListeners>
+</idea-plugin>

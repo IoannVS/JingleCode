@@ -55,6 +55,7 @@ class JingleCodeSettings : SimplePersistentStateComponent<JingleCodeSettings.Sta
         var santaYardLetters by property(true)
         var rightSnowEnabled by property(true)
         var yardButtonEnabled by property(true)
+        var easterEggsEnabled by property(true)
     }
 
     /** Call after changing [state] so that decorations pick up the change. */

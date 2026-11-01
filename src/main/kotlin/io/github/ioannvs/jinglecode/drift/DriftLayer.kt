@@ -88,6 +88,7 @@ internal object DriftLayer : OverlayLayer {
         val pixelUser = PixelCanvas.pixelSize(sysScale, magnify = scale.magnify) / sysScale
         // While the panel snow falls the scene drops its own few flakes.
         val sharedSnow = FeatureGate.getInstance().isActive(JingleFeature.PANEL_SNOW)
+        val snowman = SnowmanState.getInstance(project).look()
         for (place in places(layout)) {
             val panel = place.panel
             val scene = scene(place, scale)
@@ -99,7 +100,7 @@ internal object DriftLayer : OverlayLayer {
                 g2.clip(Rectangle(content.x, content.y, content.width, maxOf(content.height, scene.y + scene.height - content.y)))
                 PixelCanvas.paint(g2, scene.x, scene.y, magnify = scale.magnify) {
                     // One column more than fits, so the drift reaches the right wall; the clip cuts the rest.
-                    drawProjectScene(toLogical(scene.width) + 1, f, t, view, rightEdge = if (place.seam) seamRows(pixelUser) else null, flakes = !sharedSnow)
+                    drawProjectScene(toLogical(scene.width) + 1, f, t, view, rightEdge = if (place.seam) seamRows(pixelUser) else null, flakes = !sharedSnow, snowman = snowman)
                 }
             }
             finally {

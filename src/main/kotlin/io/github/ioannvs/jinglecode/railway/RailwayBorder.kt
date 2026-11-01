@@ -28,7 +28,7 @@ import kotlin.math.max
  * The strip itself is painted on the glass pane ([paint]), like Santa's yard: from edge to edge of the window's
  * island, in its rounded bottom corners, standing on the bottom of the island's body ([place]). Its pixel is the
  * overlay's, the yard's and the drift's: one pixel and one style along the line.
- * A window lower than [MIN_WINDOW] gets no room and no strip.
+ * A window lower than [MIN_WINDOW] gets no room and no strip. ho ho ho
  */
 internal class RailwayBorder(private val component: JComponent, seed: Int) : Border {
 

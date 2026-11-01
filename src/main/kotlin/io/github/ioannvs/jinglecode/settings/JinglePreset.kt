@@ -65,4 +65,5 @@ enum class PresetSwitch(
     MENU_SNOW({ it::menuSnowEnabled }, minimal = false, normal = true),
     RUN_REACTIONS({ it::runReactionsEnabled }, minimal = false, normal = true),
     FIREWORKS({ it::fireworksEnabled }, minimal = false, normal = true),
+    EASTER_EGGS({ it::easterEggsEnabled }, minimal = false, normal = true),
 }

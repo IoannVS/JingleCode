@@ -38,7 +38,14 @@ enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boole
     RIGHT_SNOW({ it.rightSnowEnabled }),
 
     /** The yard's button in the headers of the right tool windows; put there by their Swing layout. */
-    YARD_BUTTON({ it.yardButtonEnabled });
+    YARD_BUTTON({ it.yardButtonEnabled }),
+
+    /**
+     * Easter egg: `// ho ho ho` typed in a comment sends Santa across the whole window, over everything.
+     * All easter eggs share one switch, so the settings don't give them away; each is its own feature,
+     * so that one breaking turns off only itself.
+     */
+    HO_HO_HO({ it.easterEggsEnabled });
 
     fun isEnabledIn(state: JingleCodeSettings.State): Boolean = switch(state)
 }

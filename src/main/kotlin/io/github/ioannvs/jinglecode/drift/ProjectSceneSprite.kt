@@ -33,6 +33,7 @@ internal fun PixelCanvas.drawProjectScene(
     pile: PileView = PileView(0),
     rightEdge: Int? = null,
     flakes: Boolean = true,
+    snowman: SnowmanLook = SnowmanLook.HAT,
 ) {
     if (flakes) drawSceneFlakes(width, t)
     // The mockup centres its 84 pixels of props in the panel. Where they stand the snow is
@@ -42,7 +43,7 @@ internal fun PixelCanvas.drawProjectScene(
     val treeX = width - 9
     if (rightEdge != null && treeX - 4 > ox + PROPS_WIDTH) drawTreeInSnow(drift, treeX)
     drawMailbox(drift, ox + 69)
-    drawSnowman(drift, ox + 52, f)
+    if (snowman != SnowmanLook.AWAY) drawSnowman(drift, ox + 52, f, hat = snowman == SnowmanLook.HAT)
     drawGiftScene(drift, width, ox, pile)
 }
 
@@ -193,12 +194,12 @@ private fun PixelCanvas.drawMailbox(drift: DriftSurface, x: Int) {
  * in the snow where he is. Lit from the top left like the drift: the right side of each snowball
  * is ice blue, so he reads against the white snow.
  */
-private fun PixelCanvas.drawSnowman(drift: DriftSurface, sx: Int, f: Int) {
-    standInSnow(drift, sx..sx + 8, bottom = 22) { dy -> drawSnowman(sx, dy, f) }
+private fun PixelCanvas.drawSnowman(drift: DriftSurface, sx: Int, f: Int, hat: Boolean) {
+    standInSnow(drift, sx..sx + 8, bottom = 22) { dy -> drawSnowman(sx, dy, f, hat) }
 }
 
-/** The snowman alone, moved down by [dy] rows. */
-internal fun PixelCanvas.drawSnowman(sx: Int, dy: Int, f: Int) {
+/** The snowman alone, moved down by [dy] rows; without [hat] after he lost it chasing Santa. */
+internal fun PixelCanvas.drawSnowman(sx: Int, dy: Int, f: Int, hat: Boolean = true) {
     rect(sx, 14 + dy, 9, 8, JinglePalette.SNOWMAN)
     rect(sx + 1, 13 + dy, 7, 10, JinglePalette.SNOWMAN)
     rect(sx + 8, 15 + dy, 1, 6, JinglePalette.ICE)
@@ -208,8 +209,10 @@ internal fun PixelCanvas.drawSnowman(sx: Int, dy: Int, f: Int) {
     rect(sx + 7, 9 + dy, 1, 3, JinglePalette.ICE)
     rect(sx + 1, 12 + dy, 7, 1, JinglePalette.SCARF)
     rect(sx + 6, 13 + dy, 2, 3, JinglePalette.SCARF)
-    rect(sx + 1, 6 + dy, 7, 1, JinglePalette.COAL)
-    rect(sx + 2, 2 + dy, 5, 4, JinglePalette.COAL)
+    if (hat) {
+        rect(sx + 1, 6 + dy, 7, 1, JinglePalette.COAL)
+        rect(sx + 2, 2 + dy, 5, 4, JinglePalette.COAL)
+    }
     px(sx + 3, 9 + dy, JinglePalette.COAL)
     px(sx + 5, 9 + dy, JinglePalette.COAL)
     px(sx + 6, 10 + dy, JinglePalette.CARROT)

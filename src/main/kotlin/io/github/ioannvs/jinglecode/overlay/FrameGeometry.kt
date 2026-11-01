@@ -43,6 +43,8 @@ internal class FrameLayout(
     val commitPanel: ProjectPanel? = null,
     /** The bottom of the window, root pane coordinates: falling icicles break there. */
     val bottom: Int = 0,
+    /** The width of the window, root pane coordinates: Santa flies across all of it on `// ho ho ho`. */
+    val width: Int = 0,
     /** The tool windows docked at the right, each its own island: Santa's yard stands at their bottom. */
     val rightPanels: List<RightPanel> = emptyList(),
     /** The tool windows docked at the bottom, each its own island: the railway runs along their bottom. */
@@ -191,6 +193,7 @@ internal object FrameGeometry {
             projectPanel(project, root, toolWindows, anchors),
             commitPanel(root, toolWindows, anchors),
             bottom = root.height,
+            width = root.width,
             rightPanels = toolWindowPanels(ToolWindowAnchor.RIGHT, root, toolWindows, anchors),
             bottomPanels = toolWindowPanels(ToolWindowAnchor.BOTTOM, root, toolWindows, anchors),
         )

@@ -131,6 +131,10 @@ class JingleCodeConfigurable : BoundSearchableConfigurable(
                     .enabledIf(reactions.component.selected)
                 contextHelp(message("settings.fireworks.comment"))
             }
+            row(message("settings.easter")) {
+                switch(PresetSwitch.EASTER_EGGS, message("settings.easter.enabled"))
+                contextHelp(message("settings.easter.comment"))
+            }
         }
         syncPreset()
     }

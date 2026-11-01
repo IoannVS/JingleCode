@@ -17,6 +17,7 @@ import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.drift.DriftLayer
 import io.github.ioannvs.jinglecode.fireworks.FireworksLayer
 import io.github.ioannvs.jinglecode.garland.GarlandLayer
+import io.github.ioannvs.jinglecode.hohoho.HoHoHoLayer
 import io.github.ioannvs.jinglecode.icicles.FallingIciclesLayer
 import io.github.ioannvs.jinglecode.icicles.IciclesLayer
 import io.github.ioannvs.jinglecode.icicles.TabIciclesLayer
@@ -53,8 +54,8 @@ class FrameOverlay(private val project: Project) : Disposable {
     private val bottomSnow = PanelSnowLayer(JingleFeature.BOTTOM_SNOW, ::bottomPanels) { UIUtil.getPanelBackground() }
     private val santaYard = YardLayer()
 
-    // In paint order: the snow falls over the drift, falling icicles over everything.
-    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, santaYard, RailwayLayer, panelSnow, rightSnow, bottomSnow, FireworksLayer, FallingIciclesLayer)
+    // In paint order: the snow falls over the drift, falling icicles over everything, Santa flies over them too.
+    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, santaYard, RailwayLayer, panelSnow, rightSnow, bottomSnow, FireworksLayer, FallingIciclesLayer, HoHoHoLayer)
     private val features = layers.map { it.feature }
 
     private var root: JRootPane? = null

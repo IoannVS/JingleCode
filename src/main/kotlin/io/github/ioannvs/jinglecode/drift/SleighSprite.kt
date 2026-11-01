@@ -12,9 +12,20 @@ internal val SLEIGH_BED = At(6, -1)
  * two reindeer; the lead one has a red nose (no name: that one is somebody else's character).
  * [x], [y] as in the mockup; [gallop] alternates the legs and blinks the nose. [cargo] gifts are
  * piled up in the bed behind Santa, and [riders] elves sit on top. Without [santa] the sleigh stands
- * empty, his sack and all (Santa's yard: he sits on the bench until he rides off).
+ * empty, his sack and all (Santa's yard: he sits on the bench until he rides off). [team] reindeer
+ * pull it in a row, each 10 pixels ahead of the last; with [noses] all of them have red noses that
+ * shine steadily (at night), not only the lead's blinking one.
  */
-internal fun PixelCanvas.drawSleigh(x: Int, y: Int, gallop: Int, cargo: Int = 0, riders: Boolean = false, santa: Boolean = true) {
+internal fun PixelCanvas.drawSleigh(
+    x: Int,
+    y: Int,
+    gallop: Int,
+    cargo: Int = 0,
+    riders: Boolean = false,
+    santa: Boolean = true,
+    team: Int = 2,
+    noses: Boolean = false,
+) {
     if (cargo > 0) {
         rect(x + 6, y, 3, 2, JinglePalette.SANTA_RED)
         px(x + 7, y, JinglePalette.GOLD)
@@ -46,10 +57,12 @@ internal fun PixelCanvas.drawSleigh(x: Int, y: Int, gallop: Int, cargo: Int = 0,
     px(x + 2, y + 5, JinglePalette.GOLD)
     px(x + 7, y + 5, JinglePalette.GOLD)
     rect(x + 10, y + 4, 3, 1, JinglePalette.GOLD)
-    rect(x + 21, y + 3, 2, 1, JinglePalette.GOLD)
+    for (i in 1 until team) rect(x + 11 + 10 * i, y + 3, 2, 1, JinglePalette.GOLD)
     val leg = gallop % 2
-    drawReindeer(x + 13, y - 1, leg, lead = false, blink = false)
-    drawReindeer(x + 23, y - 1, 1 - leg, lead = true, blink = gallop % 2 == 0)
+    for (i in 0 until team) {
+        val lead = i == team - 1
+        drawReindeer(x + 13 + 10 * i, y - 1, if (i % 2 == 0) leg else 1 - leg, lead = lead || noses, blink = noses || gallop % 2 == 0)
+    }
 }
 
 /** An elf riding in the sleigh: a pointed red hat with a white pom and a face, its bottom row at [y]. */

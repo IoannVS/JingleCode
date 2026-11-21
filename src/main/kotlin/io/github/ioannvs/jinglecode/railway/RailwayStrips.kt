@@ -5,10 +5,9 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.openapi.ui.Painter
-import com.intellij.openapi.wm.IdeGlassPaneUtil
 import com.intellij.openapi.wm.ToolWindowType
 import com.intellij.openapi.wm.WindowManager
 import io.github.ioannvs.jinglecode.animation.JingleAnimator
@@ -16,11 +15,14 @@ import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.overlay.FrameGeometry
 import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
-import java.awt.Component
+import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Rectangle
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 import java.awt.geom.Area
 import javax.swing.JComponent
+import javax.swing.JLayeredPane
 import javax.swing.JRootPane
 import javax.swing.SwingUtilities
 
@@ -29,7 +31,7 @@ import javax.swing.SwingUtilities
  *
  * The border is set on [com.intellij.openapi.wm.ToolWindow.getComponent], the public content panel of the
  * window: it lays its content out inside its insets, so the terminal, the console or the Git log end above
- * the strip's lower part. The strip is painted on the glass pane, from edge to edge of the window's island.
+ * the strip's lower part. The strip is painted on a pane of its own over the window, from edge to edge of its island.
  * A window whose content already has a border of its own
  * is left alone. All of this leans on how the window lays out its content, so it goes through
  * [FeatureGate.guard]: if it throws, only the railway is off.
@@ -44,55 +46,69 @@ internal class RailwayStrips(private val project: Project) : Disposable {
     private class Installed(val component: JComponent, val window: JComponent, val border: RailwayBorder)
 
     /**
-     * The strips are painted on the frame's glass pane, over the window but under popups: they reach the island's
-     * rounded edges outside the content panel, and their top (the upper half of the poles, the wires) and the
-     * flying birds lie over the window's text (Ivan's call). The frame overlay paints the ones in docked windows
-     * with the Islands UI ([RailwayLayer]), so the bottom windows' snow falls over the trains as over the other
-     * scenes; our own painter does the rest (sliding windows, which the overlay keeps clear of, and the classic UI).
+     * The strips are painted on a pane of their own in the frame's layered pane, over the tool windows but under
+     * popups and notification balloons: those open over the trains as over any other content, with their rounded
+     * corners and shadows, and nothing is cut out of the strip for them. The strips reach the island's rounded edges
+     * outside the content panel, and their top (the upper half of the poles, the wires) and the flying birds lie over
+     * the window's text (Ivan's call). The overlay's snow is on the glass pane above: it falls over the trains.
      */
     private var root: JRootPane? = null
+    private var pane: StripsPane? = null
 
-    private val painter = object : Painter {
-        override fun needsRepaint(): Boolean = true
-        override fun paint(component: Component, g: Graphics2D) = paintStrips(g, overlay = false)
-        override fun addListener(listener: Painter.Listener) = Unit
-        override fun removeListener(listener: Painter.Listener) = Unit
+    /** As big as the layered pane, transparent and deaf to the mouse: it only paints the strips. */
+    private inner class StripsPane : JComponent() {
+        init {
+            isOpaque = false
+            isFocusable = false
+        }
+
+        override fun contains(x: Int, y: Int): Boolean = false
+
+        override fun paintComponent(g: Graphics) = paintStrips(g as Graphics2D)
     }
 
-    private fun installPainter() {
-        if (root != null) return
+    private fun installPane() {
+        if (pane != null) return
         val rootPane = WindowManager.getInstance().getFrame(project)?.rootPane ?: return
-        IdeGlassPaneUtil.find(rootPane.contentPane).addPainter(rootPane.glassPane, painter, this)
+        val layered = rootPane.layeredPane
+        val strips = StripsPane()
+        // The layered pane lays nothing out: follow its size.
+        val resize = object : ComponentAdapter() {
+            override fun componentResized(e: ComponentEvent) = strips.setBounds(0, 0, layered.width, layered.height)
+        }
+        strips.setBounds(0, 0, layered.width, layered.height)
+        layered.addComponentListener(resize)
+        layered.add(strips, JLayeredPane.PALETTE_LAYER)
+        Disposer.register(this) {
+            layered.removeComponentListener(resize)
+            layered.remove(strips)
+            layered.repaint(strips.bounds)
+        }
         root = rootPane
-    }
-
-    /** Whether the frame overlay paints the strip of tool window [id]. */
-    private fun inOverlay(id: String): Boolean =
-        FrameGeometry.isIslandsUi() && ToolWindowManager.getInstance(project).getToolWindow(id)?.type == ToolWindowType.DOCKED
-
-    /** Where the overlay's strips and their birds may be, glass pane (root pane) coordinates. */
-    fun stripRects(): List<Rectangle> {
-        val glass = root?.glassPane ?: return emptyList()
-        return installed.mapNotNull { (id, entry) -> if (inOverlay(id)) entry.border.repaintRect(glass) else null }
+        pane = strips
     }
 
     /**
-     * Paints the strips the [overlay] paints, or the others, on the glass pane, never over a popup; each clips
-     * itself to its own island.
+     * Paints the strips on the [pane], each clipped to its own island and clear of the sliding windows over it.
+     * The pane covers the whole frame, so this comes with every repaint in it (the caret, the editor's snow):
+     * strips that repaint doesn't touch are skipped before anything else.
      */
-    fun paintStrips(g: Graphics2D, overlay: Boolean) {
+    private fun paintStrips(g: Graphics2D) {
         val rootPane = root ?: return
-        val glass = rootPane.glassPane ?: return
+        val strips = pane ?: return
         if (installed.isEmpty()) return
         val gate = FeatureGate.getInstance()
         if (!gate.isActive(JingleFeature.RAILWAY)) return
         gate.guard(JingleFeature.RAILWAY, Unit) {
-            val clip = Area(Rectangle(0, 0, glass.width, glass.height))
-            FrameGeometry.popupsOver(rootPane).forEach { clip.subtract(Area(it)) }
-            for ((id, entry) in installed) {
+            for (entry in installed.values) {
+                val rect = entry.border.repaintRect(strips) ?: continue
+                if (!g.hitClip(rect.x, rect.y, rect.width, rect.height)) continue
                 val c = entry.component
-                if (!c.isShowing || SwingUtilities.getRootPane(c) !== rootPane || inOverlay(id) != overlay) continue
-                entry.border.paint(g, glass, clip)
+                if (!c.isShowing || SwingUtilities.getRootPane(c) !== rootPane) continue
+                val clip = Area(Rectangle(0, 0, strips.width, strips.height))
+                FrameGeometry.slidingIslands(project, rootPane, except = entry.window)
+                    .forEach { clip.subtract(Area(SwingUtilities.convertRectangle(rootPane, it, strips))) }
+                entry.border.paint(g, strips, clip)
             }
         }
     }
@@ -114,14 +130,14 @@ internal class RailwayStrips(private val project: Project) : Disposable {
         if (installed.isEmpty()) return
         val options = options()
         FeatureGate.getInstance().guard(JingleFeature.RAILWAY, Unit) {
-            val glass = root?.glassPane as? JComponent
+            val strips = pane
             for (entry in installed.values) {
                 relayout(entry)
                 entry.border.options = options
                 entry.border.step(dt, options)
                 // Only where something changed, each part on its own: `repaint` would merge them into one across
                 // the window, and with the train always somewhere on the track that is most of the strip again.
-                if (glass != null && glass.isShowing) entry.border.damageRects(glass).forEach(glass::paintImmediately)
+                if (strips != null && strips.isShowing) entry.border.damageRects(strips).forEach(strips::paintImmediately)
             }
         }
     }
@@ -138,7 +154,7 @@ internal class RailwayStrips(private val project: Project) : Disposable {
         if (project.isDisposed) return
         val gate = FeatureGate.getInstance()
         val ok = gate.guard(JingleFeature.RAILWAY, false) {
-            installPainter()
+            installPane()
             update(if (gate.isActive(JingleFeature.RAILWAY)) bottomWindows() else emptyMap())
             true
         }
@@ -190,7 +206,7 @@ internal class RailwayStrips(private val project: Project) : Disposable {
     }
 
     private fun repaintAll(border: RailwayBorder) {
-        (root?.glassPane as? JComponent)?.let { glass -> border.repaintRect(glass)?.let(glass::repaint) }
+        pane?.let { strips -> border.repaintRect(strips)?.let(strips::repaint) }
     }
 
     private fun uninstall(entry: Installed) {

@@ -27,7 +27,7 @@ internal interface OverlayLayer {
     fun isAnimating(project: Project): Boolean = false
 
     /**
-     * Whether the layer repaints itself on its own motion clock (the panel snow, Santa's yard, the railway):
+     * Whether the layer repaints itself on its own motion clock (the panel snow, Santa's yard):
      * then frames repaint it only where its [dirtyRects] moved, not all of it again.
      */
     val movesItself: Boolean get() = false

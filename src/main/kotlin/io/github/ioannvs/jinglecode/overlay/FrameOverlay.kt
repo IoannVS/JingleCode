@@ -26,7 +26,6 @@ import io.github.ioannvs.jinglecode.settings.JingleCodeSettings
 import io.github.ioannvs.jinglecode.snow.PanelSnowLayer
 import io.github.ioannvs.jinglecode.snow.SNOW_INTERVAL_MS
 import io.github.ioannvs.jinglecode.snow.SnowPlace
-import io.github.ioannvs.jinglecode.railway.RailwayLayer
 import io.github.ioannvs.jinglecode.yard.YardLayer
 import java.awt.AWTEvent
 import java.awt.Component
@@ -56,7 +55,7 @@ class FrameOverlay(private val project: Project) : Disposable {
     private val santaYard = YardLayer()
 
     // In paint order: the snow falls over the drift, falling icicles over everything, Santa flies over them too.
-    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, santaYard, RailwayLayer, panelSnow, rightSnow, bottomSnow, FireworksLayer, FallingIciclesLayer, HoHoHoLayer)
+    private val layers: List<OverlayLayer> = listOf(GarlandLayer, IciclesLayer, TabIciclesLayer, DriftLayer, santaYard, panelSnow, rightSnow, bottomSnow, FireworksLayer, FallingIciclesLayer, HoHoHoLayer)
     private val features = layers.map { it.feature }
 
     private var root: JRootPane? = null

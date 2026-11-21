@@ -138,6 +138,15 @@ internal object FrameGeometry {
     }
 
     /**
+     * The islands of the sliding tool windows showing in [root], root pane coordinates, but the one holding [except]:
+     * they lie over the docked windows.
+     */
+    fun slidingIslands(project: Project, root: JRootPane, except: JComponent? = null): List<Rectangle> {
+        val windows = windows(project, root)
+        return windows.sliding.filter { it !== except }.map { boundsIn(islandOf(it, windows.anchors), root) }
+    }
+
+    /**
      * Where a scene at the bottom of [pane] stands, root pane coordinates: the snowman's drift, the village
      * and Santa's yard stand on one line, the bottom of their islands' bodies. A pane reaching down to within
      * [TOUCH_DISTANCE] of its island's bottom (a scroll bar or a padding may be under it) stands there too;

@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-21
+
+### Changed
+
+- Decor uses noticeably less CPU: each animation runs at its own pace, and only what moves is repainted.
+- The railway repaints only what changed, so the train stays smooth at a lower cost.
+- Popups and notifications open over the railway with their own corners and shadow.
+
 ## [1.0.0] - 2026-11-01
 
 ### Added
@@ -20,5 +28,6 @@
 - Season: switches on December 1 and puts itself away after January 14.
 - Settings | Appearance | Jingle Code with Minimal, Normal and Maximum modes.
 
-[Unreleased]: https://github.com/IoannVS/JingleCode/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/IoannVS/JingleCode/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/IoannVS/JingleCode/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/IoannVS/JingleCode/commits/v1.0.0

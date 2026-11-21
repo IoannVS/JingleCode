@@ -33,6 +33,9 @@ class YetiTest {
         assertTrue(YetiPhrase.standsAlone("// йети, ау", 3))
         assertFalse(YetiPhrase.standsAlone("// yetis", 3))
         assertFalse(YetiPhrase.standsAlone("// йетиный", 3))
+        assertFalse(YetiPhrase.standsAlone("// ayeti", 4))
+        assertFalse(YetiPhrase.standsAlone("// снежныййети", 10))
+        assertTrue(YetiPhrase.standsAlone("yeti", 0))
         assertFalse(YetiPhrase.standsAlone("// yak", 3))
     }
 

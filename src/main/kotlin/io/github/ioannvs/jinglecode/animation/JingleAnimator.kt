@@ -147,21 +147,30 @@ class JingleAnimator(private val project: Project) : Disposable {
      * at the pace of Santa's yard, then sets the timer for the next one due ([scheduleMotion]).
      */
     private fun move() {
-        checkIdle()
-        val now = System.nanoTime()
-        for (subscriber in motionSubscribers.toList()) {
-            val delay = subscriber.interval * slowdown
-            val passed = now - subscriber.lastCall
-            // A little early is on time: the timer is never exact.
-            if (passed < (delay - ON_TIME_MS) * 1_000_000L) continue
-            subscriber.lastCall = now
-            // Like the mockup, never jump much further than a step: a late timer slows the snow down instead.
-            val maxStep = maxOf(MAX_MOTION_STEP, 2 * delay / 1000.0)
-            subscriber.listener.onMotion((passed / 1e9).coerceIn(0.0, maxStep) / slowdown)
-            // The pace may follow what moves: the yard goes smooth while the sleigh flies.
-            subscriber.interval = subscriber.intervalMs().coerceAtLeast(MIN_MOTION_MS)
+        // The timer is one-shot: whatever happens below, it is set again, or all the motion stops.
+        try {
+            checkIdle()
+            val gate = FeatureGate.getInstance()
+            val now = System.nanoTime()
+            for (subscriber in motionSubscribers.toList()) {
+                val delay = subscriber.interval * slowdown
+                val passed = now - subscriber.lastCall
+                // A little early is on time: the timer is never exact.
+                if (passed < (delay - ON_TIME_MS) * 1_000_000L) continue
+                subscriber.lastCall = now
+                // Like the mockup, never jump much further than a step: a late timer slows the snow down instead.
+                val maxStep = maxOf(MAX_MOTION_STEP, 2 * delay / 1000.0)
+                // One that throws is switched off; the others go on moving.
+                gate.guard(listOfNotNull(subscriber.feature), Unit) {
+                    subscriber.listener.onMotion((passed / 1e9).coerceIn(0.0, maxStep) / slowdown)
+                    // The pace may follow what moves: the yard goes smooth while the sleigh flies.
+                    subscriber.interval = subscriber.intervalMs().coerceAtLeast(MIN_MOTION_MS)
+                }
+            }
         }
-        scheduleMotion()
+        finally {
+            scheduleMotion()
+        }
     }
 
     /** The motion subscribers the timer runs for now; empty while it is stopped. */

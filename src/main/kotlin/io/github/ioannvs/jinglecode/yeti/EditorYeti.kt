@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.EditorMouseEvent
+import com.intellij.openapi.editor.event.EditorMouseEventArea
 import com.intellij.openapi.editor.event.EditorMouseListener
 import io.github.ioannvs.jinglecode.editor.EditorForeground
 import io.github.ioannvs.jinglecode.editor.Z_YETI
@@ -90,6 +91,8 @@ internal class EditorYeti(
 
     private fun onPress(event: EditorMouseEvent) {
         if (!isOn() || isCaught || event.isConsumed || !SwingUtilities.isLeftMouseButton(event.mouseEvent)) return
+        // A press in the gutter comes in the gutter's coordinates: it is for a breakpoint or a line, not for him.
+        if (event.area != EditorMouseEventArea.EDITING_AREA) return
         if (standing() == null) return
         val at = spot() ?: return
         val pixelUser = YetiPlaces.pixelUser(editor)

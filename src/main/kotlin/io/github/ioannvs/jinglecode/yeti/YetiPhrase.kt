@@ -19,10 +19,12 @@ internal object YetiPhrase {
         return WORD.containsMatchIn(tail)
     }
 
-    /** Whether the word at [start] in [text] still stands on its own: not typed on into `yetis` or `йетиный`. */
+    /** Whether the word at [start] in [text] still stands on its own: not typed on into `yetis`, `йетиный` or `ayeti`. */
     fun standsAlone(text: CharSequence, start: Int): Boolean {
         val end = start + LENGTH
         if (start < 0 || end > text.length || !matches(text.subSequence(start, end))) return false
-        return end == text.length || !text[end].let { it.isLetterOrDigit() || it == '_' }
+        return (start == 0 || !isWordChar(text[start - 1])) && (end == text.length || !isWordChar(text[end]))
     }
+
+    private fun isWordChar(c: Char): Boolean = c.isLetterOrDigit() || c == '_'
 }

@@ -62,8 +62,13 @@ class YetiWatch(private val project: Project) : Disposable {
     private val shownSince = WeakHashMap<Editor, Long>()
 
     private var lastEdit = 0L
-    private var lastFrame = System.nanoTime()
     private var lastLook = 0L
+
+    /**
+     * Ends the visit once the frames stop coming: the animator stood still (Power Save, presentation mode, animation
+     * off, a minimized window), and whoever stood there is gone. Set again on every frame of a visit.
+     */
+    private val stillness = Timer(PAUSE_MS.toInt()) { visit?.let(::end) }.apply { isRepeats = false }
 
     init {
         JingleAnimator.getInstance(project).subscribe(this, JingleFeature.YETI) { onFrame() }
@@ -97,12 +102,14 @@ class YetiWatch(private val project: Project) : Disposable {
     }
 
     private fun onFrame() {
+        // The frames keep coming for the other decorations while he is switched off.
+        if (!gate.isActive(JingleFeature.YETI)) {
+            dropCall()
+            return
+        }
         val now = System.nanoTime()
-        // The animator stood still (Power Save, presentation mode, a minimized window): whoever stood there is gone.
-        val paused = now - lastFrame > PAUSE_MS * 1_000_000L
-        lastFrame = now
         visit?.let { current ->
-            if (paused || !gate.guard(JingleFeature.YETI, false) { current.step() }) end(current)
+            if (gate.guard(JingleFeature.YETI, false) { current.step() }) stillness.restart() else end(current)
             return
         }
         // The animator's timer holds no read lock on the EDT: the documents and the PSI are read under one.
@@ -175,6 +182,7 @@ class YetiWatch(private val project: Project) : Disposable {
         val yeti = EditorYeti(editor, line, YetiTimeline.STAY_MS.random(random), { gate.isActive(JingleFeature.YETI) }) { caught(editor, it) }
         Disposer.register(this, yeti)
         visit = yeti
+        stillness.restart()
         dropCall()
         return true
     }
@@ -226,7 +234,10 @@ class YetiWatch(private val project: Project) : Disposable {
     }
 
     private fun end(yeti: EditorYeti) {
-        if (visit === yeti) visit = null
+        if (visit === yeti) {
+            visit = null
+            stillness.stop()
+        }
         Disposer.dispose(yeti)
     }
 
@@ -257,6 +268,7 @@ class YetiWatch(private val project: Project) : Disposable {
     }
 
     override fun dispose() {
+        stillness.stop()
         visit = null
         dropCall()
     }
@@ -283,7 +295,7 @@ class YetiWatch(private val project: Project) : Disposable {
         /** ...and gives up after this long if he finds no line. */
         private const val CALL_WAIT_MS = 30_000L
 
-        /** Frames this far apart mean the animator was paused. */
+        /** No frame for this long means the animator was paused. */
         private const val PAUSE_MS = 2_000L
 
         /** The notification comes this long after he vanished, while his footprints still run. */

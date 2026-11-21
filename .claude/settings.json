@@ -10,6 +10,13 @@
       "Read(./**/*.jar)",
       "Read(./**/*.class)",
       "Read(./**/*.log)"
+    ],
+    "allow": [
+      "Bash(./gradlew runIde:*)",
+      "Bash(jcmd:*)",
+      "Bash(jfr:*)",
+      "Bash(jps:*)",
+      "Read(build/idea-sandbox/**)"
     ]
   }
 }

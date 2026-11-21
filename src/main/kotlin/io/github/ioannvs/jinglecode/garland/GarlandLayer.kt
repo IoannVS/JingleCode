@@ -37,6 +37,12 @@ internal object GarlandLayer : OverlayLayer {
 
     private fun reacting() = FeatureGate.getInstance().isActive(JingleFeature.RUN_REACTIONS)
 
+    /** The bulbs change every second frame ([GarlandMode.bulbColor]), the chase and a flash after a run on every one. */
+    override fun frameKey(project: Project, tick: Long): Long {
+        val flashing = reacting() && RunLights.getInstance(project).flash(0) != null
+        return if (flashing || JingleCodeSettings.getInstance().state.garlandMode == GarlandMode.CHASE) tick else tick / 2
+    }
+
     override fun paint(g: Graphics2D, project: Project, layout: FrameLayout, scale: OverlayScale, tick: Long) {
         val mode = JingleCodeSettings.getInstance().state.garlandMode
         val t = (tick % TICK_WRAP).toInt()

@@ -15,6 +15,9 @@ import java.awt.Graphics2D
 /** The village under the snow. */
 internal const val Z_VILLAGE = 0
 
+/** The yeti at the end of a line, over the village (they never meet: he stays above it) and under the snow. */
+internal const val Z_YETI = 5
+
 /** The snow over everything. */
 internal const val Z_SNOW = 10
 

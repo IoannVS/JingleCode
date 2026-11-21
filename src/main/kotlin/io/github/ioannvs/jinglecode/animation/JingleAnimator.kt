@@ -39,7 +39,13 @@ import javax.swing.Timer
 @Service(Service.Level.PROJECT)
 class JingleAnimator(private val project: Project) : Disposable {
 
-    private class Subscriber<L>(val feature: JingleFeature?, val listener: L, val intervalMs: () -> Int = { FRAME_MS })
+    private class Subscriber<L>(val feature: JingleFeature?, val listener: L, val intervalMs: () -> Int = { FRAME_MS }) {
+        /** When a motion subscriber was last called, `System.nanoTime`. */
+        var lastCall = System.nanoTime()
+
+        /** [intervalMs] as of the last settings change, before the slowdown. */
+        var interval = FRAME_MS
+    }
 
     private val subscribers = mutableListOf<Subscriber<JingleFrameListener>>()
     private val timer = Timer(FRAME_MS) { tick() }
@@ -47,7 +53,6 @@ class JingleAnimator(private val project: Project) : Disposable {
 
     private val motionSubscribers = mutableListOf<Subscriber<JingleMotionListener>>()
     private val motionTimer = Timer(MOTION_MS) { move() }
-    private var lastMotion = 0L
 
     /** The frame decorations should draw now, also while paused. */
     var current: JingleFrame = JingleFrame(0, 0)
@@ -61,6 +66,9 @@ class JingleAnimator(private val project: Project) : Disposable {
     private var lastInput = System.nanoTime()
     private var idle = false
 
+    /** Milliseconds since anyone last touched the keyboard or mouse anywhere in the IDE. */
+    val msSinceInput: Long get() = (System.nanoTime() - lastInput) / 1_000_000L
+
     // Only notes the time: it sees every mouse move in the IDE.
     private val inputListener = AWTEventListener {
         lastInput = System.nanoTime()
@@ -72,7 +80,8 @@ class JingleAnimator(private val project: Project) : Disposable {
 
     init {
         timer.isRepeats = true
-        motionTimer.isRepeats = true
+        // Set again for the next subscriber due after every run: see scheduleMotion.
+        motionTimer.isRepeats = false
         val connection = ApplicationManager.getApplication().messageBus.connect(this)
         connection.subscribe(PowerSaveMode.TOPIC, PowerSaveMode.Listener { updateState() })
         connection.subscribe(UISettingsListener.TOPIC, UISettingsListener { updateState() })
@@ -97,7 +106,7 @@ class JingleAnimator(private val project: Project) : Disposable {
     /**
      * Calls [listener] about every [intervalMs] with the seconds passed since the last call,
      * until [parentDisposable] is disposed. The timer runs for it only while [feature] is active;
-     * [intervalMs] is asked again whenever the settings change.
+     * [intervalMs] is asked again after every call and whenever the settings change.
      */
     fun subscribeMotion(
         parentDisposable: Disposable,
@@ -133,16 +142,50 @@ class JingleAnimator(private val project: Project) : Disposable {
         }
     }
 
+    /**
+     * Calls each subscriber whose own interval has passed, so the snow at 15 a second doesn't move (and repaint)
+     * at the pace of Santa's yard, then sets the timer for the next one due ([scheduleMotion]).
+     */
     private fun move() {
-        checkIdle()
-        val now = System.nanoTime()
-        // Like the mockup, never jump much further than a step: a late timer slows the snow down instead.
-        val maxStep = maxOf(MAX_MOTION_STEP, 2 * motionTimer.delay / 1000.0)
-        val dt = ((now - lastMotion) / 1e9).coerceIn(0.0, maxStep) / slowdown
-        lastMotion = now
-        for (subscriber in motionSubscribers.toList()) {
-            subscriber.listener.onMotion(dt)
+        // The timer is one-shot: whatever happens below, it is set again, or all the motion stops.
+        try {
+            checkIdle()
+            val gate = FeatureGate.getInstance()
+            val now = System.nanoTime()
+            for (subscriber in motionSubscribers.toList()) {
+                val delay = subscriber.interval * slowdown
+                val passed = now - subscriber.lastCall
+                // A little early is on time: the timer is never exact.
+                if (passed < (delay - ON_TIME_MS) * 1_000_000L) continue
+                subscriber.lastCall = now
+                // Like the mockup, never jump much further than a step: a late timer slows the snow down instead.
+                val maxStep = maxOf(MAX_MOTION_STEP, 2 * delay / 1000.0)
+                // One that throws is switched off; the others go on moving.
+                gate.guard(listOfNotNull(subscriber.feature), Unit) {
+                    subscriber.listener.onMotion((passed / 1e9).coerceIn(0.0, maxStep) / slowdown)
+                    // The pace may follow what moves: the yard goes smooth while the sleigh flies.
+                    subscriber.interval = subscriber.intervalMs().coerceAtLeast(MIN_MOTION_MS)
+                }
+            }
         }
+        finally {
+            scheduleMotion()
+        }
+    }
+
+    /** The motion subscribers the timer runs for now; empty while it is stopped. */
+    private var moving: List<Subscriber<JingleMotionListener>> = emptyList()
+
+    /** Sets the one-shot motion timer for when the next of [moving] is due. */
+    private fun scheduleMotion() {
+        if (moving.isEmpty()) {
+            motionTimer.stop()
+            return
+        }
+        val now = System.nanoTime()
+        val next = moving.minOf { it.lastCall + it.interval * slowdown * 1_000_000L }
+        motionTimer.initialDelay = ((next - now) / 1_000_000L).toInt().coerceAtLeast(1)
+        motionTimer.restart()
     }
 
     private fun updateState() {
@@ -158,17 +201,15 @@ class JingleAnimator(private val project: Project) : Disposable {
         else {
             timer.stop()
         }
-        val moving = motionSubscribers.wanted()
-        if (moving.isNotEmpty()) {
-            motionTimer.delay = moving.minOf { it.intervalMs() }.coerceAtLeast(MIN_MOTION_MS) * slowdown
-            if (!motionTimer.isRunning) {
-                lastMotion = System.nanoTime()
-                motionTimer.start()
-            }
+        val wasMoving = moving.isNotEmpty()
+        moving = motionSubscribers.wanted()
+        for (subscriber in motionSubscribers) subscriber.interval = subscriber.intervalMs().coerceAtLeast(MIN_MOTION_MS)
+        if (moving.isNotEmpty() && !wasMoving) {
+            // Starting again after a pause: the time paused doesn't count.
+            val now = System.nanoTime()
+            motionSubscribers.forEach { it.lastCall = now }
         }
-        else {
-            motionTimer.stop()
-        }
+        scheduleMotion()
     }
 
     private fun canRun(): Boolean {
@@ -207,7 +248,16 @@ class JingleAnimator(private val project: Project) : Disposable {
         const val MOTION_MS = 33
         private const val MIN_MOTION_MS = 16
 
+        /**
+         * Slow scenes (Santa's yard while the sleigh stands): 15 times a second, a pixel a step for things walking
+         * 15 pixels a second. Each step repaints the strip and whatever lies under it. Fast things need [MOTION_MS].
+         */
+        const val SCENE_MOTION_MS = 1000 / 15
+
         private const val MAX_MOTION_STEP = 0.05
+
+        /** A subscriber this many milliseconds short of its interval is due all the same. */
+        private const val ON_TIME_MS = 2
 
         private const val ACTIVE_WINDOW = "activeWindow"
 

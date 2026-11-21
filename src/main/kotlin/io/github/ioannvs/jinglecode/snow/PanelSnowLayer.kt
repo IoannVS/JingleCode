@@ -34,6 +34,9 @@ internal class PanelSnowLayer(
 
     private val fields = HashMap<String, SnowField>()
 
+    /** The snow repaints itself when it moves, see [move]. */
+    override val movesItself = true
+
     /** Seconds of snowfall so far; sways the flakes. */
     private var time = 0.0
 
@@ -70,12 +73,19 @@ internal class PanelSnowLayer(
             try {
                 val body = place.body
                 val arc = place.arc.toFloat()
-                // In the island's rounded corners, not on its border.
-                g2.clip(RoundRectangle2D.Float(body.x.toFloat(), body.y.toFloat(), body.width.toFloat(), body.height.toFloat(), arc, arc))
-                g2.clip(place.content)
-                PixelCanvas.paint(g2, place.content.x, place.content.y, magnify = scale.magnify) {
+                val content = place.content
+                // In the island's rounded corners, not on its border: flakes there are left out, the clip stays
+                // a rectangle. A rounded clip would make the canvas draw the whole panel through a buffer.
+                val rounded = RoundRectangle2D.Float(body.x.toFloat(), body.y.toFloat(), body.width.toFloat(), body.height.toFloat(), arc, arc)
+                g2.clip(content)
+                val sysScale = maxOf(g.transform.scaleX, g.transform.scaleY).takeIf { it > 0 } ?: 1.0
+                val pixel = PixelCanvas.pixelSize(sysScale.toFloat(), magnify = scale.magnify) / sysScale
+                PixelCanvas.paint(g2, content.x, content.y, magnify = scale.magnify) {
                     for (flake in field.flakes) {
-                        px(PixelCanvas.jsRound(flake.x), PixelCanvas.jsRound(flake.y), color)
+                        val x = PixelCanvas.jsRound(flake.x)
+                        val y = PixelCanvas.jsRound(flake.y)
+                        // A pixel of margin for the canvas rounding its origin to device pixels.
+                        if (rounded.contains(content.x + (x - 1) * pixel, content.y + (y - 1) * pixel, 3 * pixel, 3 * pixel)) px(x, y, color)
                     }
                 }
             }

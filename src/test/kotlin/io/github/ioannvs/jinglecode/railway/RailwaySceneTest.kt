@@ -2,7 +2,10 @@ package io.github.ioannvs.jinglecode.railway
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 class RailwaySceneTest {
@@ -25,6 +28,48 @@ class RailwaySceneTest {
         assertEquals(slow, fast, 1e-6)
         val len = RailSprites.TRAINS[0].sumOf { it.w + 1 }
         assertEquals(0.0 - len + 26.0, fast, 1e-6)
+    }
+
+    private val quiet = RailwayOptions(TrainFrequency.NORMAL, residents = false, poles = true)
+
+    @Test
+    fun `the first step and a resize repaint the whole strip with its sky`() {
+        val scene = RailwayScene(seed = 1)
+        scene.step(0.03, width = 1000, quiet)
+        assertCoversAll(scene, 1000)
+        scene.step(0.03, width = 1000, quiet)
+        scene.step(0.03, width = 800, quiet)
+        assertCoversAll(scene, 800)
+    }
+
+    private fun assertCoversAll(scene: RailwayScene, width: Int) {
+        val d = scene.damage.single()
+        assertTrue(d.x0 <= 0 && d.x1 >= width && d.top <= -RailwayScene.SKY_REACH)
+    }
+
+    @Test
+    fun `nothing moving repaints nothing`() {
+        // No walkers, and the first train leaves after 0.5 s; the birds sit at least 3 s before they turn.
+        val scene = RailwayScene(seed = 1)
+        scene.step(0.03, width = 1000, quiet)
+        repeat(10) {
+            scene.step(0.03, width = 1000, quiet)
+            assertEquals(emptyList<Damage>(), scene.damage)
+        }
+    }
+
+    @Test
+    fun `a moving train repaints where it was and where it is, not the whole strip`() {
+        val scene = RailwayScene(seed = 1)
+        repeat(40) { scene.step(0.03, width = 1000, quiet) }
+        val len = RailSprites.TRAINS[0].sumOf { it.w + 1 }
+        val before = scene.trainX!!
+        scene.step(0.03, width = 1000, quiet)
+        val after = scene.trainX!!
+        assertTrue(after > before)
+        val covered = scene.damage.filter { it.x0 <= floor(before).toInt() && it.x1 >= ceil(after + len).toInt() }
+        assertTrue("train from $before to ${after + len}: ${scene.damage.map { "${it.x0}..${it.x1}" }}", covered.isNotEmpty())
+        assertTrue(scene.damage.sumOf { it.x1 - it.x0 } < 1000 / 2)
     }
 
     @Test

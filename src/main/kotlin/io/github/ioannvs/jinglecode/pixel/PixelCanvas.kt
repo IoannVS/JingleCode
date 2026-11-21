@@ -126,7 +126,9 @@ class PixelCanvas private constructor(
             g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
         }
 
-        private fun isRectangular(clip: Shape?): Boolean = clip == null || clip is Rectangle2D || (clip is Area && clip.isRectangular)
+        // `getClip` hands a shape clip back as a path: a rectangle cut out of areas is one too.
+        private fun isRectangular(clip: Shape?): Boolean =
+            clip == null || clip is Rectangle2D || (clip as? Area ?: Area(clip)).isRectangular
 
         /** A buffer kept between paints; taken while in use, so a nested paint gets its own. */
         private var spare: BufferedImage? = null

@@ -25,7 +25,7 @@ import kotlin.math.max
  * Room for the railway at the bottom of a tool window's content: an empty bottom inset under the lower part of the
  * [scene], from the middle of the poles down ([RailwayScene.CUT]); the part above lies over the window's last rows.
  *
- * The strip itself is painted on the glass pane ([paint]), like Santa's yard: from edge to edge of the window's
+ * The strip itself is painted over the window ([paint], [RailwayStrips] gives the pane): from edge to edge of the window's
  * island, in its rounded bottom corners, standing on the bottom of the island's body ([place]). Its pixel is the
  * overlay's, the yard's and the drift's: one pixel and one style along the line.
  * A window lower than [MIN_WINDOW] gets no room and no strip. ho ho ho
@@ -106,35 +106,62 @@ internal class RailwayBorder(private val component: JComponent, seed: Int) : Bor
 
     override fun paintBorder(c: Component, g: Graphics, x: Int, y: Int, width: Int, height: Int) = Unit
 
-    /**
-     * What [paint] covers, in [glass] coordinates: the strip and, if [sky], [RailwayScene.SKY] above it for the
-     * birds; without [sky], only the strip's lower part, under the window's text. `null` without a strip.
-     */
-    fun repaintRect(glass: Component, sky: Boolean): Rectangle? {
+    /** The highest row [paint] may reach, [component] coordinates: the birds over the strip, within the window. */
+    private fun skyTop(strip: Rectangle): Int = max(0, strip.y - ceil(RailwayScene.SKY_REACH * pixelUser()).toInt())
+
+    /** What [paint] covers, in [pane] coordinates: the strip and the sky above it for the birds. `null` without a strip. */
+    fun repaintRect(pane: Component): Rectangle? {
         val strip = strip() ?: return null
-        val pixel = pixelUser()
-        val top = if (sky) {
-            max(0, strip.y - ceil((RailwayScene.SKY + 2 * RailSprites.FINCH_GLIDE.h) * pixel).toInt())
-        } else {
-            strip.y + floor(RailwayScene.CUT * pixel).toInt()
-        }
-        val r = Rectangle(strip.x, top, strip.width, strip.y + strip.height - top)
-        return SwingUtilities.convertRectangle(component, r, glass)
+        val top = skyTop(strip)
+        return SwingUtilities.convertRectangle(component, Rectangle(strip.x, top, strip.width, strip.y + strip.height - top), pane)
     }
 
-    /** Paints the strip and the birds in the air on [glass] (the frame's glass pane), clipped to [clip] and the island. */
-    fun paint(g: Graphics2D, glass: Component, clip: Shape) {
+    /**
+     * What the last [step] changed ([RailwayScene.damage]), [pane] coordinates: at most [MAX_RECTS] rectangles,
+     * the closest parts taken together. Each is repainted on its own, so the strip between them stays as it is.
+     */
+    fun damageRects(pane: Component): List<Rectangle> {
+        val strip = strip() ?: return emptyList()
+        val width = logicalWidth()
+        val parts = scene.damage
+            .map { Damage(max(0, it.x0), minOf(width, it.x1), it.top) }
+            .filter { it.x1 > it.x0 }
+            .sortedBy { it.x0 }
+            .fold(ArrayList<Damage>()) { merged, d ->
+                val last = merged.lastOrNull()
+                if (last != null && d.x0 <= last.x1 + MERGE_GAP) merged[merged.size - 1] = union(last, d) else merged += d
+                merged
+            }
+        while (parts.size > MAX_RECTS) {
+            val i = (0 until parts.size - 1).minBy { parts[it + 1].x0 - parts[it].x1 }
+            parts[i] = union(parts[i], parts.removeAt(i + 1))
+        }
+        val pixel = pixelUser()
+        val skyTop = skyTop(strip)
+        return parts.map { d ->
+            // A device pixel more around: the canvas rounds the strip's origin.
+            val left = strip.x + floor(d.x0 * pixel).toInt() - 1
+            val right = strip.x + ceil(d.x1 * pixel).toInt() + 1
+            val top = max(skyTop, strip.y + floor(d.top * pixel).toInt() - 1)
+            SwingUtilities.convertRectangle(component, Rectangle(left, top, right - left, strip.y + strip.height - top), pane)
+        }
+    }
+
+    private fun union(a: Damage, b: Damage) = Damage(minOf(a.x0, b.x0), max(a.x1, b.x1), minOf(a.top, b.top))
+
+    /** Paints the strip and the birds in the air on [pane] (the strips' pane over the window), clipped to [clip] and the island. */
+    fun paint(g: Graphics2D, pane: Component, clip: Shape) {
         val options = options ?: return
         val strip = strip() ?: return
         val body = body()
         val arc = (place?.arc ?: 0).toFloat()
         val g2 = g.create() as Graphics2D
         try {
-            val island = SwingUtilities.convertRectangle(component, body, glass)
+            val island = SwingUtilities.convertRectangle(component, body, pane)
             val area = Area(clip)
             area.intersect(Area(RoundRectangle2D.Float(island.x.toFloat(), island.y.toFloat(), island.width.toFloat(), island.height.toFloat(), arc, arc)))
             g2.clip(area)
-            val origin = SwingUtilities.convertPoint(component, strip.x, strip.y, glass)
+            val origin = SwingUtilities.convertPoint(component, strip.x, strip.y, pane)
             PixelCanvas.paint(g2, origin.x, origin.y, magnify = magnify()) {
                 FeatureGate.getInstance().guard(JingleFeature.RAILWAY, Unit) {
                     scene.paint(this, logicalWidth(), options, skyHeight = toLogical(strip.y))
@@ -152,5 +179,11 @@ internal class RailwayBorder(private val component: JComponent, seed: Int) : Bor
     companion object {
         /** Lower windows get no railway (logical pixels, the whole window content). */
         const val MIN_WINDOW = 60
+
+        /** Changed parts closer than this, logical pixels, are repainted as one. */
+        private const val MERGE_GAP = 8
+
+        /** More repaints than this a step cost more on their own than the strip between them. */
+        private const val MAX_RECTS = 3
     }
 }

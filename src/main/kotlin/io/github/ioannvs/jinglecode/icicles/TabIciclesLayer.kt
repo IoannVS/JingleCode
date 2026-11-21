@@ -38,6 +38,8 @@ internal object TabIciclesLayer : OverlayLayer {
     /** Divisible by 3, the glint period. */
     private const val TICK_WRAP = 1_201_200L
 
+    override fun frameKey(project: Project, tick: Long): Long = iciclesFrameKey(project, tick)
+
     override fun dirtyRects(project: Project, layout: FrameLayout, scale: OverlayScale): List<Rectangle> {
         val tab = FeatureGate.getInstance().guard(feature, null) { activeTab(project) } ?: return emptyList()
         return listOf(icicles(tab, scale))

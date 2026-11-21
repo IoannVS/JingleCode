@@ -11,7 +11,8 @@ import kotlin.math.ceil
 
 /**
  * One decoration of the [FrameOverlay]: the garland, the icicles, the drift. It says where it paints,
- * and [FrameOverlay] clips it to that, minus popups, and repaints exactly there on every frame.
+ * and [FrameOverlay] clips it to that, minus popups, and repaints exactly there on every frame
+ * (unless it [movesItself]).
  */
 internal interface OverlayLayer {
     val feature: JingleFeature
@@ -24,6 +25,19 @@ internal interface OverlayLayer {
      * repaints on the smooth motion clock, not only on frames.
      */
     fun isAnimating(project: Project): Boolean = false
+
+    /**
+     * Whether the layer repaints itself on its own motion clock (the panel snow, Santa's yard, the railway):
+     * then frames repaint it only where its [dirtyRects] moved, not all of it again.
+     */
+    val movesItself: Boolean get() = false
+
+    /**
+     * Frames with the same key look the same: a frame repaints the layer only when its key changes. Every strip
+     * over the editor makes it lay out all the lines it crosses again, so a garland that changes every second
+     * frame is not repainted on the others.
+     */
+    fun frameKey(project: Project, tick: Long): Long = tick
 
     /** Paints frame [tick] (see `JingleAnimator`); [g] is clipped to [dirtyRects] minus popups. */
     fun paint(g: Graphics2D, project: Project, layout: FrameLayout, scale: OverlayScale, tick: Long)

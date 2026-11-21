@@ -7,6 +7,7 @@ import io.github.ioannvs.jinglecode.pixel.hash
 import java.awt.Color
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.floor
@@ -18,6 +19,12 @@ import kotlin.random.Random
 
 /** What the scene shows besides the track, from the settings. */
 internal class RailwayOptions(val frequency: TrainFrequency, val residents: Boolean, val poles: Boolean)
+
+/**
+ * A part of the strip that a step changed: columns from [x0] up to [x1], from row [top] (negative in the sky above
+ * the strip) down to the bottom of the strip.
+ */
+internal class Damage(val x0: Int, val x1: Int, val top: Int)
 
 /**
  * The railway mockup's `strip()` for one tool window: snow, rails and the path behind them, poles with
@@ -77,6 +84,13 @@ internal class RailwayScene(seed: Int) {
     /** The left edge of the train on the track, if one is passing. */
     val trainX: Double? get() = train?.x
 
+    /**
+     * What the last [step] changed, to repaint only there: where things moving were and are now, and the semaphore,
+     * the crossing and the sitting birds when they change. Nothing when nothing moves; all of it after a resize.
+     */
+    var damage: List<Damage> = emptyList()
+        private set
+
     /** The mockup's geometry for a strip [width] wide, halved, and the snow's crest. */
     private class Geometry(val width: Int) {
         val x0 = 0
@@ -113,9 +127,58 @@ internal class RailwayScene(seed: Int) {
         return tr.x + tr.len > g.crossing - 55 && tr.x < g.crossing + 55
     }
 
-    /** Moves everything [dt] seconds on. */
+    /** Moves everything [dt] seconds on in a strip [width] wide and notes what changed in [damage]. */
     fun step(dt: Double, width: Int, options: RailwayOptions) {
+        val resized = geometry?.width != width
         val g = geometry(width)
+        val damage = ArrayList<Damage>()
+        moving(g, damage)
+        val wasRed = red(g)
+        val looks = birds.map(::look)
+        move(dt, g, options)
+        this.damage = if (resized || birds.size != looks.size) {
+            listOf(Damage(0, width + 1, -SKY_REACH))
+        } else {
+            damage.also { d ->
+                moving(g, d)
+                if (red(g) != wasRed) semaphoreX(g).let { d += box(it - 1.0, it + 2.0, g.railY - 16.0) }
+                for ((i, bird) in birds.withIndex()) {
+                    if (look(bird) != looks[i] && bird.seg + 1 < g.poles.size) d += box(bird.x - 3, bird.x + 3, wireY(g, bird) - 6)
+                }
+            }
+        }
+    }
+
+    /** Where everything that moves is now, into [out]; the crossing while it closes, blinks and opens. */
+    private fun moving(g: Geometry, out: MutableList<Damage>) {
+        train?.let { tr -> out += box(tr.x, tr.x + tr.len, (g.railY - tr.cars.maxOf { it.h }).toDouble()) }
+        // A hare or a fox hops up to 1.5 pixels.
+        for (w in walkers) out += box(w.x, w.x + w.sprite.w, g.pathY + 2.0 - w.sprite.h - 2)
+        for (s in smoke) {
+            val size = if (s.spark) 1.0 else 2 + (1.6 - s.life) * 2
+            out += box(s.x - size / 2, s.x + size / 2, s.y - size / 2)
+        }
+        for (s in spray) out += box(s.x, s.x + 1, s.y)
+        for (bird in birds) {
+            if (bird.sitting || bird.seg + 1 >= g.poles.size) continue
+            val pose = birdPose(bird, bird.fly - bird.delay, wireY(g, bird), g.x0, g.x1) ?: continue
+            out += box(pose.x, pose.x + pose.sprite.w, pose.y)
+        }
+        // The lights with their glow and the barrier level to the left of them.
+        if (near(g) || arm > ARM_STILL) out += box(g.crossing - 15, g.crossing + 13, g.railY - 16.0)
+    }
+
+    /** A sitting bird's look: 0 in the air, 1 or 2 by the way it faces. */
+    private fun look(bird: Bird): Int = if (!bird.sitting) 0 else if (bird.faceLeft) 1 else 2
+
+    private fun red(g: Geometry): Boolean = redT > 0 || near(g)
+
+    private fun semaphoreX(g: Geometry): Int = jsRound(g.x0 + (g.x1 - g.x0) * .9)
+
+    private fun wireY(g: Geometry, bird: Bird): Double = sagAt(g.poles[bird.seg], g.poles[bird.seg + 1], g.gTop - 15, bird.x)
+
+    /** Moves everything [dt] seconds on. */
+    private fun move(dt: Double, g: Geometry, options: RailwayOptions) {
         t += dt
         if (birdPoles != g.poles) {
             // The mockup's rng(4), the same birds on the same wires.
@@ -346,10 +409,10 @@ internal class RailwayScene(seed: Int) {
         barrier(c, cx - 7, (railY - 6).toDouble(), PI / 2 * (1 - arm))
 
         // the semaphore
-        val sx = jsRound(x0 + (x1 - x0) * .9)
+        val sx = semaphoreX(g)
         c.rect(sx, railY - 15, 1, 15, JinglePalette.ROOF_SLATE)
         c.rect(sx - 1, railY - 16, 3, 5, JinglePalette.COAL)
-        val red = redT > 0 || near
+        val red = red(g)
         c.px(sx, railY - 15, if (red) JinglePalette.SIGNAL_RED else JinglePalette.NOSE_DARK)
         c.px(sx, railY - 13, if (red) JinglePalette.SIGNAL_RED_OFF else SEMAPHORE_GREEN)
 
@@ -357,7 +420,7 @@ internal class RailwayScene(seed: Int) {
         if (options.poles) {
             for (bird in birds) {
                 if (bird.seg + 1 >= g.poles.size) continue
-                val wy = sagAt(g.poles[bird.seg], g.poles[bird.seg + 1], gTop - 15, bird.x)
+                val wy = wireY(g, bird)
                 if (bird.sitting) RailSprites.FINCH.draw(c, bird.x - 3, wy - 6, flip = !bird.faceLeft)
                 else flyingBird(c, bird, bird.fly - bird.delay, wy, x0, x1, skyHeight)
             }
@@ -377,35 +440,20 @@ internal class RailwayScene(seed: Int) {
         for (s in spray) c.px(jsRound(s.x), jsRound(s.y), JinglePalette.FAR_SNOW)
     }
 
-    /** Whether a bird is in the air. */
-    private fun hasFlyingBirds(): Boolean = birds.any { !it.sitting && it.fly - it.delay < FLIGHT }
-
-    /** Whether the part of the strip above [CUT] (over the window's text) changes on every step now. */
-    fun skyBusy(): Boolean {
-        val g = geometry ?: return false
-        return hasFlyingBirds() || near(g) || smoke.any { !it.spark && it.y - 3 < CUT } || spray.any { it.y < CUT }
-    }
-
-    /** What the part above [CUT] shows when nothing moves there: the semaphore and the birds sitting. Repaint it on a change. */
-    fun skyState(): Int {
-        var h = if (redT > 0) 1 else 0
-        for (bird in birds) h = h * 31 + if (!bird.sitting) 3 else if (bird.faceLeft) 1 else 2
-        return h
-    }
+    private class BirdPose(val x: Double, val y: Double, val sprite: RailSprite)
 
     /**
      * A bird [k] seconds in the air: it speeds up from the wire, climbs up to [SKY] above the strip, over the
      * window's text, and flies on like a finch, a few wing beats and a short glide. It is gone at once, whole,
-     * after [FLIGHT] seconds or before it would cross an end of the strip or the top of the window ([skyHeight]).
+     * after [FLIGHT] seconds or before it would cross an end of the strip.
      */
-    private fun flyingBird(c: PixelCanvas, bird: Bird, k: Double, wy: Double, x0: Int, x1: Int, skyHeight: Int) {
-        if (k >= FLIGHT) return
+    private fun birdPose(bird: Bird, k: Double, wy: Double, x0: Int, x1: Int): BirdPose? {
+        if (k >= FLIGHT) return null
         val dist = if (k < TAKE_OFF) bird.vx * k * k / (2 * TAKE_OFF) else bird.vx * (k - TAKE_OFF / 2)
         val x = bird.x - RailSprites.FINCH_GLIDE.w / 2 + bird.dir * dist
-        if (x < x0 || x + RailSprites.FINCH_GLIDE.w > x1) return
+        if (x < x0 || x + RailSprites.FINCH_GLIDE.w > x1) return null
         val start = wy - 6
         val y = start + (-SKY - start) * (1 - exp(-bird.vy * k))
-        if (y < -skyHeight) return
         // A wing beat in 0.3 s for 0.8 s, then a glide of 0.5 s, each bird from its own point in the cycle.
         val cycle = (k + bird.phase / (2 * PI) * BEAT_CYCLE) % BEAT_CYCLE
         val sprite = when {
@@ -413,7 +461,14 @@ internal class RailwayScene(seed: Int) {
             floor(cycle / HALF_BEAT).toInt() % 2 == 1 -> RailSprites.FINCH_WINGS_DOWN
             else -> RailSprites.FINCH_WINGS_UP
         }
-        sprite.draw(c, x, y, flip = bird.dir < 0)
+        return BirdPose(x, y, sprite)
+    }
+
+    /** [birdPose], gone too before it would cross the top of the window ([skyHeight]). */
+    private fun flyingBird(c: PixelCanvas, bird: Bird, k: Double, wy: Double, x0: Int, x1: Int, skyHeight: Int) {
+        val pose = birdPose(bird, k, wy, x0, x1) ?: return
+        if (pose.y < -skyHeight) return
+        pose.sprite.draw(c, pose.x, pose.y, flip = bird.dir < 0)
     }
 
     /** The mockup's `line(x0, x1, y, 5)`, halved: a sagging wire, a pixel a column. */
@@ -462,6 +517,16 @@ internal class RailwayScene(seed: Int) {
 
         /** How high above the strip the birds climb, logical pixels. */
         const val SKY = 22.0
+
+        /** How far above the strip anything may show: the birds at [SKY] and their wings. */
+        val SKY_REACH: Int = SKY.toInt() + 2 * RailSprites.FINCH_GLIDE.h
+
+        /** The barrier stops moving on the screen once it is this close to up. */
+        private const val ARM_STILL = 0.001
+
+        /** [Damage] for what spans columns [x0] to [x1] from row [top] down, a pixel more around for rounding. */
+        private fun box(x0: Double, x1: Double, top: Double) =
+            Damage(floor(x0).toInt() - 1, ceil(x1).toInt() + 1, floor(top).toInt() - 1)
 
         /** The mockup's `sagAt` with its sag of 5, halved to 3. */
         private fun sagAt(xa: Int, xb: Int, y: Int, x: Double): Double =

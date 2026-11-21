@@ -204,8 +204,14 @@ internal class YardScene(seed: Int) {
             }
             SleighState.PARK -> Unit
         }
-        if ((sl.state == SleighState.GO || sl.state == SleighState.BACK) && random.nextDouble() < dt * SPARKS_PER_SECOND) {
-            sparks += Particle(sl.x + 1, g.gyAt(sl.x + 15) - lift(g, sl) - 1 - random.nextDouble() * 3, 0.0, 0.0, .6, JinglePalette.FAR_SNOW)
+        if (sl.state == SleighState.GO || sl.state == SleighState.BACK) {
+            // As many as the mockup throws in the time, spread along the way the sleigh came in this step.
+            val due = dt * SPARKS_PER_SECOND
+            val count = floor(due).toInt() + if (random.nextDouble() < due - floor(due)) 1 else 0
+            for (i in 0 until count) {
+                val x = sl.x + 1 - sl.v * dt * i / count
+                sparks += Particle(x, g.gyAt(x + 14) - lift(g, sl) - 1 - random.nextDouble() * 3, 0.0, 0.0, .6, JinglePalette.FAR_SNOW)
+            }
         }
 
         // elves: take from the chute pile, carry to the sleigh
@@ -393,6 +399,9 @@ internal class YardScene(seed: Int) {
 
     /** Whether the sleigh is away at the snowman's pile. */
     val away: Boolean get() = sleigh?.state == SleighState.AWAY
+
+    /** Whether the sleigh is flying off or back, up to 60 pixels a second: then the yard needs the smooth clock. */
+    val isFast: Boolean get() = sleigh?.state.let { it == SleighState.GO || it == SleighState.BACK }
 
     /** The visit by the snowman is over: the sleigh comes back from the left with [cargo] gifts. */
     fun comeBack(cargo: Int) {

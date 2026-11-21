@@ -9,6 +9,7 @@ import com.intellij.openapi.ui.Painter
 import com.intellij.openapi.wm.IdeGlassPaneUtil
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.scale.JBUIScale
+import com.intellij.util.ui.JBUI
 import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleFeature
 import io.github.ioannvs.jinglecode.editor.EditorForeground
@@ -210,13 +211,17 @@ internal class EditorVillage(
         val gutter = gutter ?: return
         if (!isOn() || editor.isDisposed || !gutter.isShowing) return
         val root = SwingUtilities.getRootPane(gutter) ?: return
-        val ground = groundIn(root) ?: return
         val visible = SwingUtilities.convertRectangle(gutter, gutter.visibleRect, glass)
         if (visible.isEmpty) return
+        // Most glass pane repaints are the overlay's strips elsewhere in the frame: let them go before
+        // looking for the ground, which goes through all tool windows. The village stays within the gutter
+        // and the editor's scroll pane, a little below it at most.
+        val clipBounds = g.clipBounds
+        if (clipBounds != null && !reach(glass, visible).intersects(clipBounds)) return
+        val ground = groundIn(root) ?: return
         val clip = Area(visible)
         underView()?.let { (_, r) -> clip.add(Area(SwingUtilities.convertRectangle(root, r, glass))) }
-        // Most glass pane repaints are the overlay's strips elsewhere in the frame.
-        g.clipBounds?.let { if (!clip.intersects(it)) return }
+        if (clipBounds != null && !clip.intersects(clipBounds)) return
         // The editor's own side is cut by the island's rounded body; the glass pane is above the island,
         // and the gutter reaches into its border under the garland, so it is cut to the body here.
         val body = editorBody(root)
@@ -236,6 +241,17 @@ internal class EditorVillage(
         finally {
             g2.dispose()
         }
+    }
+
+    /**
+     * Where [paintOverGutter] may paint, [glass] coordinates: the gutter's [visible] part and the scroll pane,
+     * down to as far below it as the ground may be ([FrameGeometry.ground]).
+     */
+    private fun reach(glass: Component, visible: Rectangle): Rectangle {
+        val pane = (editor as? EditorEx)?.scrollPane ?: return visible
+        val bounds = SwingUtilities.convertRectangle(pane.parent, pane.bounds, glass)
+        bounds.height += JBUI.scale(GROUND_SLACK)
+        return bounds.union(visible)
     }
 
     /** Copies the picture with its bottom left corner at ([left], [bottom]), user space of [g]. */
@@ -308,5 +324,8 @@ internal class EditorVillage(
 
         /** How long a stove lit by a click smokes, milliseconds. */
         const val STOKE_MS = 8_000L
+
+        /** How far below the scroll pane the ground may be, unscaled pixels: more than `FrameGeometry`'s touch distance. */
+        const val GROUND_SLACK = 16
     }
 }

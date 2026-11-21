@@ -32,6 +32,7 @@ import java.awt.AWTEvent
 import java.awt.Component
 import java.awt.Graphics2D
 import java.awt.Rectangle
+import java.awt.Shape
 import java.awt.Toolkit
 import java.awt.event.AWTEventListener
 import java.awt.geom.Area
@@ -59,12 +60,14 @@ class FrameOverlay(private val project: Project) : Disposable {
     private val features = layers.map { it.feature }
 
     private var root: JRootPane? = null
-    private var lastDirty: List<Rectangle> = emptyList()
+
+    /** Where each layer was last repainted. */
+    private var lastDirty: Map<OverlayLayer, List<Rectangle>> = emptyMap()
     private var lastTick = -1L
 
     /**
-     * The last layout found. Glass pane repaints between frames (caret blink, typing) reuse it;
-     * it is found again on every frame and after any component is moved, resized, shown, hidden, added or removed.
+     * The last layout found. Everything between reuses it; it is found again after any component is moved,
+     * resized, shown, hidden, added or removed, and, to catch what that missed, every [LAYOUT_FRAMES] frames.
      */
     private var cachedLayout: FrameLayout? = null
     private val geometryListener = AWTEventListener { cachedLayout = null }
@@ -97,7 +100,8 @@ class FrameOverlay(private val project: Project) : Disposable {
             animator.subscribe(this, feature) { frame ->
                 if (frame.tick != lastTick) {
                     lastTick = frame.tick
-                    repaintLayers()
+                    if (frame.tick % LAYOUT_FRAMES == 0L) cachedLayout = null
+                    repaintLayers { !it.movesItself && changesOn(it, frame.tick) }
                     followMotion()
                 }
             }
@@ -109,10 +113,10 @@ class FrameOverlay(private val project: Project) : Disposable {
             }
         }
         // Santa's yard moves on the smooth clock too, like the mockup, and repaints only its strips.
-        animator.subscribeMotion(this, JingleFeature.SANTA_YARD) { dt -> moveYard(dt) }
+        animator.subscribeMotion(this, JingleFeature.SANTA_YARD, intervalMs = santaYard::intervalMs) { dt -> moveYard(dt) }
         ApplicationManager.getApplication().messageBus.connect(this)
-            .subscribe(FeatureGate.TOPIC, FeatureGate.Listener { repaintLayers() })
-        repaintLayers()
+            .subscribe(FeatureGate.TOPIC, FeatureGate.Listener { repaintAll() })
+        repaintAll()
         return true
     }
 
@@ -152,7 +156,10 @@ class FrameOverlay(private val project: Project) : Disposable {
         if (animating != null && motion == null) {
             val subscription = Disposer.newDisposable("Jingle Code overlay motion")
             Disposer.register(this, subscription)
-            JingleAnimator.getInstance(project).subscribeMotion(subscription, animating.feature) { repaintLayers() }
+            // Only what moves: the panels' snow and the rest stay as they are between frames.
+            JingleAnimator.getInstance(project).subscribeMotion(subscription, animating.feature) {
+                repaintLayers { it.isAnimating(project) }
+            }
             motion = subscription
         }
         else if (animating == null) {
@@ -167,20 +174,48 @@ class FrameOverlay(private val project: Project) : Disposable {
         return gate.guard(features, null) { FrameGeometry.find(project, rootPane) }?.also { cachedLayout = it }
     }
 
+    /** Each layer's [OverlayLayer.frameKey] at the last frame. */
+    private val lastKeys = HashMap<OverlayLayer, Long>()
+
+    /** Whether [layer] looks different on frame [tick] than on the last one. */
+    private fun changesOn(layer: OverlayLayer, tick: Long): Boolean {
+        val key = layer.frameKey(project, tick)
+        return lastKeys.put(layer, key) != key
+    }
+
+    /** Finds the layout again and repaints every layer: after the settings, the season or a breakdown change. */
+    private fun repaintAll() {
+        cachedLayout = null
+        repaintLayers { true }
+    }
+
     /**
-     * Repaints where the layers are now and where they were, so they never leave a trail.
+     * Repaints the layers that [repainted] picks where they are now and where they were, so they never leave
+     * a trail; the others only where their strips moved, so a strip that went away is wiped and a new one is drawn.
      *
      * Each strip is painted on its own: `repaint` would merge them into their bounding box, which is
      * nearly the whole frame, and the transparent glass pane would repaint the editor under it every frame.
      */
-    private fun repaintLayers() {
+    private fun repaintLayers(repainted: (OverlayLayer) -> Boolean) {
         val glassPane = root?.glassPane as? JComponent ?: return
-        cachedLayout = null
         val active = activeLayers()
         val layout = if (active.isNotEmpty()) layout() else null
         val scale = OverlayScale.current()
-        val dirty = layout?.let { l -> active.flatMap { it.dirtyRects(project, l, scale) } }.orEmpty()
-        withoutNested(lastDirty + dirty).forEach { glassPane.paintImmediately(it) }
+        val dirty = layout?.let { l -> active.associateWith { it.dirtyRects(project, l, scale) } }.orEmpty()
+        val rects = ArrayList<Rectangle>()
+        for (layer in layers) {
+            val was = lastDirty[layer].orEmpty()
+            val now = dirty[layer].orEmpty()
+            if (repainted(layer)) {
+                rects += was
+                rects += now
+            }
+            else {
+                was.filterTo(rects) { it !in now }
+                now.filterTo(rects) { it !in was }
+            }
+        }
+        withoutNested(rects).forEach { glassPane.paintImmediately(it) }
         lastDirty = dirty
     }
 
@@ -202,26 +237,39 @@ class FrameOverlay(private val project: Project) : Disposable {
             val clip = Area()
             strips.forEach { clip.add(Area(it)) }
             layout.occluders.forEach { clip.subtract(Area(it)) }
-            val g2 = g.create() as Graphics2D
-            try {
-                g2.clip(clip)
-                gate.guard(layer.feature, Unit) { layer.paint(g2, project, layout, scale, tick) }
-            }
-            finally {
-                g2.dispose()
-            }
+            // One rectangle at a time: under a clip of another shape the pixels go through a buffer as big as its bounds.
+            val pieces = ClipPieces.of(clip)?.filter { g.hitClip(it.x, it.y, it.width, it.height) }
+            if (pieces == null || pieces.size > MAX_PIECES) paintLayer(g, layer, clip, layout, scale, tick)
+            else pieces.forEach { paintLayer(g, layer, it, layout, scale, tick) }
+        }
+    }
+
+    private fun paintLayer(g: Graphics2D, layer: OverlayLayer, clip: Shape, layout: FrameLayout, scale: OverlayScale, tick: Long) {
+        val g2 = g.create() as Graphics2D
+        try {
+            g2.clip(clip)
+            gate.guard(layer.feature, Unit) { layer.paint(g2, project, layout, scale, tick) }
+        }
+        finally {
+            g2.dispose()
         }
     }
 
     override fun dispose() {
         // The painter is a child of this and is already gone: repaint the last strips to wipe the decorations off.
-        (root?.glassPane as? JComponent)?.let { glassPane -> lastDirty.forEach(glassPane::repaint) }
-        lastDirty = emptyList()
+        (root?.glassPane as? JComponent)?.let { glassPane -> lastDirty.values.flatten().forEach(glassPane::repaint) }
+        lastDirty = emptyMap()
         cachedLayout = null
         root = null
     }
 
     companion object {
+        /** About a second of frames. */
+        private const val LAYOUT_FRAMES = 7L
+
+        /** More pieces than this (popups all over a strip) are painted under one clip: each piece paints the whole layer. */
+        private const val MAX_PIECES = 12
+
         @JvmStatic
         fun getInstance(project: Project): FrameOverlay = project.service()
     }

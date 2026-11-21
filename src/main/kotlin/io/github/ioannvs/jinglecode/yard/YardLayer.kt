@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.UIUtil
+import io.github.ioannvs.jinglecode.animation.JingleAnimator
 import io.github.ioannvs.jinglecode.core.FeatureGate
 import io.github.ioannvs.jinglecode.core.JingleClock
 import io.github.ioannvs.jinglecode.core.JingleFeature
@@ -37,6 +38,9 @@ internal class YardLayer : OverlayLayer {
 
     private val scenes = HashMap<String, YardScene>()
 
+    /** The yards repaint themselves when they move, see [move]. */
+    override val movesItself = true
+
     /** The overlay's pixel (the garland size setting against the UI font), as the drift's. */
     private fun magnify(scale: OverlayScale): Float = scale.magnify
 
@@ -62,6 +66,12 @@ internal class YardLayer : OverlayLayer {
         val pixelUser = pixelUser(scale, JBUIScale.sysScale())
         return panels(layout, pixelUser).map { strip(it, pixelUser) }
     }
+
+    /**
+     * How often the yards move on, milliseconds: Santa and the elves walk 15 pixels a second, a pixel a step at
+     * 15 steps; the flying sleigh is four times as fast and needs the smooth clock.
+     */
+    fun intervalMs(): Int = if (scenes.values.any(YardScene::isFast)) JingleAnimator.MOTION_MS else JingleAnimator.SCENE_MOTION_MS
 
     /** Whether runs or builds go on, as the reactions show it: a new yard starts loading gifts at once then. */
     private var running = false

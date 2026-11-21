@@ -30,6 +30,8 @@ internal object IciclesLayer : OverlayLayer {
     private const val ROOT_SHARE = 0.3
     private const val LEDGE_SHARE = 0.6
 
+    override fun frameKey(project: Project, tick: Long): Long = iciclesFrameKey(project, tick)
+
     override fun dirtyRects(project: Project, layout: FrameLayout, scale: OverlayScale): List<Rectangle> {
         // One spare pixel for rounding to device pixels.
         val root = scale.user(ICICLE_ROOT + 1)
@@ -66,3 +68,7 @@ internal object IciclesLayer : OverlayLayer {
         }
     }
 }
+
+/** The tips glint every third frame (`t / 3` in [drawRootedIcicles]); while icicles fall and grow back, every frame. */
+internal fun iciclesFrameKey(project: Project, tick: Long): Long =
+    if (IcicleFalls.getInstance(project).current().isNotEmpty()) tick else tick / 3

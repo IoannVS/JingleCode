@@ -19,6 +19,6 @@ enum class SnowSpeed(val factor: Double) {
 
 /**
  * How often the snow moves on, milliseconds: 15 times a second. Every step repaints the code and the panels
- * under the flakes; 20 and 30 cost up to half as much CPU again and look no different on the pixel grid.
+ * under the flakes; 20 and 30 cost more and look no different on the pixel grid, 10 saved nothing measurable.
  */
 const val SNOW_INTERVAL_MS = 1000 / 15

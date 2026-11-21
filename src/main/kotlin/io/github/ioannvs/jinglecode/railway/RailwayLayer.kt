@@ -16,6 +16,8 @@ internal object RailwayLayer : OverlayLayer {
 
     override val feature = JingleFeature.RAILWAY
 
+    override val movesItself = true
+
     override fun dirtyRects(project: Project, layout: FrameLayout, scale: OverlayScale): List<Rectangle> =
         RailwayStrips.getInstance(project).stripRects()
 

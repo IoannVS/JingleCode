@@ -41,13 +41,7 @@ internal class RailwayStrips(private val project: Project) : Disposable {
     private val installed = HashMap<String, Installed>()
 
     /** A bottom window with our border: its content panel and the tool window's own component, which its island holds. */
-    private class Installed(val component: JComponent, val window: JComponent, val border: RailwayBorder) {
-        /** Something moved over the text on the last step: its sky needs one more repaint to wipe it off. */
-        var skyDirty = false
-
-        /** [RailwayScene.skyState] as last painted. */
-        var skyState = 0
-    }
+    private class Installed(val component: JComponent, val window: JComponent, val border: RailwayBorder)
 
     /**
      * The strips are painted on the frame's glass pane, over the window but under popups: they reach the island's
@@ -79,7 +73,7 @@ internal class RailwayStrips(private val project: Project) : Disposable {
     /** Where the overlay's strips and their birds may be, glass pane (root pane) coordinates. */
     fun stripRects(): List<Rectangle> {
         val glass = root?.glassPane ?: return emptyList()
-        return installed.mapNotNull { (id, entry) -> if (inOverlay(id)) entry.border.repaintRect(glass, sky = true) else null }
+        return installed.mapNotNull { (id, entry) -> if (inOverlay(id)) entry.border.repaintRect(glass) else null }
     }
 
     /**
@@ -107,6 +101,7 @@ internal class RailwayStrips(private val project: Project) : Disposable {
         ApplicationManager.getApplication().messageBus.connect(this)
             .subscribe(FeatureGate.TOPIC, FeatureGate.Listener { refresh() })
         // Trains move on the smooth clock; it runs only while the railway is on and the IDE is in front.
+        // At 30 a second: a train is on the track most of the time, and at 15 its 26 pixels a second step 2, 2, 1 and judder (Ivan).
         JingleAnimator.getInstance(project).subscribeMotion(this, JingleFeature.RAILWAY) { dt -> move(dt) }
     }
 
@@ -124,13 +119,9 @@ internal class RailwayStrips(private val project: Project) : Disposable {
                 relayout(entry)
                 entry.border.options = options
                 entry.border.step(dt, options)
-                // The lower part every step; the part over the text only when something changes there.
-                val busy = entry.border.scene.skyBusy()
-                val state = entry.border.scene.skyState()
-                val sky = busy || entry.skyDirty || state != entry.skyState
-                if (glass != null) entry.border.repaintRect(glass, sky)?.let { glass.repaint(it) }
-                entry.skyDirty = busy
-                entry.skyState = state
+                // Only where something changed, each part on its own: `repaint` would merge them into one across
+                // the window, and with the train always somewhere on the track that is most of the strip again.
+                if (glass != null && glass.isShowing) entry.border.damageRects(glass).forEach(glass::paintImmediately)
             }
         }
     }
@@ -199,7 +190,7 @@ internal class RailwayStrips(private val project: Project) : Disposable {
     }
 
     private fun repaintAll(border: RailwayBorder) {
-        (root?.glassPane as? JComponent)?.let { glass -> border.repaintRect(glass, sky = true)?.let(glass::repaint) }
+        (root?.glassPane as? JComponent)?.let { glass -> border.repaintRect(glass)?.let(glass::repaint) }
     }
 
     private fun uninstall(entry: Installed) {

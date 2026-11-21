@@ -66,6 +66,9 @@ class JingleAnimator(private val project: Project) : Disposable {
     private var lastInput = System.nanoTime()
     private var idle = false
 
+    /** Milliseconds since anyone last touched the keyboard or mouse anywhere in the IDE. */
+    val msSinceInput: Long get() = (System.nanoTime() - lastInput) / 1_000_000L
+
     // Only notes the time: it sees every mouse move in the IDE.
     private val inputListener = AWTEventListener {
         lastInput = System.nanoTime()

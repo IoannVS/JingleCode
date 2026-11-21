@@ -45,9 +45,11 @@
         <postStartupActivity implementation="io.github.ioannvs.jinglecode.popups.PopupSnowStartupActivity"/>
         <postStartupActivity implementation="io.github.ioannvs.jinglecode.railway.RailwayStartupActivity"/>
         <postStartupActivity implementation="io.github.ioannvs.jinglecode.hohoho.HoHoHoStartupActivity"/>
+        <postStartupActivity implementation="io.github.ioannvs.jinglecode.yeti.YetiStartupActivity"/>
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.snow.EditorSnowListener"/>
         <editorFactoryListener implementation="io.github.ioannvs.jinglecode.village.EditorVillageListener"/>
         <iw.actionProvider implementation="io.github.ioannvs.jinglecode.snow.EditorSnowWidgetActionProvider"/>
+        <notificationGroup id="Jingle Code" displayType="BALLOON"/>
         <statusBarWidgetFactory id="JingleCode.Fireplace"
                                 implementation="io.github.ioannvs.jinglecode.fireplace.FireplaceWidgetFactory"
                                 order="last"/>

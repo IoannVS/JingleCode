@@ -45,7 +45,13 @@ enum class JingleFeature(private val switch: (JingleCodeSettings.State) -> Boole
      * All easter eggs share one switch, so the settings don't give them away; each is its own feature,
      * so that one breaking turns off only itself.
      */
-    HO_HO_HO({ it.easterEggsEnabled });
+    HO_HO_HO({ it.easterEggsEnabled }),
+
+    /**
+     * Easter egg: now and then a yeti stands at the end of a line in an editor; a click and he waves, vanishes, his
+     * footprints run off along the line and a notification comes. The word `yeti` (`йети`) in a comment calls him.
+     */
+    YETI({ it.easterEggsEnabled });
 
     fun isEnabledIn(state: JingleCodeSettings.State): Boolean = switch(state)
 }

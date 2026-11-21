@@ -57,6 +57,9 @@ class PopupSnow(private val project: Project) : Disposable {
     /** Notifications shown lately; their balloons are the ones that get the holly. */
     private val notifications: MutableSet<Notification> = Collections.newSetFromMap(WeakHashMap())
 
+    /** Notifications Santa's yard gets no letter for: see [bringsNoLetter]. */
+    private val noLetter: MutableSet<Notification> = Collections.newSetFromMap(WeakHashMap())
+
     private val gate get() = FeatureGate.getInstance()
 
     private val windowListener = AWTEventListener { event ->
@@ -68,6 +71,11 @@ class PopupSnow(private val project: Project) : Disposable {
         override fun paint(component: Component, g: Graphics2D) = paintCaps(g)
         override fun addListener(listener: Painter.Listener) = Unit
         override fun removeListener(listener: Painter.Listener) = Unit
+    }
+
+    /** The bullfinch brings no letter to Santa's yard for [notification], the yeti's: call before it is notified. */
+    fun bringsNoLetter(notification: Notification) {
+        noLetter += notification
     }
 
     /** Hooks into the project frame; call on the EDT. False if the frame isn't there yet. */
@@ -88,7 +96,7 @@ class PopupSnow(private val project: Project) : Disposable {
             override fun notify(notification: Notification) {
                 notifications += notification
                 // Santa's yard gets a letter; only this package listens to notifications (ArchitectureTest).
-                JingleEvents.publish(project, JingleEvent.Notification)
+                if (notification !in noLetter) JingleEvents.publish(project, JingleEvent.Notification)
                 queueRefresh()
             }
         }

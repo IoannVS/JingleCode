@@ -200,4 +200,9 @@ object JinglePalette {
     @JvmField val PINK = c(0xe98fa8)
     @JvmField val SACK_SHADE = c(0xa8845a)
     @JvmField val LETTER_YELLOW = c(0xf3e2a8)
+
+    // The yeti (the mockup's `yeti` colours: `W`, `F`; his eyes are COAL); his footprints are ICE_TIP
+    @JvmField val YETI_FUR = c(0xe8eef6)
+    @JvmField val YETI_FACE = c(0x7fa6d6)
+    @JvmField val YETI_CLAW = c(0x9aa3ad)
 }
